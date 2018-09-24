@@ -24,5 +24,5 @@ urlpatterns = [
     url(r'^accounts/login/$', login, name='login'),
     url(r'^accounts/logout/$', logout, name='logout'),
     url(r'^password_reset/$', login, name='password_reset'),
-	url(r'^home/$', Home.as_view(template_name='index.html'), name='index'),
+	url(r'^$', Home.as_view(template_name='index.html'), name='index'),
 ]

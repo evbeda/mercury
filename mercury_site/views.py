@@ -15,7 +15,6 @@ class Home(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
-        context['user'] = self.request.user
         eventbrite = Eventbrite(get_auth_token(self.request.user))
         context['events'] = eventbrite.get('/users/me/events/')['events']
         return context
