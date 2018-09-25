@@ -36,6 +36,13 @@ class Event(models.Model):
 
 
 class Order(models.Model):
+
+    MERCH_STATUS = (
+        ('CO', 'Completed'),
+        ('PA', 'Partial'),
+        ('PE', 'Pending'),
+    )
+
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE
@@ -46,6 +53,11 @@ class Order(models.Model):
     name = models.CharField(max_length=256)
     status = models.CharField(max_length=32)
     email = models.EmailField(max_length=256)
+    merch_status = models.CharField(
+        max_length=2,
+        choices=MERCH_STATUS,
+        default='PE',
+    )
 
 
 class Merchandise(models.Model):
@@ -57,3 +69,4 @@ class Merchandise(models.Model):
     item_type = models.CharField(max_length=128)
     currency = models.CharField(max_length=16)
     value = models.IntegerField()
+    delivered = models.BooleanField(default=False)
