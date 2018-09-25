@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'social_django',
     'bootstrap4',
+    'mercury_app',
 ]
 
 MIDDLEWARE = [
