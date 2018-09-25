@@ -24,7 +24,15 @@ class Home(TemplateView, LoginRequiredMixin):
         for organization in organizations:
             events['events'].extend(eventbrite.get(
                 '/organizations/{}/events/'.format(organization['id']))['events'])
-        return events
+        paginator = Paginator(tuple(events['events']), 10)
+        page = self.request.GET.get('page')
+        try:
+            pagination = paginator.page(page)
+        except PageNotAnInteger:
+                pagination = paginator.page(1)
+        except EmptyPage:
+                pagination = paginator.page(paginator.num_pages)
+        return {'pagination' : pagination}
 
 
 def get_auth_token(user):
