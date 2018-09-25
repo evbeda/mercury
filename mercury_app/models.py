@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Organization(models.Model):
-    org_id = models.IntegerField()
+    eb_organization_id = models.IntegerField()
     name = models.CharField(max_length=128)
 
 
@@ -25,7 +25,7 @@ class Event(models.Model):
     )
     name = models.CharField(max_length=128)
     description = models.CharField(max_length=1024)
-    event_id = models.IntegerField()
+    eb_event_id = models.IntegerField(default=0)
     url = models.CharField(max_length=128)
     date_tz = models.CharField(max_length=64)
     start_date_utc = models.DateTimeField()
@@ -40,7 +40,7 @@ class Order(models.Model):
         Event,
         on_delete=models.CASCADE
     )
-    id_order = models.IntegerField()
+    eb_order_id = models.IntegerField()
     changed = models.DateTimeField()
     created = models.DateTimeField()
     name = models.CharField(max_length=256)
