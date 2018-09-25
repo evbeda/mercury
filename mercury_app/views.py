@@ -6,6 +6,7 @@ from social_django.models import UserSocialAuth
 from eventbrite import Eventbrite
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+
 @method_decorator(login_required, name='dispatch')
 class Home(TemplateView, LoginRequiredMixin):
 
@@ -17,8 +18,12 @@ class Home(TemplateView, LoginRequiredMixin):
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
         eventbrite = Eventbrite(get_auth_token(self.request.user))
-        page = self.request.GET.get('page')
-        events = eventbrite.get('/users/me/events/?page={}'.format(page))
+        organizations = eventbrite.get(
+            '/users/me/organizations')['organizations']
+        events = {'events': []}
+        for organization in organizations:
+            events['events'].extend(eventbrite.get(
+                '/organizations/{}/events/'.format(organization['id']))['events'])
         return events
 
 
