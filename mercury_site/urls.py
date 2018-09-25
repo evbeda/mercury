@@ -16,7 +16,6 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from django.contrib.auth.views import login, logout
-from mercury_site.views import Home
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -24,5 +23,5 @@ urlpatterns = [
     url(r'^accounts/login/$', login, name='login'),
     url(r'^accounts/logout/$', logout, name='logout'),
     url(r'^password_reset/$', login, name='password_reset'),
-	url(r'^home/$', Home.as_view(template_name='index.html'), name='index'),
+    url('', include('mercury_app.urls'))
 ]
