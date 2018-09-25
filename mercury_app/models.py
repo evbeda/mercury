@@ -3,17 +3,24 @@ from django.db import models
 
 
 class Organization(models.Model):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-    )
     org_id = models.IntegerField()
     name = models.CharField(max_length=128)
 
 
+class UserOrganization(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+    )
+
+
 class Event(models.Model):
-    organization_id = models.ForeignKey(
-        'Organization',
+    organization = models.ForeignKey(
+        Organization,
         on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=128)
@@ -29,8 +36,8 @@ class Event(models.Model):
 
 
 class Order(models.Model):
-    event_id = models.ForeignKey(
-        'Event',
+    event = models.ForeignKey(
+        Event,
         on_delete=models.CASCADE
     )
     id_order = models.IntegerField()
@@ -42,8 +49,8 @@ class Order(models.Model):
 
 
 class Merchandise(models.Model):
-    order_id = models.ForeignKey(
-        'Order',
+    order = models.ForeignKey(
+        Order,
         on_delete=models.CASCADE
     )
     name = models.CharField(max_length=256)
