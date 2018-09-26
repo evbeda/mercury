@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<div class="container">
-	<div class="row">
+<div id="fondo_sin_imagen" >
+  <div class="container">  
+   <div class="row">
     {% if message %}
     <div class="alert alert-success">{{ message }}</div>
     {% endif %}
     <table class="table">
+      <h1>Seleccionar eventos</h1>
       <thead class="thead-dark">
         <tr>
           <th scope="col">Name</th>
@@ -29,7 +30,6 @@
             <input type="submit" name="" value="Add" class="btn btn-success">
           </form>
         </td>
-
       </tr>
       {% endfor %}
       <tr>
@@ -42,15 +42,16 @@
   <div class = "row text-center">
     <div class="col-3"> </div>
     <div class="col-6">
-        {% if pagination.has_previous %}
-        <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-        {% endif %}
-          <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-        {% if pagination.has_next %}
-        <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-        {% endif %}
+      {% if pagination.has_previous %}
+      <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+      {% endif %}
+      <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+      {% if pagination.has_next %}
+      <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+      {% endif %}
     </div>
   </div>
+</div>
 </div>
 </div>
 {% endblock %}

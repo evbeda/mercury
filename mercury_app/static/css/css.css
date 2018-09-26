@@ -1,0 +1,37 @@
+#fondo{
+	background-image: url("../img/fondo_mercury.jpg");
+	background-size: cover;
+	min-height: 100vh;
+	background-attachment: fixed;
+}
+#fondo_sin_imagen{
+	background-size: cover;
+	min-height: 80vh;
+	background-attachment: fixed;
+}
+.dark-overlay{
+	background-color: rgba(0,0,0,0.4);
+	min-height: 100vh;
+}
+
+footer{
+	background-color: rgb(40,44,47);
+}
+footer{
+	padding-bottom: 3vh;
+	padding-top: 3vh;
+	color:white;
+}
+footer a{
+	color: rgb(1 ,161 ,165);
+}
+
+#first_form{
+	font-family: 'Raleway';
+	padding-top: 30vh;
+	color:white;
+	font-size: 3vh;
+}
+.topnavbar{
+	margin-bottom: 0;
+}
