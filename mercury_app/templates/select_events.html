@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">  
+	<div class="row">
+    {% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
+    <table class="table">
+      <thead class="thead-dark">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Date</th>
+          <th scope="col">View</th>
+        </tr>
+      </thead>
+      <tbody>
+       {% for event in pagination %}
+       <tr>
+        <td>{{ event.name.text }}</td>
+        <td>{{ event.start.local }}</td>
+        <td>
+          <form action="{% url 'select_events' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="id_event" value="{{ event.id }}">
+            <input type="submit" name="" value="add" class="btn btn-success">
+          </form>
+        </td>
+          
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class = "row text-center">
+    <div class="col-3"> </div>
+    <div class="col-6">
+        {% if pagination.has_previous %}
+        <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+        {% endif %}
+          <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+        {% endif %}
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
