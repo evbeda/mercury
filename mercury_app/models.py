@@ -3,7 +3,6 @@ from django.db import models
 
 
 class Organization(models.Model):
-
     eb_organization_id = models.BigIntegerField(unique=True, default=0)
     name = models.CharField(max_length=128)
 

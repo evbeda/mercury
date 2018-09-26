@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div class="container">  
+<div class="container">
 	<div class="row">
     {% if message %}
     <div class="alert alert-success">{{ message }}</div>
@@ -24,12 +24,19 @@
           <form action="{% url 'select_events' %}" method="POST">
             {% csrf_token %}
             <input type="hidden" name="id_event" value="{{ event.id }}">
-            <input type="submit" name="" value="add" class="btn btn-success">
+            <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
+            <input type="hidden" name="organization_name" value="Prueba">
+            <input type="submit" name="" value="Add" class="btn btn-success">
           </form>
         </td>
-          
+
       </tr>
       {% endfor %}
+      <tr>
+        <td></td>
+        <td></td>
+        <td><a href="{% url 'index' %}" class="btn btn-primary">Go back</a></td>
+      </tr>
     </tbody>
   </table>
   <div class = "row text-center">
