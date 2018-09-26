@@ -6,6 +6,9 @@ class Organization(models.Model):
     eb_organization_id = models.BigIntegerField(unique=True, default=0)
     name = models.CharField(max_length=128)
 
+    def __string__(self):
+        return self.name
+
 
 class UserOrganization(models.Model):
     user = models.ForeignKey(
@@ -34,6 +37,9 @@ class Event(models.Model):
     changed = models.DateTimeField()
     status = models.CharField(max_length=16)
 
+    def __string__(self):
+        return self.name
+
 
 class Order(models.Model):
 
@@ -58,6 +64,9 @@ class Order(models.Model):
         default='PE',
     )
 
+    def __string__(self):
+        return self.name
+
 
 class Merchandise(models.Model):
     order = models.ForeignKey(
@@ -69,3 +78,6 @@ class Merchandise(models.Model):
     currency = models.CharField(max_length=16)
     value = models.IntegerField()
     delivered = models.BooleanField(default=False)
+
+    def __string__(self):
+        return self.name
