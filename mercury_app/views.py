@@ -21,15 +21,12 @@ class Home(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
-        eventbrite = Eventbrite(get_auth_token(self.request.user))
-        user = self.request.user
-        organizations = Organization.objects.filter()
-        organizations = eventbrite.get(
-            '/users/me/organizations')['organizations']
-        events = {'events': []}
-        for organization in organizations:
-            events['events'].extend(eventbrite.get(
-                '/organizations/{}/events/'.format(organization['id']))['events'])
+        organizations_query = UserOrganization.objects.filter(
+            user=self.request.user
+        )
+        events = {'events': Event.objects.filter(
+            organization__in=[ user_organization.organization for user_organization in organizations_query ],
+        )}
         paginator = Paginator(tuple(events['events']), 10)
         page = self.request.GET.get('page')
         try:
@@ -38,9 +35,10 @@ class Home(TemplateView, LoginRequiredMixin):
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
-        return {'pagination': pagination}
+        return {'pagination': pagination, 'message': "TEST"}
 
 
+@method_decorator(login_required, name='dispatch')
 class SelectEvents(TemplateView, LoginRequiredMixin):
     template_name = 'select_events.html'
 
@@ -51,8 +49,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             '/users/me/organizations')['organizations']
         events = {'events': []}
         for organization in organizations:
-            events['events'].extend(eventbrite.get(
-                '/organizations/{}/events/'.format(organization['id']))['events'])
+            events['events'].extend(
+                eventbrite.get(
+                    '/organizations/{}/events/'.format(
+                        organization['id']))['events']
+            )
         paginator = Paginator(tuple(events['events']), 10)
         page = self.request.GET.get('page')
         try:
@@ -69,6 +70,18 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         evento = {'evento': []}
         evento['evento'] = eventbrite.get(
             '/events/{}'.format(self.request.POST.get('id_event')))
+        try:
+            org = Organization.objects.create(
+                eb_organization_id=self.request.POST.get('organization_id'),
+                name=self.request.POST.get('organization_name')
+            )
+            UserOrganization.objects.create(
+                organization_id=org.id,
+                user_id=self.request.user.id,
+            )
+        except Exception as e:
+            print(e)
+
         event = Event()
         org_id = evento['evento']['organization_id']
         organizacion = Organization.objects.get(eb_organization_id=org_id)
@@ -83,12 +96,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         event.created = evento['evento']['created']
         event.changed = evento['evento']['changed']
         event.status = evento['evento']['status']
-        print (event.eb_event_id)
         try:
             event.save()
             message = 'Se agrego el evento {}'.format(
                 evento['evento']['name']['text'])
-        except Exception as e:
+        except Exception:
             message = 'El evento ya existe'
         return redirect(reverse('index', kwargs={'message': message}))
 

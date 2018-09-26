@@ -2,8 +2,11 @@
 
 {% block content %}
 
-<div class="container">  
+<div class="container">
 	<div class="row">
+    {% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
     <table class="table">
       <thead class="thead-dark">
         <tr>
@@ -13,13 +16,19 @@
         </tr>
       </thead>
       <tbody>
+
        {% for event in pagination %}
        <tr>
-        <td>{{ event.name.text }}</td>
-        <td>{{ event.start.local }}</td>
-        <td><a href="#" class="btn btn-success">View</a></td>    
+        <td>{{ event.name }}</td>
+        <td>{{ event.start_date_utc }}</td>
+        <td><a href="#" class="btn btn-success">View</a></td>
       </tr>
       {% endfor %}
+      <tr>
+        <td>{% if not pagination %}You have no events{% endif %}</td>
+        <td></td>
+        <td><a href="{% url 'select_events' %}" class="btn btn-primary">Add</a></td>
+      </tr>
     </tbody>
   </table>
   <div class = "row text-center">
