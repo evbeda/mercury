@@ -18,7 +18,7 @@ def get_api_organization(token):
     Get organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    return eventbrite.get('/users/me/organizations')['organizations']
+    return eventbrite.get('/users/me/organizations').get('organizations')
 
 
 def get_api_events_org(token, organization):
@@ -26,7 +26,7 @@ def get_api_events_org(token, organization):
     Get events of one organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    return eventbrite.get('/organizations/{}/events/'.format(organization['id']))['events']
+    return eventbrite.get('/organizations/{}/events/'.format(organization['id'])).get('events')
 
 
 def get_api_events_id(token, request):

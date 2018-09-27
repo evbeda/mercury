@@ -69,7 +69,6 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         return {'pagination': pagination}
 
     def post(self, request, *args, **kwargs):
-
         token = get_auth_token(self.request.user)
         event = get_api_events_id(token, request)
         evento = {'evento': []}

@@ -14,6 +14,8 @@ omit =
     */settings/*,
     */wsgi.py,
     manage.py,
+    */middleware.py,
+    */apps.py,
 
 [report]
 exclude_lines =

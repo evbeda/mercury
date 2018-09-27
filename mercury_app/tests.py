@@ -11,6 +11,84 @@ from .models import (
 from mercury_app.views import Home
 from django.utils import timezone
 from django.urls import resolve
+from unittest.mock import patch
+import json
+
+
+MOCK_ORGANIZATION_API = {
+    "organizations": [{
+        "_type": "organization",
+        "name": "Mercury Team",
+        "vertical": "default",
+        "locale": None,
+        "image_id": None,
+        "id": "272770247903",
+    }],
+    "pagination": {
+        "continuation": "b2Zmc2V0LTE=",
+        "has_more_items": False,
+    },
+}
+MOCK_EVENT_API = {
+    "pagination": {
+        "object_count": 1,
+        "page_number": 1,
+        "page_size": 50,
+        "page_count": 1,
+        "has_more_items": False
+    },
+    "events": [{
+        "name": {"text": "Test event", "html": "Test event"},
+        "description": {"text": None, "html": None},
+        "id": "50452133690",
+        "url": "https://www.eventbrite.com/e/test-event-tickets-50452133690",
+        "start": {
+            "timezone": "America/Los_Angeles",
+            "local": "2018-10-29T19:00:00",
+            "utc": "2018-10-30T02:00:00Z"
+        },
+        "end": {
+            "timezone": "America/Los_Angeles",
+            "local": "2018-10-29T22:00:00",
+            "utc": "2018-10-30T05:00:00Z"
+        },
+        "organization_id": "272770247903",
+        "created": "2018-09-19T17:16:39Z",
+        "changed": "2018-09-24T15:06:49Z",
+        "capacity": 200,
+        "capacity_is_custom": False,
+        "status": "draft",
+        "currency": "USD",
+        "listed": False,
+        "shareable": True,
+        "invite_only": False,
+        "online_event": False,
+        "show_remaining": False,
+        "tx_time_limit": 480,
+        "hide_start_date": False,
+        "hide_end_date": False,
+        "locale": "en_US",
+        "is_locked": False,
+        "privacy_setting": "unlocked",
+        "is_series": False,
+        "is_series_parent": False,
+        "is_reserved_seating": False,
+        "show_pick_a_seat": False,
+        "show_seatmap_thumbnail": False,
+        "show_colors_in_seatmap_thumbnail": False,
+        "source": "create_2.0",
+        "is_free": False,
+        "version": "3.0.0",
+        "logo_id": None,
+        "organizer_id": "17867896837",
+        "venue_id": None,
+        "category_id": None,
+        "subcategory_id": None,
+        "format_id": None,
+        "resource_uri": "https://www.eventbriteapi.com/v3/events/50452133690/",
+        "is_externally_ticketed": False,
+        "logo": None
+    }]}
 
 
 class TestBase(TestCase):
@@ -133,6 +211,31 @@ class HomeViewTestWithouUser(TestCase):
 
     def test_home(self):
         response = self.client.get('/')
+        self.assertEqual(response.status_code, 302)
+
+
+class SelectEventsLoggedTest(TestBase):
+
+    def setUp(self):
+        super(SelectEventsLoggedTest, self).setUp()
+
+    @patch('mercury_app.views.get_api_organization', return_value=MOCK_ORGANIZATION_API.get('organizations'))
+    @patch('mercury_app.views.get_api_events_org', return_value=MOCK_EVENT_API.get('events'))
+    def test_screen_with_one_event(self, mock_get_api_events_org, mock_get_api_organization):
+        response = self.client.get('/select_events/')
+        self.assertEqual(response.status_code, 200)
+
+    @patch('mercury_app.views.get_api_events_id', return_value=MOCK_EVENT_API.get('events')[0])
+    def test_add_event(self, mock_get_api_events_id):
+        response = self.client.post('/select_events/', {'organization_id': '1234', 'organization_name': 'TestOrg'})
+        event = Event.objects.get(eb_event_id=MOCK_EVENT_API.get('events')[0].get('id'))
+        self.assertTrue(isinstance(event, Event))
+        self.assertEqual(response.status_code, 302)
+
+class SelectEventsRedirectTest(TestCase):
+
+    def test_redirect(self):
+        response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 302)
 
 
