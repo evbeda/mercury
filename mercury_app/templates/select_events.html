@@ -26,7 +26,7 @@
             {% csrf_token %}
             <input type="hidden" name="id_event" value="{{ event.id }}">
             <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
-            <input type="hidden" name="organization_name" value="Prueba">
+            <input type="hidden" name="organization_name" value="{{ event.org_name }}">
             <input type="submit" name="" value="Add" class="btn btn-success">
           </form>
         </td>
