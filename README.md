@@ -1,31 +1,34 @@
-# mercury
+# mercury  
 
-Travis
-[![Build Status](https://travis-ci.org/evbeda/mercury.svg?branch=master)](https://travis-ci.org/evbeda/mercury)
+Travis  
+[![Build Status](https://travis-ci.org/evbeda/mercury.svg?branch=master)](https://travis-ci.org/evbeda/mercury)  
 
-Getting Started
-We assume that you have already created and activated a virtual environment
+Coverage  
+[![Coverage Status](https://coveralls.io/repos/github/evbeda/mercury/badge.svg?branch=master)](https://coveralls.io/github/evbeda/mercury?branch=master)  
 
-clone
+Getting Started  
+We assume that you have already created and activated a virtual environment  
+
+clone  
 `git clone https://github.com/evbeda/mercury.git`
 
-install requeriments
+install requeriments  
 
 `(env) $ pip install -r requeriments.txt`
 
-set environment
+set environment  
 
-`(env) $ export DATABASE=postgres://user:password@localhost:5432/db`
-`(env) $ export SOCIAL_AUTH_EVENTBRITE_SECRET=secret`
-`(env) $ export SOCIAL_AUTH_EVENTBRITE_KEY=key`
+`(env) $ export DATABASE=postgres://user:password@localhost:5432/db`  
+`(env) $ export SOCIAL_AUTH_EVENTBRITE_SECRET=secret`  
+`(env) $ export SOCIAL_AUTH_EVENTBRITE_KEY=key`  
 
-run local server
+run local server  
 
-`(env) $ python manage.py runserver`
+`(env) $ python manage.py runserver`  
 
-login with Eventbrite in your localhost
+login with Eventbrite in your localhost  
 
-http://localhost:8000/
+http://localhost:8000/  
 
 
 
