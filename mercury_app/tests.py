@@ -8,7 +8,9 @@ from .models import (
     Order,
     Merchandise,
 )
+from mercury_app.views import Home
 from django.utils import timezone
+from django.urls import resolve
 
 
 class TestBase(TestCase):
@@ -37,9 +39,101 @@ class HomeViewTest(TestBase):
     def setUp(self):
         super(HomeViewTest, self).setUp()
 
-    def test_home(self):
+    def test_home_status_code(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
+
+    def test_home_charset(self):
+        response = self.client.get('/')
+        self.assertEqual(response.charset, "utf-8")
+
+    def test_home_status_code_two(self):
+        response = self.client.get('')
+        self.assertEqual(response.status_code, 200)
+
+    def test_home_resolve_home_class_view(self):
+        found = resolve('/')
+        self.assertEquals(found.func.view_class, Home)
+
+    def test_home_resolve_home_not_args(self):
+        found = resolve('/')
+        self.assertEquals(found.args, ())
+
+    def test_home_resolve_home_kwargs_empty(self):
+        found = resolve('/')
+        self.assertEquals(found.kwargs, {'message': None})
+
+    def test_home_resolve_home_kwargs_message_full(self):
+        found = resolve('/Welcome')
+        self.assertEquals(found.kwargs, {'message': "Welcome"})
+
+    def test_home_url_name(self):
+        found = resolve('/')
+        self.assertEqual(found.url_name, 'index')
+
+    def test_home_none_entry(self):
+        response = self.client.get('/')
+        self.assertNotContains(response, "class='btn btn-success'>View</a>")
+        self.assertContains(response, 'Add')
+
+    def test_home_one_entry(self):
+        org = Organization.objects.create(
+            eb_organization_id=1, name='test_organization')
+        Event.objects.create(organization=org,
+                             name="Evento",
+                             description="description",
+                             eb_event_id=1,
+                             date_tz="America/Argentina/Mendoza",
+                             start_date_utc="2018-10-22T22:00:09Z",
+                             end_date_utc="2018-10-22T22:00:09Z",
+                             created="2017-11-23 23:33:57-03",
+                             changed="2017-11-23 23:33:57-03",
+                             status="completed",
+                             )
+        response = self.client.get('/')
+        self.assertContains(response, 'Evento')
+        self.assertContains(response, 'View')
+        self.assertContains(response, 'Add')
+
+    def test_home_two_entry(self):
+        org = Organization.objects.create(
+            eb_organization_id=1, name='test_organization')
+        Event.objects.create(organization=org,
+                             name="Evento",
+                             description="description",
+                             eb_event_id=1,
+                             date_tz="America/Argentina/Mendoza",
+                             start_date_utc="2018-10-22T22:00:09Z",
+                             end_date_utc="2018-10-22T22:00:09Z",
+                             created="2017-11-23 23:33:57-03",
+                             changed="2017-11-23 23:33:57-03",
+                             status="completed",
+                             )
+        Event.objects.create(organization=org,
+                             name="ev",
+                             description="description nueva",
+                             eb_event_id=2,
+                             date_tz="America/Argentina/Cordoba",
+                             start_date_utc="2017-10-22T22:00:09Z",
+                             end_date_utc="2017-10-22T22:00:09Z",
+                             created="2016-11-23 23:33:57-03",
+                             changed="2016-11-23 23:33:57-03",
+                             status="completed",
+                             )
+        response = self.client.get('/')
+        self.assertContains(response, 'Evento')
+        self.assertContains(response, 'ev')
+        self.assertContains(response, 'View')
+        self.assertContains(response, 'Add')
+
+class HomeViewTestWithouUser(TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_home(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 302)
 
 
 class OrganizationModelTest(TestCase):
