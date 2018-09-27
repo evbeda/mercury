@@ -35,7 +35,7 @@ class Home(TemplateView, LoginRequiredMixin):
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
-        return {'pagination': pagination, 'message': "TEST"}
+        return {'pagination': pagination}
 
 
 @method_decorator(login_required, name='dispatch')
@@ -76,12 +76,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
                 name=self.request.POST.get('organization_name')
             )
             UserOrganization.objects.create(
-                organization_id=org.id,
-                user_id=self.request.user.id,
+                organization=org,
+                user=self.request.user,
             )
         except Exception as e:
             print(e)
-
         event = Event()
         org_id = evento['evento']['organization_id']
         organizacion = Organization.objects.get(eb_organization_id=org_id)
