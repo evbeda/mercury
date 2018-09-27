@@ -35,7 +35,8 @@ class Home(TemplateView, LoginRequiredMixin):
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
-        return {'pagination': pagination, 'message': "TEST"}
+        message = self.request.GET.get('message')
+        return {'pagination': pagination, 'message' : message}
 
 
 @method_decorator(login_required, name='dispatch')
@@ -49,10 +50,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             '/users/me/organizations')['organizations']
         events = {'events': []}
         for organization in organizations:
+            event = eventbrite.get('/organizations/{}/events/'.format(organization['id']))['events']
+            for e in event:
+                e['org_name'] = organization['name']
             events['events'].extend(
-                eventbrite.get(
-                    '/organizations/{}/events/'.format(
-                        organization['id']))['events']
+                event
             )
         paginator = Paginator(tuple(events['events']), 10)
         page = self.request.GET.get('page')
@@ -76,12 +78,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
                 name=self.request.POST.get('organization_name')
             )
             UserOrganization.objects.create(
-                organization_id=org.id,
-                user_id=self.request.user.id,
+                organization=org,
+                user=self.request.user,
             )
         except Exception as e:
             print(e)
-
         event = Event()
         org_id = evento['evento']['organization_id']
         organizacion = Organization.objects.get(eb_organization_id=org_id)
