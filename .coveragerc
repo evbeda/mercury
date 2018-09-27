@@ -1,0 +1,24 @@
+[run]
+source =
+  mercury_app
+  mercury_site
+omit =
+    env/*
+    */test*
+    manage.py
+    mercury_site/wsgi.py
+    kazienenv/*
+    */tests/*,
+    */migrations/*,
+    */urls.py,
+    */settings/*,
+    */wsgi.py,
+    manage.py,
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def setUp
+    def test_
+    return raw_input
+    if __name__ == '__main__':
