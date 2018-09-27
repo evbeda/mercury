@@ -122,7 +122,6 @@ DATABASES = {
         'NAME': 'mercury',
         'USER': 'name',
         'PASSWORD': '',
-        'HOST': 'localhost',
         'PORT': '',
     }
 }

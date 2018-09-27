@@ -2,8 +2,6 @@ from django.views.generic.base import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from social_django.models import UserSocialAuth
-from eventbrite import Eventbrite
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -11,8 +9,13 @@ from mercury_app.models import (
     Organization,
     UserOrganization,
     Event,
-    Order,
-    Merchandise)
+)
+from .utils import (
+    get_auth_token,
+    get_api_organization,
+    get_api_events_org,
+    get_api_events_id
+)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -36,7 +39,7 @@ class Home(TemplateView, LoginRequiredMixin):
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
         message = self.request.GET.get('message')
-        return {'pagination': pagination, 'message' : message}
+        return {'pagination': pagination, 'message': message}
 
 
 @method_decorator(login_required, name='dispatch')
@@ -45,12 +48,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SelectEvents, self).get_context_data(**kwargs)
-        eventbrite = Eventbrite(get_auth_token(self.request.user))
-        organizations = eventbrite.get(
-            '/users/me/organizations')['organizations']
+        token = get_auth_token(self.request.user)
+        organizations = get_api_organization(token)
         events = {'events': []}
         for organization in organizations:
-            event = eventbrite.get('/organizations/{}/events/'.format(organization['id']))['events']
+            event = get_api_events_org(token, organization)
             for e in event:
                 e['org_name'] = organization['name']
             events['events'].extend(
@@ -68,24 +70,23 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
 
     def post(self, request, *args, **kwargs):
 
-        eventbrite = Eventbrite(get_auth_token(self.request.user))
+        token = get_auth_token(self.request.user)
+        event = get_api_events_id(token, request)
         evento = {'evento': []}
-        evento['evento'] = eventbrite.get(
-            '/events/{}'.format(self.request.POST.get('id_event')))
+        evento['evento'] = get_api_events_id(token, request)
+        org_id = self.request.POST.get('organization_id')
         try:
-            org = Organization.objects.create(
-                eb_organization_id=self.request.POST.get('organization_id'),
+            organizacion = Organization.objects.get(eb_organization_id=org_id)
+        except Organization.DoesNotExist:
+            organizacion = Organization.objects.create(
+                eb_organization_id=org_id,
                 name=self.request.POST.get('organization_name')
             )
             UserOrganization.objects.create(
-                organization=org,
+                organization=organizacion,
                 user=self.request.user,
             )
-        except Exception as e:
-            print(e)
         event = Event()
-        org_id = evento['evento']['organization_id']
-        organizacion = Organization.objects.get(eb_organization_id=org_id)
         event.organization = organizacion
         event.name = evento['evento']['name']['text']
         event.description = evento['evento']['description']['text']
@@ -104,13 +105,3 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         except Exception:
             message = 'El evento ya existe'
         return redirect(reverse('index', kwargs={'message': message}))
-
-
-def get_auth_token(user):
-    try:
-        token = user.social_auth.get(
-            provider='eventbrite'
-        ).access_token
-    except UserSocialAuth.DoesNotExist:
-        print ('UserSocialAuth does not exists!')
-    return token
