@@ -3,7 +3,11 @@ from django.db import models
 
 
 class Organization(models.Model):
-    eb_organization_id = models.CharField(max_length=40, unique=True, default=0)
+    eb_organization_id = models.CharField(
+        max_length=40,
+        unique=True,
+        default=0,
+    )
     name = models.CharField(max_length=128)
 
     def __string__(self):
@@ -27,8 +31,16 @@ class Event(models.Model):
         on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=128)
-    description = models.CharField(max_length=1024, null=True, blank=True)
-    eb_event_id = models.CharField(max_length=40, default=0, unique=True)
+    description = models.CharField(
+        max_length=1024,
+        null=True,
+        blank=True,
+    )
+    eb_event_id = models.CharField(
+        max_length=40,
+        default=0,
+        unique=True,
+    )
     url = models.CharField(max_length=128)
     date_tz = models.CharField(max_length=64)
     start_date_utc = models.DateTimeField()
@@ -52,7 +64,10 @@ class Order(models.Model):
         Event,
         on_delete=models.CASCADE
     )
-    eb_order_id = models.BigIntegerField(unique=True, default=0)
+    eb_order_id = models.BigIntegerField(
+        unique=True,
+        default=0,
+    )
     changed = models.DateTimeField()
     created = models.DateTimeField()
     name = models.CharField(max_length=256)
@@ -73,9 +88,11 @@ class Merchandise(models.Model):
         Order,
         on_delete=models.CASCADE
     )
+    eb_merchandising_id = models.CharField(max_length=8, default=0)
     name = models.CharField(max_length=256)
     item_type = models.CharField(max_length=128)
-    currency = models.CharField(max_length=16)
+    currency = models.CharField(max_length=3)
+    quantity = models.IntegerField(default=0)
     value = models.CharField(max_length=16)
     delivered = models.BooleanField(default=False)
 

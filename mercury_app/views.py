@@ -17,51 +17,46 @@ from .utils import (
     get_api_organization,
     get_api_events_org,
     get_api_events_id,
-    get_api_orders_of_event
+    get_api_orders_of_event,
+    get_events_for_organizations,
+    get_db_event_by_id,
+    get_db_merchandising_by_order_id,
+    get_db_orders_by_event,
+    get_db_events_by_organization,
+    get_db_or_create_organization_by_id,
+    create_userorganization_assoc,
+    create_event_orders_from_api,
+    create_event_from_api,
+
 )
 
-class ListItemMercha(TemplateView, LoginRequiredMixin):
-    template_name = "list_item_mercha.html"
+
+@method_decorator(login_required, name='dispatch')
+class ListItemMerchandising(TemplateView, LoginRequiredMixin):
+    template_name = 'list_item_mercha.html'
 
     def get_context_data(self, **kwargs):
-        context = super(ListItemMercha, self).get_context_data(**kwargs)
-        mercha = Merchandise.objects.filter(order=kwargs["order_id"])
-        return {"merchas": mercha}
+        context = super(ListItemMerchandising, self).get_context_data(**kwargs)
+        context['merchandising'] = get_db_merchandising_by_order_id(
+            kwargs['order_id']
+        )
+        return context
 
+
+@method_decorator(login_required, name='dispatch')
 class OrderList(TemplateView, LoginRequiredMixin):
-    template_name = "orders.html"
+    template_name = 'orders.html'
 
     def get_context_data(self, **kwargs):
         context = super(OrderList, self).get_context_data(**kwargs)
         event_id = self.kwargs['event_id']
-        event = Event.objects.get(eb_event_id = event_id)
+        event = get_db_event_by_id(event_id)
         token = get_auth_token(self.request.user)
         orders = get_api_orders_of_event(token, event_id)
-        for order in orders:
-            if order.get("merchandise"):
-                try:
-                    order_creation = Order.objects.create(
-                        event = event,
-                        eb_order_id = order["id"],
-                        created= order["created"],
-                        changed= order["changed"],
-                        name= order["name"],
-                        status= order["status"],
-                        email= order["email"],
-                    )
-                except Exception as e:
-                    print(e)
-                for item in order["merchandise"]:
-                    try:
-                        Merchandise.objects.create(
-                            order=order_creation,
-                            name=  item["name"],
-                            item_type= "",
-                            value= item["costs"]["gross"]["major_value"],
-                        )
-                    except Exception as e:
-                        print(e)
-        return {"orders": Order.objects.filter(event=event).all()}
+        create_event_orders_from_api(event, orders)
+        context['orders'] = get_db_orders_by_event(event)
+        return context
+
 
 @method_decorator(login_required, name='dispatch')
 class Home(TemplateView, LoginRequiredMixin):
@@ -69,22 +64,19 @@ class Home(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
-        organizations_query = UserOrganization.objects.filter(
-            user=self.request.user
-        )
-        events = {'events': Event.objects.filter(
-            organization__in=[ user_organization.organization for user_organization in organizations_query ],
-        )}
-        paginator = Paginator(tuple(events['events']), 10)
+        events = {'events': get_db_events_by_organization(self.request.user)}
+        message = self.request.GET.get('message')
         page = self.request.GET.get('page')
+        paginator = Paginator(tuple(events['events']), 10)
         try:
             pagination = paginator.page(page)
         except PageNotAnInteger:
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
-        message = self.request.GET.get('message')
-        return {'pagination': pagination, 'message': message}
+        context['pagination'] = pagination
+        context['message'] = message
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -95,14 +87,10 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         context = super(SelectEvents, self).get_context_data(**kwargs)
         token = get_auth_token(self.request.user)
         organizations = get_api_organization(token)
-        events = {'events': []}
-        for organization in organizations:
-            event = get_api_events_org(token, organization)
-            for e in event:
-                e['org_name'] = organization['name']
-            events['events'].extend(
-                event
-            )
+        events = {'events': get_events_for_organizations(
+            organizations,
+            self.request.user,
+        )}
         paginator = Paginator(tuple(events['events']), 10)
         page = self.request.GET.get('page')
         try:
@@ -111,41 +99,16 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
-        return {'pagination': pagination}
+        context['pagination'] = pagination
+        return context
 
     def post(self, request, *args, **kwargs):
         token = get_auth_token(self.request.user)
-        event = get_api_events_id(token, request)
-        evento = {'evento': []}
-        evento['evento'] = get_api_events_id(token, request)
+        events = {'events': []}
+        events['events'] = get_api_events_id(token, request)
         org_id = self.request.POST.get('organization_id')
-        try:
-            organizacion = Organization.objects.get(eb_organization_id=org_id)
-        except Organization.DoesNotExist:
-            organizacion = Organization.objects.create(
-                eb_organization_id=org_id,
-                name=self.request.POST.get('organization_name')
-            )
-            UserOrganization.objects.create(
-                organization=organizacion,
-                user=self.request.user,
-            )
-        event = Event()
-        event.organization = organizacion
-        event.name = evento['evento']['name']['text']
-        event.description = evento['evento']['description']['text']
-        event.eb_event_id = evento['evento']['id']
-        event.url = evento['evento']['url']
-        event.date_tz = evento['evento']['start']['timezone']
-        event.start_date_utc = evento['evento']['start']['utc']
-        event.end_date_utc = evento['evento']['end']['utc']
-        event.created = evento['evento']['created']
-        event.changed = evento['evento']['changed']
-        event.status = evento['evento']['status']
-        try:
-            event.save()
-            message = 'Se agrego el evento {}'.format(
-                evento['evento']['name']['text'])
-        except Exception:
-            message = 'El evento ya existe'
+        org_name = self.request.POST.get('organization_name')
+        org = get_db_or_create_organization_by_id(org_id, org_name)
+        create_userorganization_assoc(org[0], self.request.user)
+        message = create_event_from_api(org[0], events['events'])
         return redirect(reverse('index', kwargs={'message': message}))
