@@ -76,7 +76,7 @@ class Merchandise(models.Model):
     name = models.CharField(max_length=256)
     item_type = models.CharField(max_length=128)
     currency = models.CharField(max_length=16)
-    value = models.IntegerField()
+    value = models.CharField(max_length=16)
     delivered = models.BooleanField(default=False)
 
     def __string__(self):

@@ -20,6 +20,15 @@ def get_api_organization(token):
     eventbrite = Eventbrite(token)
     return eventbrite.get('/users/me/organizations').get('organizations')
 
+def get_api_orders_of_event(token, event_id):
+
+    """
+    Get organization from the user of the token from the api
+    """
+    eventbrite = Eventbrite(token)
+    url = "/events/{}/orders/?".format(event_id)
+    return eventbrite.get(url, expand=('merchandise',))['orders']
+
 
 def get_api_events_org(token, organization):
     """

@@ -9,14 +9,59 @@ from mercury_app.models import (
     Organization,
     UserOrganization,
     Event,
+    Order,
+    Merchandise,
 )
 from .utils import (
     get_auth_token,
     get_api_organization,
     get_api_events_org,
-    get_api_events_id
+    get_api_events_id,
+    get_api_orders_of_event
 )
 
+class ListItemMercha(TemplateView, LoginRequiredMixin):
+    template_name = "list_item_mercha.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ListItemMercha, self).get_context_data(**kwargs)
+        mercha = Merchandise.objects.filter(order=kwargs["order_id"])
+        return {"merchas": mercha}
+
+class OrderList(TemplateView, LoginRequiredMixin):
+    template_name = "orders.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(OrderList, self).get_context_data(**kwargs)
+        event_id = self.kwargs['event_id']
+        event = Event.objects.get(eb_event_id = event_id)
+        token = get_auth_token(self.request.user)
+        orders = get_api_orders_of_event(token, event_id)
+        for order in orders:
+            if order.get("merchandise"):
+                try:
+                    order_creation = Order.objects.create(
+                        event = event,
+                        eb_order_id = order["id"],
+                        created= order["created"],
+                        changed= order["changed"],
+                        name= order["name"],
+                        status= order["status"],
+                        email= order["email"],
+                    )
+                except Exception as e:
+                    print(e)
+                for item in order["merchandise"]:
+                    try:
+                        Merchandise.objects.create(
+                            order=order_creation,
+                            name=  item["name"],
+                            item_type= "",
+                            value= item["costs"]["gross"]["major_value"],
+                        )
+                    except Exception as e:
+                        print(e)
+        return {"orders": Order.objects.filter(event=event).all()}
 
 @method_decorator(login_required, name='dispatch')
 class Home(TemplateView, LoginRequiredMixin):
