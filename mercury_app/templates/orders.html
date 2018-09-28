@@ -6,7 +6,7 @@
     <div class="alert alert-success">{{ message }}</div>
     {% endif %}
 <div id="fondo_sin_imagen" >
-  <div class="container">  
+  <div class="container">
    <div class="row">
     <table class="table">
       <h1>Orders with merchandising</h1>
@@ -21,12 +21,19 @@
       <tbody>
        {% for order in orders %}
        <tr>
-        <td>{{order.name}}</td>
+        <td>{{ order.name }}</td>
         <td>{{ order.created}}</td>
         <td>{{ order.eb_order_id }}</td>
         <td><a href="{% url 'item_mercha' order_id=order.id %}" class="btn btn-success">View</a></td>
       </tr>
       {% endfor %}
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td><input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);"></td>
+      </tr>
+
     </tbody>
   </table>
   <div class = "row text-center">
