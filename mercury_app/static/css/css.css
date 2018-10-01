@@ -13,8 +13,7 @@
 	background-color: rgba(0,0,0,0.4);
 	min-height: 100vh;
 }
-
-footer{
+ footer{
 	background-color: rgb(40,44,47);
 }
 footer{
@@ -25,8 +24,7 @@ footer{
 footer a{
 	color: rgb(1 ,161 ,165);
 }
-
-#first_form{
+ #first_form{
 	font-family: 'Raleway';
 	padding-top: 30vh;
 	color:white;
