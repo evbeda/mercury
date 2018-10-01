@@ -73,9 +73,11 @@ class Merchandise(models.Model):
         Order,
         on_delete=models.CASCADE
     )
+    eb_merchandising_id = models.CharField(max_length=8, default=0)
     name = models.CharField(max_length=256)
     item_type = models.CharField(max_length=128)
-    currency = models.CharField(max_length=16)
+    currency = models.CharField(max_length=3)
+    quantity = models.IntegerField(default=0)
     value = models.CharField(max_length=16)
     delivered = models.BooleanField(default=False)
 
