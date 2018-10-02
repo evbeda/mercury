@@ -229,7 +229,7 @@ def delete_webhook(token, webhook_id):
 @app.task(ignore_result=True)
 def get_data(body, domain):
     print('Here! get_data')
-    config_data = json.loads(body)
+    config_data = body
     user_id = config_data['config']['user_id']
 
     if webhook_available_to_process(user_id):
@@ -244,7 +244,11 @@ def get_data(body, domain):
         )
         event = Event.objects.get(eb_event_id=order['event_id'])
         if webhook_order_available(social_user.user, order):
-            return create_event_orders_from_api(event, [order])
+            create_event_orders_from_api(event, [order])
+
+            return {'status': True}
+    else:
+        return {'status': False}
 
 
 def webhook_order_available(user, order):
