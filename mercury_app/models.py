@@ -107,3 +107,27 @@ class UserWebhook(models.Model):
         on_delete=models.CASCADE,
         unique=True,
     )
+
+
+class Transaction(models.Model):
+
+    OPERATION_TYPES = (
+        ('HA', 'Hand'),
+        ('RE', 'Refund'),
+    )
+    date = models.DateTimeField()
+    from_who = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    to_who = models.EmailField(max_length=256)
+    merchandise = models.ForeignKey(
+        Merchandise,
+        on_delete=models.CASCADE,
+    )
+    device_name = models.CharField(max_length=128)
+    operation_type = models.CharField(
+        max_length=2,
+        choices=OPERATION_TYPES,
+        default='HA',
+    )
