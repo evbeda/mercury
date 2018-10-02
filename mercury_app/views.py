@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import json
 from mercury_app.models import (
     Organization,
     UserOrganization,
@@ -36,7 +37,7 @@ from .utils import (
 
 @csrf_exempt
 def accept_webhook(request):
-    get_data(request.body, request.build_absolute_uri('/')[:-1])
+    get_data.delay(json.loads(request.body), request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
 
 @method_decorator(login_required, name='dispatch')
