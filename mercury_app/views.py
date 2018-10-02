@@ -1,9 +1,11 @@
 from django.views.generic.base import TemplateView
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
+from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from mercury_app.models import (
     Organization,
@@ -11,6 +13,7 @@ from mercury_app.models import (
     Event,
     Order,
     Merchandise,
+    UserWebhook,
 )
 from .utils import (
     get_auth_token,
@@ -27,9 +30,14 @@ from .utils import (
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
-
+    create_webhook_from_view,
+    get_data,
 )
 
+@csrf_exempt
+def accept_webhook(request):
+    get_data(request.body, request.build_absolute_uri('/')[:-1])
+    return HttpResponse('OK', 200)
 
 @method_decorator(login_required, name='dispatch')
 class ListItemMerchandising(TemplateView, LoginRequiredMixin):
@@ -64,6 +72,7 @@ class Home(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
+        create_webhook_from_view(self.request.user)
         events = {'events': get_db_events_by_organization(self.request.user)}
         message = self.request.GET.get('message')
         page = self.request.GET.get('page')

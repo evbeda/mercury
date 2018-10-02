@@ -138,49 +138,50 @@ class TestBase(TestCase):
         return login
 
 
+@patch('mercury_app.views.create_webhook_from_view', return_value='')
 class HomeViewTest(TestBase):
 
     def setUp(self):
         super(HomeViewTest, self).setUp()
 
-    def test_home_status_code(self):
+    def test_home_status_code(self, mock_create_webhook_from_view):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
-    def test_home_charset(self):
+    def test_home_charset(self, mock_create_webhook_from_view):
         response = self.client.get('/')
         self.assertEqual(response.charset, "utf-8")
 
-    def test_home_status_code_two(self):
+    def test_home_status_code_two(self, mock_create_webhook_from_view):
         response = self.client.get('')
         self.assertEqual(response.status_code, 200)
 
-    def test_home_resolve_home_class_view(self):
+    def test_home_resolve_home_class_view(self, mock_create_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.func.view_class, Home)
 
-    def test_home_resolve_home_not_args(self):
+    def test_home_resolve_home_not_args(self, mock_create_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.args, ())
 
-    def test_home_resolve_home_kwargs_empty(self):
+    def test_home_resolve_home_kwargs_empty(self, mock_create_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.kwargs, {'message': None})
 
-    def test_home_resolve_home_kwargs_message_full(self):
+    def test_home_resolve_home_kwargs_message_full(self, mock_create_webhook_from_view):
         found = resolve('/Welcome')
         self.assertEquals(found.kwargs, {'message': "Welcome"})
 
-    def test_home_url_name(self):
+    def test_home_url_name(self, mock_create_webhook_from_view):
         found = resolve('/')
         self.assertEqual(found.url_name, 'index')
 
-    def test_home_none_entry(self):
+    def test_home_none_entry(self, mock_create_webhook_from_view):
         response = self.client.get('/')
         self.assertNotContains(response, "class='btn btn-success'>View</a>")
         self.assertContains(response, 'Add')
 
-    def test_home_one_entry(self):
+    def test_home_one_entry(self, mock_create_webhook_from_view):
         org = Organization.objects.create(
             eb_organization_id=1, name='test_organization')
         Event.objects.create(organization=org,
@@ -199,7 +200,7 @@ class HomeViewTest(TestBase):
         self.assertContains(response, 'View')
         self.assertContains(response, 'Add')
 
-    def test_home_two_entry(self):
+    def test_home_two_entry(self, mock_create_webhook_from_view):
         org = Organization.objects.create(
             eb_organization_id=1, name='test_organization')
         Event.objects.create(organization=org,

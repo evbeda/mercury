@@ -98,3 +98,12 @@ class Merchandise(models.Model):
 
     def __string__(self):
         return self.name
+
+
+class UserWebhook(models.Model):
+    webhook_id = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        unique=True,
+    )
