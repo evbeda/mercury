@@ -1,4 +1,9 @@
+import json
+import requests
+import re
+from mercury_site.celery import app
 from social_django.models import UserSocialAuth
+from django.contrib.auth import get_user_model
 from eventbrite import Eventbrite
 import re
 from .models import (
@@ -7,7 +12,10 @@ from .models import (
     Merchandise,
     Organization,
     UserOrganization,
+    UserWebhook,
 )
+from django.conf import settings
+from django.http import HttpResponseRedirect
 
 
 def get_auth_token(user):
@@ -21,7 +29,6 @@ def get_auth_token(user):
 
 
 def get_api_organization(token):
-
     """
     Get organization from the user of the token from the api
     """
@@ -30,7 +37,6 @@ def get_api_organization(token):
 
 
 def get_api_orders_of_event(token, event_id):
-
     """
     Get organization from the user of the token from the api
     """
@@ -122,7 +128,6 @@ def get_db_orders_by_event(event):
 
 def get_db_organizations_by_user(user):
     try:
-        #import ipdb;ipdb.set_trace()
         organizations_query = UserOrganization.objects.filter(
             user=user
         )
@@ -192,3 +197,91 @@ def get_events_for_organizations(organizations, user):
         for e in event:
             e['org_name'] = organization['name']
     return event
+
+
+def create_webhook_from_view(user):
+    if not UserWebhook.objects.filter(user=user).exists():
+        token = get_auth_token(user)
+        webhook_id = create_webhook(token)
+        UserWebhook.objects.create(
+            user=user,
+            webhook_id=webhook_id,
+        )
+
+
+def create_webhook(token):
+    url = settings.URL_LOCAL
+    data = {
+        "endpoint_url": url + "/webhook-point/",
+        "actions": "order.placed",
+    }
+    response = Eventbrite(token).post('/webhooks/', data)
+    return (response[u'id'])
+
+
+def delete_webhook(token, webhook_id):
+    webhook = UserWebhook.objects.get(webhook_id=webhook_id)
+    webhook.delete()
+    Eventbrite(token).delete('/webhooks/' + webhook_id + "/")
+    return HttpResponseRedirect('/')
+
+
+@app.task(ignore_result=True)
+def get_data(body, domain):
+    print('Here! get_data')
+    config_data = json.loads(body)
+    user_id = config_data['config']['user_id']
+
+    if webhook_available_to_process(user_id):
+        social_user = get_social_user(user_id)
+        access_token = social_user.access_token
+        order_id = re.search(
+            r'(http[s]?:\/\/)?([^\/\s]+\/)([^\/\s]+\/)([^\/\s]+\/)(\d+)(.*)',
+            config_data['api_url'])[5]
+        order = get_order(
+            token=access_token,
+            order_id=order_id
+        )
+        event = Event.objects.get(eb_event_id=order['event_id'])
+        if webhook_order_available(social_user.user, order):
+            return create_event_orders_from_api(event, [order])
+
+
+def webhook_order_available(user, order):
+    events = get_db_events_by_organization(user=user)
+    if len(events) > 0:
+        return True
+
+
+def get_order(token, order_id):
+    eventbrite = Eventbrite(token)
+    url = "/orders/{}".format(order_id)
+    return eventbrite.get(url, expand=('merchandise',))
+
+
+def webhook_available_to_process(user_id):
+    if UserSocialAuth.objects.exists():
+        if social_user_exists(user_id):
+            return True
+
+
+def social_user_exists(user_id):
+    social_user = UserSocialAuth.objects.filter(
+        uid=user_id
+    )
+    if len(social_user) == 0:
+        return False
+    else:
+        return True
+
+
+def get_social_user_id(user_id):
+    social_user = get_social_user(user_id)
+    return social_user.user_id
+
+
+def get_social_user(user_id):
+    social_user = UserSocialAuth.objects.filter(
+        uid=user_id
+    )
+    return social_user[0]

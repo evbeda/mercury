@@ -24,7 +24,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 SECRET_KEY = '=bdt(@br=f+c8rqx4%@^_wc825x@w5#@(-se&z)g3gtmmd4=bh'
 
-ALLOWED_HOSTS = ['ebmercury.herokuapp.com', 'ebmercury-qa.herokuapp.com', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'ebmercury.herokuapp.com',
+    'ebmercury-qa.herokuapp.com',
+    '127.0.0.1',
+]
 
 def get_env_variable(var_name):
     try:
@@ -158,7 +162,7 @@ USE_L10N = True
 
 USE_TZ = True
 
-
+URL_LOCAL = get_env_variable('URL_LOCAL')
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 #STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -171,3 +175,11 @@ DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
 DATABASES['default'].update(DB_FROM_ENV)
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+
+# REDIS related settings
+# REDIS_URL = get_env_variable('REDIS_URL')
+# BROKER_URL = REDIS_URL # + '/0'
+# BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
+# CELERY_BROKER_URL = BROKER_URL
+# CELERY_RESULT_BACKEND = BROKER_URL
