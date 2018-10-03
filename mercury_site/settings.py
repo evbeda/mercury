@@ -12,10 +12,9 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os
 import dj_database_url
-from django.core.exceptions import ImproperlyConfigured
+from mercury_site.__init__ import get_env_variable
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,14 +29,10 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-def get_env_variable(var_name):
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        error_msg = "Set the %s environment variable" % var_name
-        raise ImproperlyConfigured(error_msg)
+
 
 # Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -162,10 +157,9 @@ USE_L10N = True
 
 USE_TZ = True
 
-URL_LOCAL = get_env_variable('URL_LOCAL')
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
-#STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
@@ -175,12 +169,3 @@ DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
 DATABASES['default'].update(DB_FROM_ENV)
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
-
-
-# REDIS related settings
-REDIS_URL = get_env_variable('REDIS_URL')
-BROKER_URL = REDIS_URL # + '/0'
-BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
-CELERY_BROKER_URL = BROKER_URL
-CELERY_RESULT_BACKEND = BROKER_URL
-#CELERY_TASK_ALWAYS_EAGER = True

@@ -32,88 +32,90 @@ from .utils import (
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
+    get_mock_api_event,
 
 )
 from mercury_app.views import Home
 from django.utils import timezone
 from django.urls import resolve
+from datetime import datetime
 from unittest.mock import patch
 from unittest import skip
 
 
 MOCK_ORGANIZATION_API = {
-    "organizations": [{
-        "_type": "organization",
-        "name": "Mercury Team",
-        "vertical": "default",
-        "locale": None,
-        "image_id": None,
-        "id": "272770247903",
+    'organizations': [{
+        '_type': 'organization',
+        'name': 'Mercury Team',
+        'vertical': 'default',
+        'locale': None,
+        'image_id': None,
+        'id': '272770247903',
     }],
-    "pagination": {
-        "continuation": "b2Zmc2V0LTE=",
-        "has_more_items": False,
+    'pagination': {
+        'continuation': 'b2Zmc2V0LTE=',
+        'has_more_items': False,
     },
 }
 MOCK_EVENT_API = {
-    "pagination": {
-        "object_count": 1,
-        "page_number": 1,
-        "page_size": 50,
-        "page_count": 1,
-        "has_more_items": False
+    'pagination': {
+        'object_count': 1,
+        'page_number': 1,
+        'page_size': 50,
+        'page_count': 1,
+        'has_more_items': False
     },
-    "events": [{
-        "name": {"text": "Test event", "html": "Test event"},
-        "description": {"text": None, "html": None},
-        "id": "50452133690",
-        "url": "https://www.eventbrite.com/e/test-event-tickets-50452133690",
-        "start": {
-            "timezone": "America/Los_Angeles",
-            "local": "2018-10-29T19:00:00",
-            "utc": "2018-10-30T02:00:00Z"
+    'events': [{
+        'name': {'text': 'Test event', 'html': 'Test event'},
+        'description': {'text': None, 'html': None},
+        'id': '50452133690',
+        'url': 'https://www.eventbrite.com/e/test-event-tickets-50452133690',
+        'start': {
+            'timezone': 'America/Los_Angeles',
+            'local': '2018-10-29T19:00:00',
+            'utc': '2018-10-30T02:00:00Z'
         },
-        "end": {
-            "timezone": "America/Los_Angeles",
-            "local": "2018-10-29T22:00:00",
-            "utc": "2018-10-30T05:00:00Z"
+        'end': {
+            'timezone': 'America/Los_Angeles',
+            'local': '2018-10-29T22:00:00',
+            'utc': '2018-10-30T05:00:00Z'
         },
-        "organization_id": "272770247903",
-        "created": "2018-09-19T17:16:39Z",
-        "changed": "2018-09-24T15:06:49Z",
-        "capacity": 200,
-        "capacity_is_custom": False,
-        "status": "draft",
-        "currency": "USD",
-        "listed": False,
-        "shareable": True,
-        "invite_only": False,
-        "online_event": False,
-        "show_remaining": False,
-        "tx_time_limit": 480,
-        "hide_start_date": False,
-        "hide_end_date": False,
-        "locale": "en_US",
-        "is_locked": False,
-        "privacy_setting": "unlocked",
-        "is_series": False,
-        "is_series_parent": False,
-        "is_reserved_seating": False,
-        "show_pick_a_seat": False,
-        "show_seatmap_thumbnail": False,
-        "show_colors_in_seatmap_thumbnail": False,
-        "source": "create_2.0",
-        "is_free": False,
-        "version": "3.0.0",
-        "logo_id": None,
-        "organizer_id": "17867896837",
-        "venue_id": None,
-        "category_id": None,
-        "subcategory_id": None,
-        "format_id": None,
-        "resource_uri": "https://www.eventbriteapi.com/v3/events/50452133690/",
-        "is_externally_ticketed": False,
-        "logo": None
+        'organization_id': '272770247903',
+        'created': '2018-09-19T17:16:39Z',
+        'changed': '2018-09-24T15:06:49Z',
+        'capacity': 200,
+        'capacity_is_custom': False,
+        'status': 'draft',
+        'currency': 'USD',
+        'listed': False,
+        'shareable': True,
+        'invite_only': False,
+        'online_event': False,
+        'show_remaining': False,
+        'tx_time_limit': 480,
+        'hide_start_date': False,
+        'hide_end_date': False,
+        'locale': 'en_US',
+        'is_locked': False,
+        'privacy_setting': 'unlocked',
+        'is_series': False,
+        'is_series_parent': False,
+        'is_reserved_seating': False,
+        'show_pick_a_seat': False,
+        'show_seatmap_thumbnail': False,
+        'show_colors_in_seatmap_thumbnail': False,
+        'source': 'create_2.0',
+        'is_free': False,
+        'version': '3.0.0',
+        'logo_id': None,
+        'organizer_id': '17867896837',
+        'venue_id': None,
+        'category_id': None,
+        'subcategory_id': None,
+        'format_id': None,
+        'resource_uri': 'https://www.eventbriteapi.com/v3/events/50452133690/',
+        'is_externally_ticketed': False,
+        'logo': None
     }]}
 
 
@@ -129,7 +131,7 @@ class TestBase(TestCase):
         self.user.set_password('the_best_password_of_ever_2')
         self.user.save()
         self.auth = UserSocialAuth.objects.create(
-            user=self.user, provider='eventbrite', uid="563480245671"
+            user=self.user, provider='eventbrite', uid='563480245671'
         )
         login = self.client.login(
             username='mercury_user',
@@ -138,92 +140,92 @@ class TestBase(TestCase):
         return login
 
 
-@patch('mercury_app.views.create_webhook_from_view', return_value='')
+@patch('mercury_app.views.create_order_webhook_from_view', return_value='')
 class HomeViewTest(TestBase):
 
     def setUp(self):
         super(HomeViewTest, self).setUp()
 
-    def test_home_status_code(self, mock_create_webhook_from_view):
+    def test_home_status_code(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
-    def test_home_charset(self, mock_create_webhook_from_view):
+    def test_home_charset(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
-        self.assertEqual(response.charset, "utf-8")
+        self.assertEqual(response.charset, 'utf-8')
 
-    def test_home_status_code_two(self, mock_create_webhook_from_view):
+    def test_home_status_code_two(self, mock_create_order_webhook_from_view):
         response = self.client.get('')
         self.assertEqual(response.status_code, 200)
 
-    def test_home_resolve_home_class_view(self, mock_create_webhook_from_view):
+    def test_home_resolve_home_class_view(self, mock_create_order_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.func.view_class, Home)
 
-    def test_home_resolve_home_not_args(self, mock_create_webhook_from_view):
+    def test_home_resolve_home_not_args(self, mock_create_order_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.args, ())
 
-    def test_home_resolve_home_kwargs_empty(self, mock_create_webhook_from_view):
+    def test_home_resolve_home_kwargs_empty(self, mock_create_order_webhook_from_view):
         found = resolve('/')
         self.assertEquals(found.kwargs, {'message': None})
 
-    def test_home_resolve_home_kwargs_message_full(self, mock_create_webhook_from_view):
+    def test_home_resolve_home_kwargs_message_full(self, mock_create_order_webhook_from_view):
         found = resolve('/Welcome')
-        self.assertEquals(found.kwargs, {'message': "Welcome"})
+        self.assertEquals(found.kwargs, {'message': 'Welcome'})
 
-    def test_home_url_name(self, mock_create_webhook_from_view):
+    def test_home_url_name(self, mock_create_order_webhook_from_view):
         found = resolve('/')
         self.assertEqual(found.url_name, 'index')
 
-    def test_home_none_entry(self, mock_create_webhook_from_view):
+    def test_home_none_entry(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
-        self.assertNotContains(response, "class='btn btn-success'>View</a>")
+        self.assertNotContains(response, 'class="btn btn-success">View</a>')
         self.assertContains(response, 'Add')
 
-    def test_home_one_entry(self, mock_create_webhook_from_view):
+    def test_home_one_entry(self, mock_create_order_webhook_from_view):
         org = Organization.objects.create(
             eb_organization_id=1, name='test_organization')
         Event.objects.create(organization=org,
-                             name="Evento",
-                             description="description",
+                             name='Evento',
+                             description='description',
                              eb_event_id=1,
-                             date_tz="America/Argentina/Mendoza",
-                             start_date_utc="2018-10-22T22:00:09Z",
-                             end_date_utc="2018-10-22T22:00:09Z",
-                             created="2017-11-23 23:33:57-03",
-                             changed="2017-11-23 23:33:57-03",
-                             status="completed",
+                             date_tz='America/Argentina/Mendoza',
+                             start_date_utc='2018-10-22T22:00:09Z',
+                             end_date_utc='2018-10-22T22:00:09Z',
+                             created='2017-11-23 23:33:57-03',
+                             changed='2017-11-23 23:33:57-03',
+                             status='completed',
                              )
         response = self.client.get('/')
         self.assertContains(response, 'Evento')
         self.assertContains(response, 'View')
         self.assertContains(response, 'Add')
 
-    def test_home_two_entry(self, mock_create_webhook_from_view):
+    def test_home_two_entry(self, mock_create_order_webhook_from_view):
         org = Organization.objects.create(
             eb_organization_id=1, name='test_organization')
         Event.objects.create(organization=org,
-                             name="Evento",
-                             description="description",
+                             name='Evento',
+                             description='description',
                              eb_event_id=1,
-                             date_tz="America/Argentina/Mendoza",
-                             start_date_utc="2018-10-22T22:00:09Z",
-                             end_date_utc="2018-10-22T22:00:09Z",
-                             created="2017-11-23 23:33:57-03",
-                             changed="2017-11-23 23:33:57-03",
-                             status="completed",
+                             date_tz='America/Argentina/Mendoza',
+                             start_date_utc='2018-10-22T22:00:09Z',
+                             end_date_utc='2018-10-22T22:00:09Z',
+                             created='2017-11-23 23:33:57-03',
+                             changed='2017-11-23 23:33:57-03',
+                             status='completed',
                              )
         Event.objects.create(organization=org,
-                             name="ev",
-                             description="description nueva",
+                             name='ev',
+                             description='description nueva',
                              eb_event_id=2,
-                             date_tz="America/Argentina/Cordoba",
-                             start_date_utc="2017-10-22T22:00:09Z",
-                             end_date_utc="2017-10-22T22:00:09Z",
-                             created="2016-11-23 23:33:57-03",
-                             changed="2016-11-23 23:33:57-03",
-                             status="completed",
+                             date_tz='America/Argentina/Cordoba',
+                             start_date_utc='2017-10-22T22:00:09Z',
+                             end_date_utc='2017-10-22T22:00:09Z',
+                             created='2016-11-23 23:33:57-03',
+                             changed='2016-11-23 23:33:57-03',
+                             status='completed',
                              )
         response = self.client.get('/')
         self.assertContains(response, 'Evento')
@@ -244,7 +246,7 @@ class HomeViewTestWithouUser(TestCase):
 
 class SelectEventsLoggedTest(TestBase):
 
-    @skip("Broken by refactor")
+    @skip('Broken by refactor')
     @patch('mercury_app.utils.get_api_organization', return_value=MOCK_ORGANIZATION_API.get('organizations'))
     @patch('mercury_app.utils.get_api_events_org', return_value=MOCK_EVENT_API.get('events'))
     def test_template_is_rendered_successfully_with_one_event_only(self, mock_get_api_events_org, mock_get_api_organization):
@@ -252,7 +254,7 @@ class SelectEventsLoggedTest(TestBase):
         self.assertEqual(response.status_code, 200)
 
 
-    @skip("Broken by refactor")
+    @skip('Broken by refactor')
     @patch('mercury_app.utils.get_api_events_id', return_value=MOCK_EVENT_API.get('events')[0])
     def test_add_event(self, mock_get_api_events_id):
         response = self.client.post('/select_events/', {'organization_id': '1234', 'organization_name': 'TestOrg'})
@@ -272,7 +274,7 @@ class UtilsTest(TestCase):
         merchandising = MerchandiseFactory(
             order__id=15
         )
-        result = get_db_merchandising_by_order_id(15)
+        result = get_db_merchandising_by_order_id(15)[0]
         self.assertEqual(result, merchandising)
 
     def test_get_db_orders_by_event(self):
@@ -287,15 +289,77 @@ class UtilsTest(TestCase):
         result = len(get_db_organizations_by_user(user))
         self.assertEqual(result, 2)
 
-    @skip("WIP")
     def test_get_db_events_by_organization(self):
         organization = OrganizationFactory()
         user = UserFactory()
-        uo = UserOrganization(user=user, organization=organization)
-        e = EventFactory.create_batch(5, organization=organization)
-        result = get_db_events_by_organization(user)
+        UserOrganizationFactory(user=user, organization=organization)
+        EventFactory.create_batch(5, organization=organization)
+        result = len(get_db_events_by_organization(user))
         self.assertEqual(result, 5)
 
+    def test_get_db_or_create_organization_by_id_create_case(self):
+        org_name = 'TestOrganization'
+        org_id = '23235534532'
+        mock = OrganizationFactory.build(name=org_name, eb_organization_id=org_id)
+        result = get_db_or_create_organization_by_id(org_id, org_name)
+        self.assertEqual(result[0].eb_organization_id, mock.eb_organization_id)
+        self.assertEqual(result[0].name, mock.name)
+        self.assertTrue(result[1])
+
+    def test_get_db_or_create_organization_by_id_get_case(self):
+        org_name = 'TestOrganization'
+        org_id = '23235534532'
+        OrganizationFactory(name=org_name, eb_organization_id=org_id)
+        mock = OrganizationFactory.build(name=org_name, eb_organization_id=org_id)
+        result = get_db_or_create_organization_by_id(org_id, org_name)
+        self.assertEqual(result[0].eb_organization_id, mock.eb_organization_id)
+        self.assertEqual(result[0].name, mock.name)
+        self.assertFalse(result[1])
+
+    def test_create_userorganization_assoc_create_case(self):
+        org = OrganizationFactory()
+        user = UserFactory()
+        mock = UserOrganizationFactory.build(organization=org, user=user)
+        result = create_userorganization_assoc(org, user)
+        self.assertEqual(result[0].organization, mock.organization)
+        self.assertEqual(result[0].user, mock.user)
+        self.assertTrue(result[1])
+
+    def test_create_userorganization_assoc_get_case(self):
+        org = OrganizationFactory()
+        user = UserFactory()
+        UserOrganizationFactory(organization=org, user=user)
+        mock = UserOrganizationFactory.build(organization=org, user=user)
+        result = create_userorganization_assoc(org, user)
+        self.assertEqual(result[0].organization, mock.organization)
+        self.assertEqual(result[0].user, mock.user)
+        self.assertFalse(result[1])
+
+
+    @patch('mercury_app.utils.get_api_events_org')
+    @patch('mercury_app.utils.get_auth_token')
+    def test_get_events_for_organizations(self, mock_get_auth_token, mock_get_api_events_org):
+        fake_events = get_mock_api_event(5)
+        mock_get_api_events_org.return_value = fake_events['events']
+        org = OrganizationFactory(eb_organization_id=272770247903).__dict__
+        result = get_events_for_organizations([org], 'patched')
+        self.assertEqual(len(result), len(fake_events['events']))
+        self.assertEqual(result[0]['org_name'], org['name'])
+
+    def test_get_mock_api_event(self):
+        events = get_mock_api_event(2)['events']
+        creation_date = datetime.strptime(events[0]['created'], '%Y-%m-%dT%H:%M:%SZ')
+        self.assertEqual(len(events), 2)
+        self.assertTrue(events[0]['name'])
+        self.assertTrue(int(events[0]['id']) > 4999999999)
+        self.assertTrue(creation_date < datetime.now())
+
+    def test_create_event_from_api(self):
+        org = OrganizationFactory(eb_organization_id=272770247903)
+        result = create_event_from_api(org, get_mock_api_event(1)['events'][0])
+        self.assertTrue(isinstance(result, Event))
+
+    def test_cre
 
 class SelectEventsNotLoggedRedirectTest(TestCase):
 
@@ -314,7 +378,7 @@ class EventOrdersNotLoggedRedirectTest(TestCase):
 class OrganizationModelTest(TestCase):
 
     def create_organization(
-        self, name="Organization",
+        self, name='Organization',
         eb_organization_id=23223
     ):
         return Organization.objects.create(
@@ -332,15 +396,15 @@ class EventModelTest(TestCase):
 
     def create_event(
         self,
-        name="event1",
-        description="this is an event",
-        eb_event_id="123", date_tz=timezone.now(),
+        name='event1',
+        description='this is an event',
+        eb_event_id='123', date_tz=timezone.now(),
         start_date_utc=timezone.now(), end_date_utc=timezone.now(),
-        created=timezone.now(), changed=timezone.now(), status="created"
+        created=timezone.now(), changed=timezone.now(), status='created'
     ):
         organization = Organization.objects.create(
             eb_organization_id=23223,
-            name="Eventbrite")
+            name='Eventbrite')
         return Event.objects.create(
             name=name, organization=organization,
             description=description, eb_event_id=eb_event_id,
@@ -358,18 +422,18 @@ class EventModelTest(TestCase):
 class OrderModelTest(TestCase):
 
     def create_order(
-        self, name="order", eb_order_id=2323, changed=timezone.now(),
-        created=timezone.now(), status="pending", email="hola@hola",
-        merch_status="PE"
+        self, name='order', eb_order_id=2323, changed=timezone.now(),
+        created=timezone.now(), status='pending', email='hola@hola',
+        merch_status='PE'
     ):
         organization = Organization.objects.create(
-            eb_organization_id=23223, name="Eventbrite"
+            eb_organization_id=23223, name='Eventbrite'
         )
         event = Event.objects.create(
-            name="event", organization=organization, description="event1",
-            eb_event_id="456", date_tz=timezone.now(),
+            name='event', organization=organization, description='event1',
+            eb_event_id='456', date_tz=timezone.now(),
             start_date_utc=timezone.now(), end_date_utc=timezone.now(),
-            created=timezone.now(), changed=timezone.now(), status="pending")
+            created=timezone.now(), changed=timezone.now(), status='pending')
         return Order.objects.create(
             eb_order_id=eb_order_id, event=event, changed=changed,
             created=created, name=name, status=status, email=email,
@@ -385,24 +449,24 @@ class OrderModelTest(TestCase):
 class MerchandiseModelTest(TestCase):
 
     def create_merchandise(
-        self, name="Remeras", item_type="talle l", currency="USD",
-        value="508730", delivered=True
+        self, name='Remeras', item_type='talle l', currency='USD',
+        value='508730', delivered=True
     ):
         organization = Organization.objects.create(
             eb_organization_id=23223,
-            name="Eventbrite")
+            name='Eventbrite')
         event = Event.objects.create(
-            name="event", organization=organization,
-            description="event1", eb_event_id="456",
+            name='event', organization=organization,
+            description='event1', eb_event_id='456',
             date_tz=timezone.now(), start_date_utc=timezone.now(),
             end_date_utc=timezone.now(), created=timezone.now(),
-            changed=timezone.now(), status="pending"
+            changed=timezone.now(), status='pending'
         )
         order = Order.objects.create(
-            name="order", event=event,
+            name='order', event=event,
             eb_order_id=2323, changed=timezone.now(),
-            created=timezone.now(), status="pending",
-            email="hola@hola", merch_status="PE")
+            created=timezone.now(), status='pending',
+            email='hola@hola', merch_status='PE')
         return Merchandise.objects.create(
             order=order, name=name, item_type=item_type,
             currency=currency, value=value, delivered=delivered)
@@ -417,7 +481,7 @@ class UserOrganizationModelTest(TestBase):
 
     def create_user_organization(self):
         organization = Organization.objects.create(
-            eb_organization_id=23223, name="Eventbrite"
+            eb_organization_id=23223, name='Eventbrite'
         )
         return UserOrganization.objects.create(
             user=self.user, organization=organization

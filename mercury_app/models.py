@@ -38,7 +38,6 @@ class Event(models.Model):
     )
     eb_event_id = models.CharField(
         max_length=40,
-        default=0,
         unique=True,
     )
     url = models.CharField(max_length=128)
@@ -66,7 +65,6 @@ class Order(models.Model):
     )
     eb_order_id = models.BigIntegerField(
         unique=True,
-        default=0,
     )
     changed = models.DateTimeField()
     created = models.DateTimeField()
@@ -88,7 +86,7 @@ class Merchandise(models.Model):
         Order,
         on_delete=models.CASCADE
     )
-    eb_merchandising_id = models.CharField(max_length=8, default=0)
+    eb_merchandising_id = models.CharField(max_length=8)
     name = models.CharField(max_length=256)
     item_type = models.CharField(max_length=128)
     currency = models.CharField(max_length=3)
@@ -102,10 +100,9 @@ class Merchandise(models.Model):
 
 class UserWebhook(models.Model):
     webhook_id = models.CharField(max_length=255)
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        unique=True,
     )
 
 
