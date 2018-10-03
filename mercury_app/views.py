@@ -31,7 +31,7 @@ from .utils import (
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
-    create_webhook_from_view,
+    create_order_webhook_from_view,
     get_data,
 )
 
@@ -73,7 +73,7 @@ class Home(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
-        create_webhook_from_view(self.request.user)
+        create_order_webhook_from_view(self.request.user)
         events = {'events': get_db_events_by_organization(self.request.user)}
         message = self.request.GET.get('message')
         page = self.request.GET.get('page')
@@ -120,5 +120,9 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         org_name = self.request.POST.get('organization_name')
         org = get_db_or_create_organization_by_id(org_id, org_name)
         create_userorganization_assoc(org[0], self.request.user)
-        message = create_event_from_api(org[0], events['events'])
+        if isinstance(create_event_from_api(org[0], events['events']), Event):
+            message = "The event was successfully added!"
+        else:
+            message = "An error has occured while adding the event"
+
         return redirect(reverse('index', kwargs={'message': message}))
