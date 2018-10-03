@@ -85,8 +85,9 @@ class Summary(TemplateView, LoginRequiredMixin):
         total_merchandise = Merchandise.objects.filter(
             order_id__in=order_ids).count()
         if total_merchandise != 0:
-            handed_percentaje = (merchandise_delivered *
-                                 100) / total_merchandise
+            handed_percentaje = round(
+                ((merchandise_delivered *
+                  100) / total_merchandise), 1)
         else:
             handed_percentaje = 0
         dont_handed_percentaje = 100 - handed_percentaje
