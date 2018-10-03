@@ -6,7 +6,10 @@ from datetime import (
     timedelta,
 )
 from faker import Faker
-from random import randint
+from random import (
+    randint,
+    uniform,
+)
 import re
 from .models import (
     Order,
@@ -30,7 +33,7 @@ def get_auth_token(user):
             provider='eventbrite'
         ).access_token
     except UserSocialAuth.DoesNotExist:
-        print ('UserSocialAuth does not exists!')
+        return ''
     return token
 
 
@@ -71,14 +74,14 @@ def get_db_event_by_id(event_id):
     try:
         return Event.objects.get(eb_event_id=event_id)
     except Exception as e:
-        print(e)
         return None
 
 
 def create_event_orders_from_api(event, orders):
-    for order in orders:
-        if order.get('merchandise'):
-            try:
+    created_orders = []
+    try:
+        for order in orders:
+            if order.get('merchandise'):
                 order_creation = Order.objects.get_or_create(
                     event=event,
                     eb_order_id=order['id'],
@@ -90,13 +93,19 @@ def create_event_orders_from_api(event, orders):
                 )
                 for item in order['merchandise']:
                     create_merchandise_from_order(item, order_creation[0])
-            except Exception as e:
-                print(e)
+                created_orders.append(order_creation)
+    except Exception:
+        created_orders.append(None)
+        if len(created_orders) < len(orders):
+            remaining_orders = orders[len(created_orders):]
+            more_orders = create_event_orders_from_api(event, remaining_orders)
+            created_orders.extend(more_orders)
+    return created_orders
 
 
 def create_merchandise_from_order(item, order):
     try:
-        Merchandise.objects.create(
+        merchandise = Merchandise.objects.create(
             order=order,
             eb_merchandising_id=item['id'],
             name=re.sub(r'(.*?)\s?\(.*?\)', r'\1', item['name']),
@@ -108,8 +117,9 @@ def create_merchandise_from_order(item, order):
                 item['name']) else '',
             value=item['costs']['gross']['major_value'],
         )
-    except Exception as e:
-        print(e)
+        return merchandise
+    except Exception:
+        return None
 
 
 def get_db_merchandising_by_order_id(order_id):
@@ -117,9 +127,9 @@ def get_db_merchandising_by_order_id(order_id):
         merchandising_query = Merchandise.objects.filter(
             order=order_id,
         )
-    except Exception as e:
-        print(e)
-    return merchandising_query
+        return merchandising_query
+    except Exception:
+        return None
 
 
 def get_db_orders_by_event(event):
@@ -127,9 +137,9 @@ def get_db_orders_by_event(event):
         order_query = Order.objects.filter(
             event=event
         ).all()
-    except Exception as e:
-        print(e)
-    return order_query
+        return order_query
+    except Exception:
+        return None
 
 
 def get_db_organizations_by_user(user):
@@ -137,9 +147,9 @@ def get_db_organizations_by_user(user):
         organizations_query = UserOrganization.objects.filter(
             user=user
         )
-    except Exception as e:
-        print(e)
-    return organizations_query
+        return organizations_query
+    except Exception:
+        return None
 
 
 def get_db_events_by_organization(user):
@@ -149,9 +159,9 @@ def get_db_events_by_organization(user):
             organization__in=[
                 user_organization.organization for user_organization in organizations_query],
         )
-    except Exception as e:
-        print(e)
-    return events
+        return events
+    except Exception:
+        return None
 
 
 def get_db_or_create_organization_by_id(ebid, ebname):
@@ -160,9 +170,9 @@ def get_db_or_create_organization_by_id(ebid, ebname):
             eb_organization_id=ebid,
             name=ebname,
         )
-    except Exception as e:
-        print(e)
-    return organization
+        return organization
+    except Exception:
+        return None
 
 
 def create_userorganization_assoc(organization, user):
@@ -172,8 +182,8 @@ def create_userorganization_assoc(organization, user):
             user=user,
         )
         return user_org
-    except Exception as e:
-        print(e)
+    except Exception:
+        return None
 
 
 def create_event_from_api(organization, event):
@@ -193,7 +203,7 @@ def create_event_from_api(organization, event):
         )
         return event
     except Exception as e:
-        return e
+        return None
 
 
 def get_events_for_organizations(organizations, user):
@@ -234,7 +244,6 @@ def delete_webhook(token, webhook_id):
 def get_data(body, domain):
     config_data = body
     user_id = config_data['config']['user_id']
-
     if webhook_available_to_process(user_id):
         social_user = get_social_user(user_id)
         access_token = social_user.access_token
@@ -255,13 +264,13 @@ def get_data(body, domain):
 
 def webhook_order_available(user, order):
     events = get_db_events_by_organization(user=user)
-    if events > 0:
+    if len(events) > 0:
         return True
 
 
 def get_order(token, order_id):
     eventbrite = Eventbrite(token)
-    url = "/orders/{}".format(order_id)
+    url = '/orders/{}'.format(order_id)
     return eventbrite.get(url, expand=('merchandise',))
 
 
@@ -366,3 +375,131 @@ def get_mock_api_event(amount):
         },
         'events': mocked_events_array}
     return mock_api_event
+
+
+def get_mock_api_orders(amount, w_merchandise, event_id):
+    mocked_orders_array = []
+    fake = Faker()
+    for item in range(amount):
+        base_price = round(uniform(10.0, 150.0), 2)
+        eb_fee = round(base_price * 0.07, 2)
+        pay_fee = round((base_price + eb_fee) * 0.07, 2)
+        total_cost = base_price + eb_fee + pay_fee
+        first_name = fake.first_name()
+        last_name = fake.last_name()
+        merchandises = [
+            {
+                'costs': {
+                    'eventbrite_fee': {
+                        'display': '$0.00',
+                        'currency': 'USD',
+                        'value': 0,
+                        'major_value': '0.00'
+                    },
+                    'gross': {
+                        'display': '$10.00',
+                        'currency': 'USD',
+                        'value': 1000,
+                        'major_value': '10.00'
+                    },
+                    'payment_fee': {
+                        'display': '$0.30',
+                        'currency': 'USD',
+                        'value': 30,
+                        'major_value': '0.30'
+                    },
+                    'tax': {
+                        'display': '$0.00',
+                        'currency': 'USD',
+                        'value': 0,
+                        'major_value': '0.00'
+                    }
+                },
+                'id': '1',
+                'quantity': '2',
+                'name': 'Cup (Red)',
+                'status': 'placed'
+            },
+            {
+                'costs': {
+                    'eventbrite_fee': {
+                        'display': '$0.00',
+                        'currency': 'USD',
+                        'value': 0,
+                        'major_value': '0.00'
+                    },
+                    'gross': {
+                        'display': '$80.00',
+                        'currency': 'USD',
+                        'value': 8000,
+                        'major_value': '80.00'
+                    },
+                    'payment_fee': {
+                        'display': '$2.40',
+                        'currency': 'USD',
+                        'value': 240,
+                        'major_value': '2.40'
+                    },
+                    'tax': {
+                        'display': '$0.00',
+                        'currency': 'USD',
+                        'value': 0,
+                        'major_value': '0.00'
+                    }
+                },
+                'id': '2',
+                'quantity': '4',
+                'name': 'T-Shirt (Blue)',
+                'status': 'placed'
+            }
+        ] if w_merchandise > 0 else []
+
+        mocked_orders_array.append(
+            {
+                'costs': {
+                    'base_price': {
+                        'display': '${}'.format(base_price),
+                        'currency': 'USD',
+                        'value': float(str(base_price).replace(',', '')),
+                        'major_value': base_price
+                    },
+                    'eventbrite_fee': {
+                        'display': '${}'.format(eb_fee),
+                        'currency': 'USD',
+                        'value': float(str(eb_fee).replace(',', '')),
+                        'major_value': eb_fee
+                    },
+                    'gross': {
+                        'display': '${}'.format(total_cost),
+                        'currency': 'USD',
+                        'value': float(str(total_cost).replace(',', '')),
+                        'major_value': total_cost
+                    },
+                    'payment_fee': {
+                        'display': '${}'.format(pay_fee),
+                        'currency': 'USD',
+                        'value': float(str(pay_fee).replace(',', '')),
+                        'major_value': pay_fee
+                    },
+                    'tax': {
+                        'display': '$0.00',
+                        'currency': 'USD',
+                        'value': 0,
+                        'major_value': '0.00'
+                    }
+                },
+                'resource_uri': 'https://www.evbdevapi.com/v3/orders/11/',
+                'id': str(randint(1, 10000000)),
+                'changed': '2018-09-24T17:20:39Z',
+                'created': '2018-09-24T17:20:23Z',
+                'name': first_name + last_name,
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': fake.free_email(),
+                'status': 'placed',
+                'time_remaining': None,
+                'event_id': event_id,
+                'merchandise': merchandises
+            })
+        w_merchandise -= 1
+    return mocked_orders_array

@@ -157,8 +157,8 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         org = get_db_or_create_organization_by_id(org_id, org_name)
         create_userorganization_assoc(org[0], self.request.user)
         if isinstance(create_event_from_api(org[0], events['events']), Event):
-            message = "The event was successfully added!"
+            message = 'The event was successfully added!'
         else:
-            message = "An error has occured while adding the event"
+            message = 'An error has occured while adding the event'
 
         return redirect(reverse('index', kwargs={'message': message}))
