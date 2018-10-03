@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block import%}
+<link href="node_modules/britecharts/dist/css/common/common.css">
+<link href="node_modules/britecharts/dist/css/charts/line.css">
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.7.4/d3.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/britecharts@2/dist/bundled/britecharts.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/britecharts/dist/css/britecharts.min.css" type="text/css" />
+
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+	<div class="row">
+    {% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
+<div class="page-header">
+  <h1>Summary <small> Of {{ event.name }}</small>  
+    <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event.eb_event_id %}">View orders</a>
+</h1>
+
+</div>
+  </div>
+    <div class="js-donut-container text-center row">
+      <h2>Handed/ Don't handed</h2>
+    </div>
+    <div class="text-center">
+      <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
+    </div>
+  </div>
+</div>
+<br>
+<script type="text/javascript">
+
+const data = {{ json_data |safe }};
+
+let donutChart = britecharts.donut()
+  donutChart
+    .width(600)
+    .height(400);
+d3.select('.js-donut-container').datum(data).call(donutChart);
+
+</script>
+{% endblock %}

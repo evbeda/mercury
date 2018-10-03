@@ -35,10 +35,13 @@ from .utils import (
     get_data,
 )
 
+
 @csrf_exempt
 def accept_webhook(request):
-    get_data.delay(json.loads(request.body), request.build_absolute_uri('/')[:-1])
+    get_data.delay(json.loads(request.body),
+                   request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
+
 
 @method_decorator(login_required, name='dispatch')
 class ListItemMerchandising(TemplateView, LoginRequiredMixin):
@@ -64,6 +67,38 @@ class OrderList(TemplateView, LoginRequiredMixin):
         orders = get_api_orders_of_event(token, event_id)
         create_event_orders_from_api(event, orders)
         context['orders'] = get_db_orders_by_event(event)
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class Summary(TemplateView, LoginRequiredMixin):
+    template_name = 'summary.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(Summary, self).get_context_data(**kwargs)
+        event_id = self.kwargs['event_id']
+        event = Event.objects.filter(eb_event_id=event_id)
+        order_ids = Order.objects.filter(
+            event=event).values_list('id', flat=True)
+        merchandise_delivered = Merchandise.objects.filter(
+            delivered=True, order_id__in=order_ids).count()
+        total_merchandise = Merchandise.objects.filter(
+            order_id__in=order_ids).count()
+        if total_merchandise != 0:
+            handed_percentaje = (merchandise_delivered *
+                                 100) / total_merchandise
+        else:
+            handed_percentaje = 0
+        dont_handed_percentaje = 100 - handed_percentaje
+        data_json = [
+            {'quantity': handed_percentaje, 'percentage': handed_percentaje,
+             'name': 'Orders Handed', 'id': 1},
+            {'quantity': dont_handed_percentaje,
+             'percentage': dont_handed_percentaje,
+             'name': 'Orders don\'t handed', 'id': 2}
+        ]
+        context['json_data'] = json.dumps(data_json)
+        context['event'] = event[0]
         return context
 
 
