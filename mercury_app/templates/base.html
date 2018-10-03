@@ -3,9 +3,13 @@
 <html>
 <head>
   <title>{% block title %} {% endblock %}</title>
+  {% block import %}
+  {% endblock %}
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="{% static 'css\css.css' %}">
   <link href='http://fonts.googleapis.com/css?family=Raleway:400,100,200,300,500,600,800,700,900' rel='stylesheet' type='text/css'>
+  {% block scripts %}
+  {% endblock %}
 </head>
 <body>
   <nav class="navbar navbar-inverse topnavbar">
