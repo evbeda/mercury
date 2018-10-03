@@ -1,10 +1,12 @@
-import json
-import requests
-import re
 from mercury_site.celery import app
 from social_django.models import UserSocialAuth
-from django.contrib.auth import get_user_model
 from eventbrite import Eventbrite
+import pytz
+from datetime import (
+    timedelta,
+)
+from faker import Faker
+from random import randint
 import re
 from .models import (
     Order,
@@ -14,8 +16,12 @@ from .models import (
     UserOrganization,
     UserWebhook,
 )
-from django.conf import settings
 from django.http import HttpResponseRedirect
+from mercury_app.app_settings import (
+    URL_ENDPOINT,
+    WH_ACTIONS,
+    REGEX_ORDER,
+)
 
 
 def get_auth_token(user):
@@ -41,7 +47,7 @@ def get_api_orders_of_event(token, event_id):
     Get organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    url = "/events/{}/orders/".format(event_id)
+    url = '/events/{}/orders/'.format(event_id)
     return eventbrite.get(url, expand=('merchandise',))['orders']
 
 
@@ -108,7 +114,7 @@ def create_merchandise_from_order(item, order):
 
 def get_db_merchandising_by_order_id(order_id):
     try:
-        merchandising_query = Merchandise.objects.get(
+        merchandising_query = Merchandise.objects.filter(
             order=order_id,
         )
     except Exception as e:
@@ -140,7 +146,8 @@ def get_db_events_by_organization(user):
     organizations_query = get_db_organizations_by_user(user)
     try:
         events = Event.objects.filter(
-            organization__in=[ user_organization.organization for user_organization in organizations_query ],
+            organization__in=[
+                user_organization.organization for user_organization in organizations_query],
         )
     except Exception as e:
         print(e)
@@ -160,17 +167,18 @@ def get_db_or_create_organization_by_id(ebid, ebname):
 
 def create_userorganization_assoc(organization, user):
     try:
-        UserOrganization.objects.get_or_create(
+        user_org = UserOrganization.objects.get_or_create(
             organization=organization,
             user=user,
         )
+        return user_org
     except Exception as e:
         print(e)
 
 
 def create_event_from_api(organization, event):
     try:
-        Event.objects.create(
+        event = Event.objects.create(
             organization=organization,
             name=event['name']['text'],
             description=event['description']['text'],
@@ -183,10 +191,7 @@ def create_event_from_api(organization, event):
             changed=event['changed'],
             status=event['status'],
         )
-        message = 'The event {} was added successfully!'.format(
-            event['name']['text']
-        )
-        return message
+        return event
     except Exception as e:
         return e
 
@@ -199,7 +204,7 @@ def get_events_for_organizations(organizations, user):
     return event
 
 
-def create_webhook_from_view(user):
+def create_order_webhook_from_view(user):
     if not UserWebhook.objects.filter(user=user).exists():
         token = get_auth_token(user)
         webhook_id = create_webhook(token)
@@ -210,34 +215,30 @@ def create_webhook_from_view(user):
 
 
 def create_webhook(token):
-    url = settings.URL_LOCAL
     data = {
-        "endpoint_url": url + "/webhook-point/",
-        "actions": "order.placed",
+        'endpoint_url': URL_ENDPOINT,
+        'actions': WH_ACTIONS,
     }
     response = Eventbrite(token).post('/webhooks/', data)
-    return (response[u'id'])
+    return (response['id'])
 
 
 def delete_webhook(token, webhook_id):
     webhook = UserWebhook.objects.get(webhook_id=webhook_id)
     webhook.delete()
-    Eventbrite(token).delete('/webhooks/' + webhook_id + "/")
+    Eventbrite(token).delete('/webhooks/' + webhook_id + '/')
     return HttpResponseRedirect('/')
 
 
 @app.task(ignore_result=True)
 def get_data(body, domain):
-    print('Here! get_data')
     config_data = body
     user_id = config_data['config']['user_id']
 
     if webhook_available_to_process(user_id):
         social_user = get_social_user(user_id)
         access_token = social_user.access_token
-        order_id = re.search(
-            r'(http[s]?:\/\/)?([^\/\s]+\/)([^\/\s]+\/)([^\/\s]+\/)(\d+)(.*)',
-            config_data['api_url'])[5]
+        order_id = re.search(REGEX_ORDER, config_data['api_url'])[5]
         order = get_order(
             token=access_token,
             order_id=order_id
@@ -248,12 +249,13 @@ def get_data(body, domain):
 
             return {'status': True}
     else:
+
         return {'status': False}
 
 
 def webhook_order_available(user, order):
     events = get_db_events_by_organization(user=user)
-    if len(events) > 0:
+    if events > 0:
         return True
 
 
@@ -289,3 +291,78 @@ def get_social_user(user_id):
         uid=user_id
     )
     return social_user[0]
+
+
+def get_mock_api_event(amount):
+    ### UP TO 50 EVENTS ###
+    mocked_events_array = []
+    fake = Faker()
+    for number in range(amount):
+        created = fake.date_time_between(
+            start_date='-5d', end_date='-1d', tzinfo=pytz.timezone('US/Eastern'))
+        eb_id = str(randint(50000000000, 60000000000))
+        mocked_events_array.append(
+            {
+                'name': {'text': fake.text(100), 'html': None},
+                'description': {'text': fake.text(1000), 'html': None},
+                'id': eb_id,
+                'url': 'https://www.eventbrite.com/e/test-event-tickets-{}'.format(eb_id),
+                'start': {
+                    'timezone': 'America/Los_Angeles',
+                    'local': '2018-10-28T22:00:00',
+                    'utc': fake.date_time_between(start_date='+15d', end_date='+30d', tzinfo=pytz.timezone('US/Eastern')).strftime('%Y-%m-%dT%H:%M:%SZ')
+                },
+                'end': {
+                    'timezone': 'America/Los_Angeles',
+                    'local': '2018-10-29T22:00:00',
+                    'utc': fake.date_time_between(start_date='+31d', end_date='+32d', tzinfo=pytz.timezone('US/Eastern')).strftime('%Y-%m-%dT%H:%M:%SZ')
+                },
+                'organization_id': '272770247903',
+                'created': created.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'changed': (created + timedelta(seconds=30)).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'capacity': 200,
+                'capacity_is_custom': False,
+                'status': 'draft',
+                'currency': 'USD',
+                'listed': False,
+                'shareable': True,
+                'invite_only': False,
+                'online_event': False,
+                'show_remaining': False,
+                'tx_time_limit': 480,
+                'hide_start_date': False,
+                'hide_end_date': False,
+                'locale': 'en_US',
+                'is_locked': False,
+                'privacy_setting': 'unlocked',
+                'is_series': False,
+                'is_series_parent': False,
+                'is_reserved_seating': False,
+                'show_pick_a_seat': False,
+                'show_seatmap_thumbnail': False,
+                'show_colors_in_seatmap_thumbnail': False,
+                'source': 'create_2.0',
+                'is_free': False,
+                'version': '3.0.0',
+                'logo_id': None,
+                'organizer_id': '17867896837',
+                'venue_id': None,
+                'category_id': None,
+                'subcategory_id': None,
+                'format_id': None,
+                'resource_uri': 'https://www.eventbriteapi.com/v3/events/{}/'.format(eb_id),
+                'is_externally_ticketed': False,
+                'logo': None
+            }
+
+        )
+    mock_api_event = {
+        'pagination': {
+            'object_count': int(amount),
+            'page_number': 1,
+            'page_size': 50,
+            'page_count': 1,
+            'has_more_items': False
+        },
+        'events': mocked_events_array}
+    return mock_api_event
