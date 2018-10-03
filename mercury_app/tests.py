@@ -32,16 +32,28 @@ from .utils import (
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
+    create_merchandise_from_order,
     get_mock_api_event,
+    get_mock_api_orders,
+    get_data,
+    webhook_order_available,
+    get_order,
+    webhook_available_to_process,
+    social_user_exists,
+    get_social_user_id,
+    get_social_user,
 
 )
 from mercury_app.views import Home
 from django.utils import timezone
 from django.urls import resolve
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import (
+    patch,
+    MagicMock,
+)
 from unittest import skip
-
+import json
 
 MOCK_ORGANIZATION_API = {
     'organizations': [{
@@ -131,7 +143,10 @@ class TestBase(TestCase):
         self.user.set_password('the_best_password_of_ever_2')
         self.user.save()
         self.auth = UserSocialAuth.objects.create(
-            user=self.user, provider='eventbrite', uid='563480245671'
+            user=self.user,
+            provider='eventbrite',
+            uid='563480245671',
+            extra_data={'access_token': 'AAAAAAAAAABBBBBBBBB'},
         )
         login = self.client.login(
             username='mercury_user',
@@ -270,6 +285,10 @@ class UtilsTest(TestCase):
         result = get_db_event_by_id(1234)
         self.assertEqual(result, event)
 
+    def test_get_db_event_by_id_no_result(self):
+        result = get_db_event_by_id(1234)
+        self.assertEqual(result, None)
+
     def test_get_db_merchandising_by_order_id(self):
         merchandising = MerchandiseFactory(
             order__id=15
@@ -277,17 +296,31 @@ class UtilsTest(TestCase):
         result = get_db_merchandising_by_order_id(15)[0]
         self.assertEqual(result, merchandising)
 
+    def test_get_db_merchandising_by_order_id_no_result(self):
+        result = get_db_merchandising_by_order_id('de')
+        self.assertEqual(result, None)
+
     def test_get_db_orders_by_event(self):
         event = EventFactory()
         OrderFactory.create_batch(10, event=event)
         result = len(get_db_orders_by_event(event))
         self.assertEqual(result, 10)
 
+    def test_get_db_orders_by_event_no_result(self):
+        fake_event = OrganizationFactory()
+        result = get_db_orders_by_event(fake_event)
+        self.assertEqual(result, None)
+
     def test_get_db_organizations_by_user(self):
         user = UserFactory()
         UserOrganizationFactory.create_batch(2, user=user)
         result = len(get_db_organizations_by_user(user))
         self.assertEqual(result, 2)
+
+    def test_get_db_organizations_by_user_no_result(self):
+        fake_user = EventFactory()
+        result = get_db_organizations_by_user(fake_user)
+        self.assertEqual(result, None)
 
     def test_get_db_events_by_organization(self):
         organization = OrganizationFactory()
@@ -296,6 +329,11 @@ class UtilsTest(TestCase):
         EventFactory.create_batch(5, organization=organization)
         result = len(get_db_events_by_organization(user))
         self.assertEqual(result, 5)
+
+    def test_get_db_events_by_organization_no_result(self):
+        fake_user = EventFactory()
+        result = get_db_events_by_organization(fake_user)
+        self.assertEqual(result, None)
 
     def test_get_db_or_create_organization_by_id_create_case(self):
         org_name = 'TestOrganization'
@@ -316,6 +354,10 @@ class UtilsTest(TestCase):
         self.assertEqual(result[0].name, mock.name)
         self.assertFalse(result[1])
 
+    def test_get_db_or_create_organization_by_id_no_result(self):
+        result = get_db_or_create_organization_by_id(None, None)
+        self.assertEqual(result, None)
+
     def test_create_userorganization_assoc_create_case(self):
         org = OrganizationFactory()
         user = UserFactory()
@@ -335,6 +377,10 @@ class UtilsTest(TestCase):
         self.assertEqual(result[0].user, mock.user)
         self.assertFalse(result[1])
 
+    def test_create_userorganization_assoc_get_case_no_result(self):
+        result = create_userorganization_assoc(None, None)
+        self.assertEqual(result, None)
+
 
     @patch('mercury_app.utils.get_api_events_org')
     @patch('mercury_app.utils.get_auth_token')
@@ -348,16 +394,120 @@ class UtilsTest(TestCase):
 
     def test_get_mock_api_event(self):
         events = get_mock_api_event(2)['events']
-        creation_date = datetime.strptime(events[0]['created'], '%Y-%m-%dT%H:%M:%SZ')
+        creation_date = datetime.strptime(
+            events[0]['created'],
+            '%Y-%m-%dT%H:%M:%SZ',
+        )
         self.assertEqual(len(events), 2)
         self.assertTrue(events[0]['name'])
         self.assertTrue(int(events[0]['id']) > 4999999999)
         self.assertTrue(creation_date < datetime.now())
 
+    def test_get_mock_api_orders(self):
+        orders = get_mock_api_orders(2, 1, 5532332)
+        self.assertEqual(len(orders), 2)
+        self.assertTrue(orders[0]['merchandise'])
+        self.assertFalse(orders[1]['merchandise'])
+
     def test_create_event_from_api(self):
         org = OrganizationFactory(eb_organization_id=272770247903)
         result = create_event_from_api(org, get_mock_api_event(1)['events'][0])
         self.assertTrue(isinstance(result, Event))
+
+    def test_create_event_from_api_failed(self):
+        org = OrganizationFactory(eb_organization_id=272770247903)
+        result = create_event_from_api(org, None)
+        self.assertEqual(result, None)
+
+    def test_create_event_orders_from_api(self):
+        event = EventFactory()
+        orders = get_mock_api_orders(5, 2, event.eb_event_id)
+        result = create_event_orders_from_api(event, orders)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(isinstance(result[0][0], Order))
+
+    def test_create_event_orders_from_api_empty_order(self):
+        event = EventFactory()
+        orders = get_mock_api_orders(1, 1, event.eb_event_id)
+        orders.append(None)
+        orders.extend(get_mock_api_orders(1, 1, event.eb_event_id))
+        result = create_event_orders_from_api(event, orders)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(isinstance(result[2][0], Order))
+        self.assertEqual(result[1], None)
+
+    def test_create_merchandise_from_order(self):
+        result = []
+        event = EventFactory()
+        order = OrderFactory(event=event)
+        api_order = get_mock_api_orders(1, 1, event.eb_event_id)[0]
+        for item in api_order['merchandise']:
+            result.append(create_merchandise_from_order(item, order))
+        self.assertEqual(len(result), 2)
+        self.assertTrue(isinstance(result[0], Merchandise))
+
+    def test_create_merchandise_from_order_failed(self):
+        result = []
+        event = EventFactory()
+        order = None
+        api_order = get_mock_api_orders(1, 1, event.eb_event_id)[0]
+        for item in api_order['merchandise']:
+            result.append(create_merchandise_from_order(item, order))
+        self.assertEqual(result[0], None)
+
+
+class UtilsWebhook(TestBase):
+
+    def test_get_auth_token(self):
+        result = get_auth_token(get_user_model().objects.get(username='mercury_user'))
+        self.assertEqual(result, 'AAAAAAAAAABBBBBBBBB')
+
+    def test_get_auth_token_does_not_exist(self):
+        result = get_auth_token(UserFactory())
+        self.assertEqual(result, '')
+
+    def test_webhook_available_to_process(self):
+        user_id = '563480245671'
+        self.assertTrue(webhook_available_to_process(user_id))
+
+    def test_webhook_not_available_to_process(self):
+        user_id = '5630245671'
+        self.assertFalse(webhook_available_to_process(user_id))
+
+    def test_social_user_exists(self):
+        user_id = '563480245671'
+        self.assertTrue(social_user_exists(user_id))
+
+    def test_social_user_not_exists(self):
+        user_id = '5630245671'
+        self.assertFalse(social_user_exists(user_id))
+
+    @skip('Not showing consistency')
+    def test_get_social_user_id(self):
+        social_user_id = get_social_user_id('563480245671')
+        self.assertEquals(social_user_id, 1)
+
+    @patch('mercury_app.utils.get_order', return_value=get_mock_api_orders(1, 1, '1')[0])
+    def test_get_data(self, mock_get_order):
+        request = MagicMock(
+            body='{"config": {"action": "order.placed", "user_id": 563480245671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
+        )
+        org = OrganizationFactory(eb_organization_id=1)
+        UserOrganizationFactory(
+            user=get_user_model().objects.get(username='mercury_user'),
+            organization=org
+        )
+        EventFactory(eb_event_id=1, organization=org)
+        result = get_data(json.loads(request.body), request.build_absolute_uri('/')[:-1])
+        self.assertTrue(result['status'])
+
+    @patch('mercury_app.utils.get_order', return_value=get_mock_api_orders(1, 1, 1)[0])
+    def test_get_data(self, mock_get_order):
+        request = MagicMock(
+            body='{"config": {"action": "order.placed", "user_id": 45671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
+        )
+        result = get_data(json.loads(request.body), request.build_absolute_uri('/')[:-1])
+        self.assertFalse(result['status'])
 
 
 class SelectEventsNotLoggedRedirectTest(TestCase):
