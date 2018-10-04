@@ -19,6 +19,7 @@ from .models import (
     Organization,
     UserOrganization,
     UserWebhook,
+    Transaction,
 )
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
@@ -570,3 +571,30 @@ def get_summary_handed_over_dont_json(order_ids):
         2)])
 
     return data_json
+
+def create_transaction(merchandise):
+    try:
+        Transaction.objects.create(
+            merchandise=merchandise,
+            date=timezone.now(),
+            from_who=self.request.user['text'],
+            #notes=
+            #device_name=merchandise['delivered'],
+            #operation_typt=,
+        )
+        message = 'The transaction {} was added successfully!'.format(
+            merchandise['name']['text']
+        )
+        return message
+    except Exception as e:
+        return e
+
+
+def get_transaction_by_merchandise(eb_merchandising_id):
+    try:
+        transaction_query = Transaction.objects.filter(
+            merchandise=eb_merchandising_id,
+        )
+    except Exception as e:
+        print(e)
+    return transaction_query

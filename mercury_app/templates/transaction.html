@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    {% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
+<div id="fondo_sin_imagen" >
+  <div class="container">
+   <div class="row">
+    <table class="table">
+      <h1>  </h1>
+      <thead class="thead-dark">
+        <tr>
+          <th scope="col">Date</th>
+          <!-- <th scope="col">Notes</th> -->
+          <th scope="col">Deliver for</th>
+          <th scope="col">Item</th>
+          <th scope="col">Id device</th>
+          <th scope="col">Type</th>
+        </tr>
+      </thead>
+      <tbody>
+       {% for item in transaction %}
+       <tr>
+        <td>{{ item.date }}</td>
+      <!--   <td>{{ item.notes }}</td>
+        <td>{{ item.from_who }}</td>
+        <td>{{ item.item }}</td>
+        <td>{{ item.device_name }}</td>
+        <td>{{ item.operation_type }}</td> -->
+        <td>
+        </td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td><input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);"></td>
+      </tr>
+
+    </tbody>
+  </table>
+        <form method="POST" class="post-form">{% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="save btn btn-default">Save</button>
+      </form>
+
+  <div class = "row text-center">
+    <div class="col-3"> </div>
+    <div class="col-6">
+      {% if pagination.has_previous %}
+      <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+      {% endif %}
+      <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+      {% if pagination.has_next %}
+      <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}
