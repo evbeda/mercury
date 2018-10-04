@@ -33,6 +33,8 @@ from .utils import (
     create_event_from_api,
     create_order_webhook_from_view,
     get_data,
+    get_summary_handed_over_dont_json,
+    get_summary_types_handed,
 )
 
 
@@ -78,27 +80,9 @@ class Summary(TemplateView, LoginRequiredMixin):
         context = super(Summary, self).get_context_data(**kwargs)
         event_id = self.kwargs['event_id']
         event = Event.objects.filter(eb_event_id=event_id)
-        order_ids = Order.objects.filter(
-            event=event).values_list('id', flat=True)
-        merchandise_delivered = Merchandise.objects.filter(
-            delivered=True, order_id__in=order_ids).count()
-        total_merchandise = Merchandise.objects.filter(
-            order_id__in=order_ids).count()
-        if total_merchandise != 0:
-            handed_percentaje = round(
-                ((merchandise_delivered *
-                  100) / total_merchandise), 1)
-        else:
-            handed_percentaje = 0
-        dont_handed_percentaje = 100 - handed_percentaje
-        data_json = [
-            {'quantity': handed_percentaje, 'percentage': handed_percentaje,
-             'name': 'Orders Handed', 'id': 1},
-            {'quantity': dont_handed_percentaje,
-             'percentage': dont_handed_percentaje,
-             'name': 'Orders don\'t handed', 'id': 2}
-        ]
-        context['json_data'] = json.dumps(data_json)
+        order_ids = Order.objects.filter(event=event).values_list('id', flat=True)
+        context['data_handed_over_dont'] = get_summary_handed_over_dont_json(order_ids)
+        context['data_tipes_handed'] = get_summary_types_handed(order_ids)
         context['event'] = event[0]
         return context
 

@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block scripts %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.7.4/d3.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/britecharts@2/dist/bundled/britecharts.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/britecharts/dist/css/britecharts.min.css" type="text/css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.7.4/d3.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/britecharts@2/dist/bundled/britecharts.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/britecharts/dist/css/britecharts.min.css" type="text/css" />
 
 {% endblock %}
 
@@ -19,31 +19,81 @@
     {% if message %}
     <div class="alert alert-success">{{ message }}</div>
     {% endif %}
-<div class="page-header">
-  <h1>Summary <small> Of {{ event.name }}</small>  
-    <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event.eb_event_id %}">View orders</a>
-</h1>
+    <div class="page-header">
+      <h1>Summary <small> Of {{ event.name }}</small>  
+        <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event.eb_event_id %}">View orders</a>
+      </h1>
+      <div class="js-donut-container text-center row">
+        <h2>Handed/ Don't handed</h2>
+      </div>
+      <div class="js-legend-container text-center">
+      </div>
+      <div class="container">
+      </div>
+      <div class="row text-center" id="subtipe-container">
+      </div>
+      <div class="row text-center" id="subtipe-container_legend">
+      </div>
+      <div class="text-center">
+        <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
+      </div>
+    </div>
+  </div>
 
 </div>
-  </div>
-    <div class="js-donut-container text-center row">
-      <h2>Handed/ Don't handed</h2>
-    </div>
-    <div class="text-center">
-      <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
-    </div>
-  </div>
 </div>
 <br>
 <script type="text/javascript">
-
-const data = {{ json_data |safe }};
-
-let donutChart = britecharts.donut()
+  let data_handed = {{ data_handed_over_dont |safe }};
+  let data_tipes_handed = {{ data_tipes_handed |safe }};
+  let colors = britecharts.colors.colorSchemas
+  let colors_array = [colors.green, colors.red, colors.britecharts, colors.purple, colors.teal, colors.orange];
+  let donutChart = britecharts.donut()
+  let legendChart = britecharts.legend()
   donutChart
-    .width(600)
-    .height(400);
-d3.select('.js-donut-container').datum(data).call(donutChart);
+  .isAnimated(true)
+  .width(400)
+  .height(400)
+  .externalRadius(500 / 2.5)
+  .internalRadius(500 / 5)
+  .on('customMouseOver', function(data) {
+    legendChart.highlight(data.data.id);
+  })
+  .on('customMouseOut', function() {
+    legendChart.clearHighlight();
+  });
+  d3.select('.js-legend-container').datum(data_handed).call(legendChart);
+  d3.select('.js-donut-container').datum(data_handed).call(donutChart);
 
+  for (var i = 0; i < data_tipes_handed.length; i++) { 
+    element = document.createElement('div')
+    element.className = "col-md-4 text-center js-donut-container-subtipe" + i
+    element.id = 'subtipe' + i
+    h1 = document.createElement('h3')
+    h1.innerHTML = data_tipes_handed[i][0]['name']
+    document.getElementById('subtipe-container').appendChild(element);
+    document.getElementById('subtipe' + i).appendChild(h1);
+    legend_cont = document.createElement('div')
+    legend_cont.className = "col-md-4 text-center js-donut-container-legend" + i
+    legend_cont.id = 'subtipe_legend' + i
+    document.getElementById('subtipe-container_legend').appendChild(legend_cont);
+    let donutChartSubtipe = britecharts.donut()
+    let legendChartSubtipe = britecharts.legend()
+    donutChartSubtipe
+    .width(275)
+    .isAnimated(true)
+    .highlightSliceById(1)
+    .height(275)
+    .colorSchema(colors_array[i])
+    .on('customMouseOver', function(data) {
+      legendChartSubtipe.highlight(data_tipes_handed[i].id);
+    })
+    .on('customMouseOut', function() {
+      legendChartSubtipe.clearHighlight();
+    });
+    legendChartSubtipe.colorSchema(colors_array[i]);
+    d3.select('.js-donut-container-subtipe'+ i).datum(data_tipes_handed[i]).call(donutChartSubtipe);
+    d3.select('.js-donut-container-legend' + i).datum(data_tipes_handed[i]).call(legendChartSubtipe);
+  }
 </script>
 {% endblock %}
