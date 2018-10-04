@@ -86,7 +86,7 @@ class Merchandise(models.Model):
         Order,
         on_delete=models.CASCADE
     )
-    eb_merchandising_id = models.CharField(max_length=8)
+    eb_merchandising_id = models.CharField(max_length=8, unique=True)
     name = models.CharField(max_length=256)
     item_type = models.CharField(max_length=128)
     currency = models.CharField(max_length=3)
@@ -112,12 +112,12 @@ class Transaction(models.Model):
         ('HA', 'Hand'),
         ('RE', 'Refund'),
     )
-    date = models.DateTimeField()
+    date = models.DateTimeField(auto_now_add=True)
     from_who = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
-    to_who = models.EmailField(max_length=256)
+    notes = models.CharField(max_length=256)
     merchandise = models.ForeignKey(
         Merchandise,
         on_delete=models.CASCADE,

@@ -15,6 +15,7 @@ from mercury_app.models import (
     Order,
     Merchandise,
     UserWebhook,
+    Transaction,
 )
 from .utils import (
     get_auth_token,
@@ -35,6 +36,8 @@ from .utils import (
     get_data,
     get_summary_handed_over_dont_json,
     get_summary_types_handed,
+    get_transaction_by_merchandise,
+    create_transaction,
 )
 
 
@@ -51,10 +54,40 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
-        context['merchandising'] = get_db_merchandising_by_order_id(
-            kwargs['order_id']
-        )
+        merchandising_query_obj = get_db_merchandising_by_order_id(kwargs['order_id'])
+        merchandising_query = list(merchandising_query_obj.values())
+        context['merchandising'] = merchandising_query
+        for index in range(len(context['merchandising'])):
+            all_transactions = Transaction.objects.filter(
+                merchandise=merchandising_query_obj[index]
+            )
+            transaction_count = 0
+            for transaction in all_transactions:
+                if transaction.operation_type == 'HA':
+                    transaction_count -= 1
+                elif transaction.operation_type == 'RE':
+                    transaction_count += 1
+                else:
+                    pass
+            items_left = merchandising_query[index].get('quantity') + transaction_count
+            merchandising_query[index]['items_left'] = items_left
         return context
+
+    def post(self, request, *args, **kwargs):
+        data = self.request.POST
+        keys = list(data)[:-1]
+        for item in keys:
+            for qty in range(int(data[item])):
+                Transaction.objects.create(
+                    from_who=self.request.user,
+                    notes='',
+                    merchandise=Merchandise.objects.get(
+                        eb_merchandising_id=item,
+                    ),
+                    device_name='unique',
+                    operation_type='HA',
+                )
+        return redirect(reverse('index'))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -146,3 +179,18 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             message = 'An error has occured while adding the event'
 
         return redirect(reverse('index', kwargs={'message': message}))
+
+
+@method_decorator(login_required, name='dispatch')
+class TransactionView(TemplateView, LoginRequiredMixin):
+    template_name = 'transaction.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(TransactionView, self).get_context_data(**kwargs)
+        item = self.kwargs['item_id']
+        context['transaction'] = (item)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        token = get_auth_token(self.request.user)
+        name = self.kgards['name']
