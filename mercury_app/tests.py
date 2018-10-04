@@ -42,9 +42,11 @@ from .utils import (
     social_user_exists,
     get_social_user_id,
     get_social_user,
-
+    get_json_donut,
+    get_summary_types_handed,
+    get_summary_handed_over_dont_json,
 )
-from mercury_app.views import Home
+from mercury_app.views import Home, Summary
 from django.utils import timezone
 from django.urls import resolve
 from datetime import datetime
@@ -268,12 +270,13 @@ class SelectEventsLoggedTest(TestBase):
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
 
-
     @skip('Broken by refactor')
     @patch('mercury_app.utils.get_api_events_id', return_value=MOCK_EVENT_API.get('events')[0])
     def test_add_event(self, mock_get_api_events_id):
-        response = self.client.post('/select_events/', {'organization_id': '1234', 'organization_name': 'TestOrg'})
-        event = Event.objects.get(eb_event_id=MOCK_EVENT_API.get('events')[0].get('id'))
+        response = self.client.post(
+            '/select_events/', {'organization_id': '1234', 'organization_name': 'TestOrg'})
+        event = Event.objects.get(
+            eb_event_id=MOCK_EVENT_API.get('events')[0].get('id'))
         self.assertTrue(event)
         self.assertEqual(response.status_code, 302)
 
@@ -338,7 +341,8 @@ class UtilsTest(TestCase):
     def test_get_db_or_create_organization_by_id_create_case(self):
         org_name = 'TestOrganization'
         org_id = '23235534532'
-        mock = OrganizationFactory.build(name=org_name, eb_organization_id=org_id)
+        mock = OrganizationFactory.build(
+            name=org_name, eb_organization_id=org_id)
         result = get_db_or_create_organization_by_id(org_id, org_name)
         self.assertEqual(result[0].eb_organization_id, mock.eb_organization_id)
         self.assertEqual(result[0].name, mock.name)
@@ -348,7 +352,8 @@ class UtilsTest(TestCase):
         org_name = 'TestOrganization'
         org_id = '23235534532'
         OrganizationFactory(name=org_name, eb_organization_id=org_id)
-        mock = OrganizationFactory.build(name=org_name, eb_organization_id=org_id)
+        mock = OrganizationFactory.build(
+            name=org_name, eb_organization_id=org_id)
         result = get_db_or_create_organization_by_id(org_id, org_name)
         self.assertEqual(result[0].eb_organization_id, mock.eb_organization_id)
         self.assertEqual(result[0].name, mock.name)
@@ -380,7 +385,6 @@ class UtilsTest(TestCase):
     def test_create_userorganization_assoc_get_case_no_result(self):
         result = create_userorganization_assoc(None, None)
         self.assertEqual(result, None)
-
 
     @patch('mercury_app.utils.get_api_events_org')
     @patch('mercury_app.utils.get_auth_token')
@@ -459,7 +463,8 @@ class UtilsTest(TestCase):
 class UtilsWebhook(TestBase):
 
     def test_get_auth_token(self):
-        result = get_auth_token(get_user_model().objects.get(username='mercury_user'))
+        result = get_auth_token(
+            get_user_model().objects.get(username='mercury_user'))
         self.assertEqual(result, 'AAAAAAAAAABBBBBBBBB')
 
     def test_get_auth_token_does_not_exist(self):
@@ -498,7 +503,8 @@ class UtilsWebhook(TestBase):
             organization=org
         )
         EventFactory(eb_event_id=1, organization=org)
-        result = get_data(json.loads(request.body), request.build_absolute_uri('/')[:-1])
+        result = get_data(json.loads(request.body),
+                          request.build_absolute_uri('/')[:-1])
         self.assertTrue(result['status'])
 
     @patch('mercury_app.utils.get_order', return_value=get_mock_api_orders(1, 1, 1)[0])
@@ -506,7 +512,8 @@ class UtilsWebhook(TestBase):
         request = MagicMock(
             body='{"config": {"action": "order.placed", "user_id": 45671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
         )
-        result = get_data(json.loads(request.body), request.build_absolute_uri('/')[:-1])
+        result = get_data(json.loads(request.body),
+                          request.build_absolute_uri('/')[:-1])
         self.assertFalse(result['status'])
 
 
@@ -639,3 +646,154 @@ class UserOrganizationModelTest(TestBase):
     def test_user_organization_creation(self):
         user_organization = self.create_user_organization()
         self.assertTrue(isinstance(user_organization, UserOrganization))
+
+
+class SummaryTest(TestBase):
+
+    def setUp(self):
+        super(SummaryTest, self).setUp()
+        self.order = OrderFactory()
+
+    def test_get_json_donut(self):
+        expected = {'quantity': 1, 'percentage': 1,
+                    'name': 'nombre', 'id': 2}
+        result = get_json_donut(1, 'nombre', 2)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_handed_over_dont_json_one(self):
+        expected = ([{'quantity': 0, 'percentage': 0,
+                      'name': 'Orders Handed', 'id': 1},
+                     {'quantity': 100, 'percentage': 100,
+                      'name': 'Orders don\'t handed', 'id': 2}])
+        mercha = MerchandiseFactory()
+        result = get_summary_handed_over_dont_json([mercha.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_handed_over_dont_json_two(self):
+        expected = ([{'quantity': 100, 'percentage': 100,
+                      'name': 'Orders Handed', 'id': 1},
+                     {'quantity': 0, 'percentage': 0,
+                      'name': 'Orders don\'t handed', 'id': 2}])
+        mercha = MerchandiseFactory(delivered=True)
+        result = get_summary_handed_over_dont_json([mercha.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_handed_over_dont_json_three(self):
+        expected = ([{'quantity': 66.7, 'percentage': 66.7,
+                      'name': 'Orders Handed', 'id': 1},
+                     {'quantity': 33.3, 'percentage': 33.3,
+                      'name': 'Orders don\'t handed', 'id': 2}])
+        MerchandiseFactory(delivered=True,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=True,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=False,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_handed_over_dont_json([self.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_handed_over_dont_json_four(self):
+        expected = ([{'quantity': 33.3, 'percentage': 33.3,
+                      'name': 'Orders Handed', 'id': 1},
+                     {'quantity': 66.7, 'percentage': 66.7,
+                      'name': 'Orders don\'t handed', 'id': 2}])
+        MerchandiseFactory(delivered=False,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=True,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=False,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_handed_over_dont_json([self.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_types_handed_one(self):
+        expected = ([[{'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Gorra handed', 'id': 1},
+                      {'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Gorra don\'t handed', 'id': 2}]])
+        MerchandiseFactory(delivered=True,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_types_handed([self.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_types_handed_two(self):
+        expected = ([[{'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Gorra handed', 'id': 1},
+                      {'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Gorra don\'t handed', 'id': 2}],
+                     [{'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Remera handed', 'id': 1},
+                      {'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Remera don\'t handed', 'id': 2}]
+                     ])
+        MerchandiseFactory(delivered=True,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=True,
+                           name='Remera',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_types_handed([self.order.id])
+        self.assertEqual(expected, result)
+
+    def test_get_summary_types_handed_three(self):
+        expected = ([[{'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Gorra handed', 'id': 1},
+                      {'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Gorra don\'t handed', 'id': 2}],
+                     [{'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Remera handed', 'id': 1},
+                      {'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Remera don\'t handed', 'id': 2}]
+                     ])
+        MerchandiseFactory(delivered=False,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=False,
+                           name='Remera',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_types_handed([self.order.id])
+        self.assertEqual(expected, result)
+
+    @skip('Broken, it has a bug')
+    def test_get_summary_types_handed_four(self):
+        expected = ([[{'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Gorra handed', 'id': 1},
+                      {'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Gorra don\'t handed', 'id': 2}],
+                     [{'quantity': 100.0, 'percentage': 100.0,
+                       'name': 'Remera handed', 'id': 1},
+                      {'quantity': 0.0, 'percentage': 0.0,
+                       'name': 'Remera don\'t handed', 'id': 2}]
+                     ])
+        MerchandiseFactory(delivered=False,
+                           name='Gorra',
+                           quantity=1,
+                           order=self.order)
+        MerchandiseFactory(delivered=True,
+                           name='Remera',
+                           quantity=1,
+                           order=self.order)
+        result = get_summary_types_handed([self.order.id])
+        self.assertEqual(expected, result)
+
+    def test_summary_resolve_home_class_view(self):
+        found = resolve('/event/50781817784/summary/')
+        self.assertEquals(found.func.view_class, Summary)

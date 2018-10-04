@@ -5,6 +5,7 @@ import pytz
 from datetime import (
     timedelta,
 )
+from django.db.models import Count
 from faker import Faker
 from random import (
     randint,
@@ -503,3 +504,69 @@ def get_mock_api_orders(amount, w_merchandise, event_id):
             })
         w_merchandise -= 1
     return mocked_orders_array
+
+def get_json_donut(percentage, name, id_int):
+    data_json = {'quantity': percentage, 'percentage': percentage,
+                 'name': name, 'id': id_int}
+    return data_json
+
+
+def get_summary_types_handed(order_ids):
+    total_mercha = Merchandise.objects.filter(order_id__in=order_ids).values(
+        'name').annotate(name_count=Count('name')).order_by('name')
+    handed_mercha = Merchandise.objects.filter(
+        order_id__in=order_ids, delivered=True).values(
+        'name').annotate(name_count=Count('name')).order_by('name')
+    data_json = []
+    if len(handed_mercha) != 0:
+        for i in range(len(handed_mercha)):
+            if total_mercha[i]['name_count'] != 0:
+                handed_percentaje = round(
+                    ((handed_mercha[i]['name_count'] *
+                      100) / total_mercha[i]['name_count']), 1)
+            else:
+                handed_percentaje = 0
+            dont_handed_percentaje = 100 - handed_percentaje
+            data_json.append([get_json_donut(
+                handed_percentaje,
+                '{} handed'.format(total_mercha[i]['name']),
+                1),
+                get_json_donut(
+                dont_handed_percentaje,
+                '{} don\'t handed'.format(total_mercha[i]['name']),
+                2)])
+    else:
+        for i in range(len(total_mercha)):
+            data_json.append([get_json_donut(
+                0,
+                '{} handed'.format(total_mercha[i]['name']),
+                1),
+                get_json_donut(
+                100,
+                '{} don\'t handed'.format(total_mercha[i]['name']),
+                2)])
+    return data_json
+
+
+def get_summary_handed_over_dont_json(order_ids):
+    merchandise_delivered = Merchandise.objects.filter(
+        delivered=True, order_id__in=order_ids).count()
+    total_merchandise = Merchandise.objects.filter(
+        order_id__in=order_ids).count()
+    if total_merchandise != 0:
+        handed_percentaje = round(
+            ((merchandise_delivered *
+              100) / total_merchandise), 1)
+    else:
+        handed_percentaje = 0
+    dont_handed_percentaje = 100 - handed_percentaje
+    data_json = ([get_json_donut(
+        handed_percentaje,
+        'Orders Handed',
+        1),
+        get_json_donut(
+        dont_handed_percentaje,
+        'Orders don\'t handed',
+        2)])
+
+    return data_json
