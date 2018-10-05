@@ -98,4 +98,3 @@ class MerchandiseFactory(factory.django.DjangoModelFactory):
     currency = 'USD'
     quantity = factory.fuzzy.FuzzyInteger(1, 100)
     value = factory.fuzzy.FuzzyFloat(25, 75)
-    delivered = False
