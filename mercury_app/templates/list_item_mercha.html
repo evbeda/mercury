@@ -40,7 +40,7 @@
             {% endif %}
             <td>{{ item.items_left }}</td>
             <td>
-              <script type="text/javascript"> 
+              <script type="text/javascript">
                 var max_value = "{{ item.items_left }}";
               </script>
 
@@ -48,11 +48,11 @@
                 <input type='number' name='quantity' value='0' class='qty' />
                 <input type='button' value='+' class='qtyplus' field='quantity' />
 
- -->            
+ -->
 
-<input type=button value='-' class="btn btn-info btn-sm" onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+<input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
 <input readonly="readonly" type=text form="delivery" size=10 id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
-<input type=button value='+' class="btn btn-info btn-sm" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+<input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
 
             </td>
             <!--<td><a href="{% url 'transaction' item_id=item.id %}" class="btn btn-info">Historial</a></td>-->
@@ -101,7 +101,9 @@
 <script language=javascript>
 function process(v, target, max){
     var value = parseInt(document.getElementById(target).value);
-    if (value == 0) {
+    if (max == 0){
+      value = 0;
+    }else if (value == 0) {
       if (v==1){
         value +=v;
       }else{
@@ -111,18 +113,18 @@ function process(v, target, max){
       if (v==-1){
         value +=v;
       }else{
-          
+
       }
     }else if (value < max) {
     value+=v;
   } else if (max == 0) {
     value = 0
-} 
+}
     document.getElementById(target).value = value;
   }
 </script>
 
-<script type="text/javascript"> 
+<script type="text/javascript">
 
   jQuery(document).ready(function(){
     // This button will increment the value

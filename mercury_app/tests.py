@@ -18,6 +18,7 @@ from .test_factories import (
     OrderFactory,
     MerchandiseFactory,
     TransactionFactory,
+    UserWebhookFactory,
 )
 from .utils import (
     get_auth_token,
@@ -25,6 +26,8 @@ from .utils import (
     get_api_events_org,
     get_api_events_id,
     get_api_orders_of_event,
+    create_webhook,
+    delete_webhook,
     get_events_for_organizations,
     get_db_event_by_id,
     get_db_merchandising_by_order_id,
@@ -32,15 +35,18 @@ from .utils import (
     get_db_events_by_organization,
     get_db_organizations_by_user,
     get_db_or_create_organization_by_id,
+    get_db_transaction_by_merchandise,
+    get_db_items_left,
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
     create_merchandise_from_order,
+    create_transaction,
     get_mock_api_event,
     get_mock_api_orders,
     get_data,
     webhook_order_available,
-    get_order,
+    get_api_order,
     webhook_available_to_process,
     social_user_exists,
     get_social_user_id,
@@ -140,6 +146,7 @@ MOCK_EVENT_API = {
 class TestBase(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(
+            id=1,
             username='mercury_user',
             password='the_best_password_of_ever',
             is_active=True,
@@ -281,6 +288,80 @@ class SelectEventsLoggedTest(TestBase):
             eb_event_id=MOCK_EVENT_API.get('events')[0].get('id'))
         self.assertTrue(event)
         self.assertEqual(response.status_code, 302)
+
+
+@patch('mercury_app.utils.Eventbrite.get')
+class APICallsTest(TestCase):
+
+    def test_get_api_organization(self, mock_api_call):
+        get_api_organization('TEST')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/users/me/organizations',
+        )
+
+    def test_get_api_orders_of_event(self, mock_api_call):
+        get_api_orders_of_event('TEST', '1234')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/events/1234/orders/',
+        )
+        self.assertEquals(
+            mock_api_call.call_args_list[0][1]['expand'][0],
+            'merchandise'
+        )
+
+    def test_get_api_events_org(self, mock_api_call):
+        get_api_events_org('TEST', {'id': '5678'})
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/organizations/5678/events/',
+        )
+
+    def test_get_api_events_id(self, mock_api_call):
+        get_api_events_id('TEST', '11')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/events/11',
+        )
+
+    def test_get_api_order(self, mock_api_call):
+        get_api_order('TEST', '222')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/orders/222',
+        )
+        self.assertEquals(
+            mock_api_call.call_args_list[0][1]['expand'][0],
+            'merchandise'
+        )
+
+    @patch('mercury_app.utils.Eventbrite.post', return_value={'id': '1'})
+    def test_create_webhook(self, mock_api_post_call, mock_api_get_call):
+        result = create_webhook('TEST')
+        mock_api_post_call.assert_called_once()
+        self.assertEquals(
+            mock_api_post_call.call_args_list[0][0][0],
+            '/webhooks/',
+        )
+        self.assertEquals(result, '1')
+
+    @patch('mercury_app.utils.Eventbrite.delete', return_value={'id': '1'})
+    def test_delete_webhook(self, mock_api_delete_call, mock_api_get_call):
+        UserWebhookFactory(webhook_id='7100')
+        delete_webhook('TEST', '7100')
+        mock_api_delete_call.assert_called_once()
+        self.assertEquals(
+            mock_api_delete_call.call_args_list[0][0][0],
+            '/webhooks/7100/',
+        )
+        result = UserWebhook.objects.filter(webhook_id='7100')
+        self.assertEquals(result.count(), 0)
 
 
 class UtilsTest(TestCase):
@@ -461,6 +542,40 @@ class UtilsTest(TestCase):
             result.append(create_merchandise_from_order(item, order))
         self.assertEqual(result[0], None)
 
+    def test_create_transaction(self):
+        tx = create_transaction(UserFactory(), MerchandiseFactory(), 'TEST NOTE', 'iPhone', 'HA')
+        self.assertTrue(isinstance(tx, Transaction))
+        self.assertEqual(tx.notes, 'TEST NOTE')
+
+    def test_get_db_transaction_by_merchandise(self):
+        merchandise = MerchandiseFactory()
+        tx = TransactionFactory(merchandise=merchandise)
+        result = get_db_transaction_by_merchandise(merchandise)
+        self.assertEqual(result[0], tx)
+
+    def test_get_db_transaction_by_merchandise_failed(self):
+        result = get_db_transaction_by_merchandise(UserFactory())
+        self.assertEqual(result, None)
+
+    def test_get_db_items_left_hand(self):
+        merchandise = MerchandiseFactory(quantity=2, order__id=5)
+        merchandising_query_obj = get_db_merchandising_by_order_id(5)
+        TransactionFactory(merchandise=merchandising_query_obj[0])
+        items_left = get_db_items_left(merchandising_query_obj)
+        result = items_left[0].get('items_left')
+        self.assertEqual(result, 1)
+
+    def test_get_db_items_left_refund(self):
+        merchandise = MerchandiseFactory(quantity=2, order__id=5)
+        merchandising_query_obj = get_db_merchandising_by_order_id(5)
+        TransactionFactory(merchandise=merchandising_query_obj[0])
+        TransactionFactory(
+            merchandise=merchandising_query_obj[0],
+            operation_type='RE',
+        )
+        items_left = get_db_items_left(merchandising_query_obj)
+        result = items_left[0].get('items_left')
+        self.assertEqual(result, 2)
 
 class UtilsWebhook(TestBase):
 
@@ -489,13 +604,17 @@ class UtilsWebhook(TestBase):
         user_id = '5630245671'
         self.assertFalse(social_user_exists(user_id))
 
-    @skip('Not showing consistency')
     def test_get_social_user_id(self):
-        social_user_id = get_social_user_id('563480245671')
-        self.assertEquals(social_user_id, 1)
+        result = get_social_user_id(563480245671)
+        self.assertEqual(result, 1)
 
-    @patch('mercury_app.utils.get_order', return_value=get_mock_api_orders(1, 1, '1')[0])
-    def test_get_data(self, mock_get_order):
+    def test_get_social_user(self):
+        result = get_social_user(563480245671)
+        self.assertEqual(result.user_id, 1)
+
+
+    @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
+    def test_get_data(self, mock_get_api_order):
         request = MagicMock(
             body='{"config": {"action": "order.placed", "user_id": 563480245671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
         )
@@ -509,8 +628,8 @@ class UtilsWebhook(TestBase):
                           request.build_absolute_uri('/')[:-1])
         self.assertTrue(result['status'])
 
-    @patch('mercury_app.utils.get_order', return_value=get_mock_api_orders(1, 1, 1)[0])
-    def test_get_data(self, mock_get_order):
+    @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, 1)[0])
+    def test_get_data(self, mock_get_api_order):
         request = MagicMock(
             body='{"config": {"action": "order.placed", "user_id": 45671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
         )
@@ -809,23 +928,23 @@ class SummaryTest(TestBase):
                     'id': 1,
                 },
                 {
-                    'quantity': 100.0, 
-                    'percentage': 100.0, 
-                    'name': 'Gorra2 don\'t handed', 
+                    'quantity': 100.0,
+                    'percentage': 100.0,
+                    'name': 'Gorra2 don\'t handed',
                     'id': 2,
                 },
             ],
             [
                 {
-                    'quantity': 100.0, 
-                    'percentage': 100.0, 
-                    'name': 'Remera2 handed', 
+                    'quantity': 100.0,
+                    'percentage': 100.0,
+                    'name': 'Remera2 handed',
                     'id': 1,
                 },
                 {
-                    'quantity': 0.0, 
-                    'percentage': 0.0, 
-                    'name': 'Remera2 don\'t handed', 
+                    'quantity': 0.0,
+                    'percentage': 0.0,
+                    'name': 'Remera2 don\'t handed',
                     'id': 2,
                 },
             ],
