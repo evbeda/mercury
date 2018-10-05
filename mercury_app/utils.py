@@ -5,7 +5,7 @@ import pytz
 from datetime import (
     timedelta,
 )
-from django.db.models import Count
+from django.db.models import Sum
 from faker import Faker
 from random import (
     randint,
@@ -514,10 +514,23 @@ def get_json_donut(percentage, name, id_int):
 
 def get_summary_types_handed(order_ids):
     total_mercha = Merchandise.objects.filter(order_id__in=order_ids).values(
-        'name').annotate(name_count=Count('name')).order_by('name')
-    handed_mercha = Merchandise.objects.filter(
-        order_id__in=order_ids, delivered=True).values(
-        'name').annotate(name_count=Count('name')).order_by('name')
+             'name').annotate(name_count=Sum('quantity')).order_by('name')
+    types = Merchandise.objects.filter(order_id__in=order_ids).values_list('name', flat=True).distinct()
+    types_id = []
+    for ty_pe in types:
+        types_id.append(Merchandise.objects.filter(order_id__in=order_ids, name=ty_pe))
+    ids_mercha = Merchandise.objects.filter(order_id__in=order_ids)
+    type_transaction_count = []
+
+    for ty_pe in types_id:
+        total_for_type = 0
+        for item in ty_pe:
+            total_for_type += Transaction.objects.filter(merchandise=item, operation_type='HA').count()
+        type_transaction_count.append(total_for_type)
+    #[{'name': 'Gorra', 'name_count': 1}]
+    handed_mercha = []
+    for item in range(len(types)):
+        handed_mercha.append({'name': types[item], 'name_count': type_transaction_count[item]})
     data_json = []
     if len(handed_mercha) != 0:
         for i in range(len(handed_mercha)):
@@ -550,14 +563,19 @@ def get_summary_types_handed(order_ids):
 
 
 def get_summary_handed_over_dont_json(order_ids):
-    merchandise_delivered = Merchandise.objects.filter(
-        delivered=True, order_id__in=order_ids).count()
-    total_merchandise = Merchandise.objects.filter(
-        order_id__in=order_ids).count()
-    if total_merchandise != 0:
+    total_sold = Merchandise.objects.filter(
+        order_id__in=order_ids).aggregate(Sum('quantity'))['quantity__sum']
+    merchandise_ids = Merchandise.objects.filter(order_id__in=order_ids).values('id')
+    total_delivered = 0
+    for item in merchandise_ids:
+        total_delivered += Transaction.objects.filter(
+            merchandise__id=item['id'],
+            operation_type='HA',
+        ).count()
+    if total_sold != 0:
         handed_percentaje = round(
-            ((merchandise_delivered *
-              100) / total_merchandise), 1)
+            ((total_delivered *
+              100) / total_sold), 1)
     else:
         handed_percentaje = 0
     dont_handed_percentaje = 100 - handed_percentaje
@@ -569,7 +587,6 @@ def get_summary_handed_over_dont_json(order_ids):
         dont_handed_percentaje,
         'Orders don\'t handed',
         2)])
-
     return data_json
 
 def create_transaction(merchandise):
