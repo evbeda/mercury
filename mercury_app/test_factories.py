@@ -14,6 +14,7 @@ from .models import (
     Order,
     Merchandise,
     Transaction,
+    UserWebhook,
 )
 import random
 
@@ -116,10 +117,20 @@ class TransactionFactory(factory.django.DjangoModelFactory):
     notes = factory.fuzzy.FuzzyText(
         length=256,
         chars=string.ascii_letters,
+        prefix='',
     )
     device_name = factory.fuzzy.FuzzyText(
         length=128,
         chars=string.ascii_letters,
+        prefix='',
     )
     operation_type = random.choice(['HA', 'RE'])
     from_who = factory.SubFactory(UserFactory)
+
+
+class UserWebhookFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = UserWebhook
+
+    webhook_id = str(factory.fuzzy.FuzzyInteger(1, 10000))
+    user = factory.SubFactory(UserFactory)

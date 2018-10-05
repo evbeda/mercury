@@ -64,12 +64,18 @@ def get_api_events_org(token, organization):
     return eventbrite.get('/organizations/{}/events/'.format(organization['id'])).get('events')
 
 
-def get_api_events_id(token, request):
+def get_api_events_id(token, event_id):
     """
     Get events from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    return eventbrite.get('/events/{}'.format(request.POST.get('id_event')))
+    return eventbrite.get('/events/{}'.format(event_id))
+
+
+def get_api_order(token, order_id):
+    eventbrite = Eventbrite(token)
+    url = '/orders/{}'.format(order_id)
+    return eventbrite.get(url, expand=('merchandise',))
 
 
 def get_db_event_by_id(event_id):
@@ -250,7 +256,7 @@ def get_data(body, domain):
         social_user = get_social_user(user_id)
         access_token = social_user.access_token
         order_id = re.search(REGEX_ORDER, config_data['api_url'])[5]
-        order = get_order(
+        order = get_api_order(
             token=access_token,
             order_id=order_id
         )
@@ -268,12 +274,6 @@ def webhook_order_available(user, order):
     events = get_db_events_by_organization(user=user)
     if len(events) > 0:
         return True
-
-
-def get_order(token, order_id):
-    eventbrite = Eventbrite(token)
-    url = '/orders/{}'.format(order_id)
-    return eventbrite.get(url, expand=('merchandise',))
 
 
 def webhook_available_to_process(user_id):
@@ -580,29 +580,45 @@ def get_summary_handed_over_dont_json(order_ids):
         2)])
     return data_json
 
-def create_transaction(merchandise):
+
+def create_transaction(user, merchandise, note, device, operation):
     try:
-        Transaction.objects.create(
+        tx = Transaction.objects.create(
             merchandise=merchandise,
-            date=timezone.now(),
-            from_who=self.request.user['text'],
-            #notes=
-            #device_name=merchandise['delivered'],
-            #operation_typt=,
+            from_who=user,
+            notes=note,
+            device_name=device,
+            operation_type=operation,
         )
-        message = 'The transaction {} was added successfully!'.format(
-            merchandise['name']['text']
-        )
-        return message
-    except Exception as e:
-        return e
+        return tx
+    except Exception:
+        return None
 
 
-def get_transaction_by_merchandise(eb_merchandising_id):
+def get_db_items_left(merchandising_query_obj):
+    merchandising_query = list(merchandising_query_obj.values())
+    for index in range(len(merchandising_query)):
+        all_transactions = Transaction.objects.filter(
+            merchandise=merchandising_query_obj[index]
+        )
+        transaction_count = 0
+        for transaction in all_transactions:
+            if transaction.operation_type == 'HA':
+                transaction_count -= 1
+            elif transaction.operation_type == 'RE':
+                transaction_count += 1
+            else:
+                pass
+        items_left = merchandising_query[index].get('quantity') + transaction_count
+        merchandising_query[index]['items_left'] = items_left
+    return merchandising_query
+
+
+def get_db_transaction_by_merchandise(merchandise):
     try:
         transaction_query = Transaction.objects.filter(
-            merchandise=eb_merchandising_id,
+            merchandise=merchandise,
         )
-    except Exception as e:
-        print(e)
-    return transaction_query
+        return transaction_query
+    except Exception:
+        return None

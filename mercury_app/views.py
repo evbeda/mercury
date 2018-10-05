@@ -29,6 +29,7 @@ from .utils import (
     get_db_orders_by_event,
     get_db_events_by_organization,
     get_db_or_create_organization_by_id,
+    get_db_items_left,
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
@@ -36,7 +37,7 @@ from .utils import (
     get_data,
     get_summary_handed_over_dont_json,
     get_summary_types_handed,
-    get_transaction_by_merchandise,
+    get_db_transaction_by_merchandise,
     create_transaction,
 )
 
@@ -55,22 +56,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
         merchandising_query_obj = get_db_merchandising_by_order_id(kwargs['order_id'])
-        merchandising_query = list(merchandising_query_obj.values())
-        context['merchandising'] = merchandising_query
-        for index in range(len(context['merchandising'])):
-            all_transactions = Transaction.objects.filter(
-                merchandise=merchandising_query_obj[index]
-            )
-            transaction_count = 0
-            for transaction in all_transactions:
-                if transaction.operation_type == 'HA':
-                    transaction_count -= 1
-                elif transaction.operation_type == 'RE':
-                    transaction_count += 1
-                else:
-                    pass
-            items_left = merchandising_query[index].get('quantity') + transaction_count
-            merchandising_query[index]['items_left'] = items_left
+        context['merchandising'] = get_db_items_left(merchandising_query_obj)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -78,14 +64,13 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
         keys = list(data)[:-1]
         for item in keys:
             for qty in range(int(data[item])):
-                Transaction.objects.create(
-                    from_who=self.request.user,
-                    notes='',
-                    merchandise=Merchandise.objects.get(
+                create_transaction(
+                    self.request.user,
+                    Merchandise.objects.get(
                         eb_merchandising_id=item,
                     ),
-                    device_name='unique',
-                    operation_type='HA',
+                    '',
+                    'unique',
                 )
         return redirect(reverse('index'))
 
@@ -98,9 +83,6 @@ class OrderList(TemplateView, LoginRequiredMixin):
         context = super(OrderList, self).get_context_data(**kwargs)
         event_id = self.kwargs['event_id']
         event = get_db_event_by_id(event_id)
-        token = get_auth_token(self.request.user)
-        orders = get_api_orders_of_event(token, event_id)
-        create_event_orders_from_api(event, orders)
         context['orders'] = get_db_orders_by_event(event)
         return context
 
@@ -112,11 +94,16 @@ class Summary(TemplateView, LoginRequiredMixin):
     def get_context_data(self, **kwargs):
         context = super(Summary, self).get_context_data(**kwargs)
         event_id = self.kwargs['event_id']
-        event = Event.objects.filter(eb_event_id=event_id)
+        event = get_db_event_by_id(event_id)
         order_ids = Order.objects.filter(event=event).values_list('id', flat=True)
+        if len(order_ids) == 0:
+            token = get_auth_token(self.request.user)
+            orders = get_api_orders_of_event(token, event_id)
+            create_event_orders_from_api(event, orders)
+            order_ids = Order.objects.filter(event=event).values_list('id', flat=True)
         context['data_handed_over_dont'] = get_summary_handed_over_dont_json(order_ids)
         context['data_tipes_handed'] = get_summary_types_handed(order_ids)
-        context['event'] = event[0]
+        context['event'] = event
         return context
 
 
@@ -168,7 +155,10 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
     def post(self, request, *args, **kwargs):
         token = get_auth_token(self.request.user)
         events = {'events': []}
-        events['events'] = get_api_events_id(token, request)
+        events['events'] = get_api_events_id(
+            token,
+            request.POST.get('id_event'),
+        )
         org_id = self.request.POST.get('organization_id')
         org_name = self.request.POST.get('organization_name')
         org = get_db_or_create_organization_by_id(org_id, org_name)
@@ -193,4 +183,4 @@ class TransactionView(TemplateView, LoginRequiredMixin):
 
     def post(self, request, *args, **kwargs):
         token = get_auth_token(self.request.user)
-        name = self.kgards['name']
+        name = self.kwargs['name']
