@@ -516,14 +516,13 @@ def get_summary_types_handed(order_ids):
     total_mercha = Merchandise.objects.filter(order_id__in=order_ids).values(
         'name').annotate(name_count=Sum('quantity')).order_by('name')
     types = Merchandise.objects.filter(
-        order_id__in=order_ids).values_list('name', flat=True).distinct()
+        order_id__in=order_ids).values_list('name', flat=True).distinct().order_by('name')
     types_id = []
     for ty_pe in types:
         types_id.append(Transaction.objects.filter(
             merchandise__order__id__in=order_ids,
             operation_type='HA',
             merchandise__name=ty_pe).count())
-    ids_mercha = Merchandise.objects.filter(order_id__in=order_ids)
     handed_mercha = []
     for item in range(len(types)):
         handed_mercha.append(
