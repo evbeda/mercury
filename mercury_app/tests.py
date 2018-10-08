@@ -950,7 +950,7 @@ class SummaryTest(TestBase):
             ],
         ])
         new_order = OrderFactory()
-        mercha1 = MerchandiseFactory(
+        MerchandiseFactory(
             name='Gorra2',
             quantity=1,
             order=new_order,
@@ -960,7 +960,7 @@ class SummaryTest(TestBase):
             quantity=1,
             order=new_order,
         )
-        tx = TransactionFactory(
+        TransactionFactory(
             merchandise=mercha,
             operation_type='HA',
         )
@@ -970,3 +970,96 @@ class SummaryTest(TestBase):
     def test_summary_resolve_home_class_view(self):
         found = resolve('/event/50781817784/summary/')
         self.assertEquals(found.func.view_class, Summary)
+
+
+class ListItemMerchandisingTest(TestBase):
+
+    def setUp(self):
+        super(ListItemMerchandisingTest, self).setUp()
+
+    def test_merchandise_one_entry(self):
+        MerchandiseFactory(name='Camiseta', order__id=5)
+        response = self.client.get('/view_order/5/')
+        self.assertContains(response, 'Camiseta')
+
+    def test_merchandise_status_code(self):
+        MerchandiseFactory(name='Camiseta', order__id=4)
+        response = self.client.get('/view_order/4/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_merchandise_delivered(self):
+        merchandise = MerchandiseFactory(
+            name='Gorra',
+            quantity=1,
+            order__id=5
+        )
+        TransactionFactory(
+            merchandise=merchandise,
+            operation_type='HA'
+        )
+        response = self.client.get('/view_order/5/')
+        self.assertContains(response, 'Yes')
+
+    def test_merchandise_partial_delivery(self):
+        merchandise = MerchandiseFactory(
+            name='Gorra',
+            quantity=2,
+            order__id=5
+        )
+        TransactionFactory(
+            merchandise=merchandise,
+            operation_type='HA'
+        )
+        response = self.client.get('/view_order/5/')
+        self.assertContains(response, 'Partially')
+
+    def test_merchandise_delivered_two(self):
+        merchandise = MerchandiseFactory(
+            name='Gorra',
+            quantity=2,
+            order__id=5
+        )
+        TransactionFactory(
+            merchandise=merchandise,
+            operation_type='HA'
+        )
+        TransactionFactory(
+            merchandise=merchandise,
+            operation_type='HA'
+        )
+        response = self.client.get('/view_order/5/')
+        # import ipdb; ipdb.set_trace()
+        self.assertContains(response, 'Yes')
+
+    def test_merchandise_post_form(self):
+        merchandise = MerchandiseFactory(
+            eb_merchandising_id=123,
+            name='Gorra',
+            quantity=1,
+            order__id=7
+        )
+
+        response = self.client.post(
+            '/view_order/7/', {'123': '1', 'csrftoken': 'TEST'})
+        self.assertEqual(response.status_code, 302)
+        transaction_count = Transaction.objects.filter(
+            merchandise=merchandise
+        ).count()
+        self.assertEqual(transaction_count, 1)
+
+
+@patch('mercury_app.views.create_order_webhook_from_view', return_value='')
+class OrderListTest(TestBase):
+
+    def test_order_status_code(self, mock_webhook):
+        OrderFactory()
+        response = self.client.get('/view_order/9/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_create_order(self, mock_webhook):
+        event = EventFactory()
+        OrderFactory(name='Jaime Bond', event=event)
+        response = self.client.get('/event/{}/orders/'.format(
+            event.eb_event_id)
+        )
+        self.assertContains(response, 'Jaime Bond')
