@@ -71,6 +71,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
                     ),
                     '',
                     'unique',
+                    'HA',
                 )
         return redirect(reverse('index'))
 

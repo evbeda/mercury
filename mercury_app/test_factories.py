@@ -117,12 +117,10 @@ class TransactionFactory(factory.django.DjangoModelFactory):
     notes = factory.fuzzy.FuzzyText(
         length=256,
         chars=string.ascii_letters,
-        prefix='',
     )
     device_name = factory.fuzzy.FuzzyText(
         length=128,
         chars=string.ascii_letters,
-        prefix='',
     )
     operation_type = random.choice(['HA', 'RE'])
     from_who = factory.SubFactory(UserFactory)
