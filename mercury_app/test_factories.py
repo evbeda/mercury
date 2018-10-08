@@ -13,7 +13,9 @@ from .models import (
     Event,
     Order,
     Merchandise,
+    Transaction,
 )
+import random
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -83,7 +85,8 @@ class OrderFactory(factory.django.DjangoModelFactory):
     changed = factory.LazyAttribute(
         lambda o: o.created + timedelta(hours=3))
     name = factory.LazyAttribute(lambda o: 'buyer_{}'.format(o.eb_order_id))
-    email = factory.LazyAttribute(lambda o: 'buyer_{}@email.com'.format(o.eb_order_id))
+    email = factory.LazyAttribute(
+        lambda o: 'buyer_{}@email.com'.format(o.eb_order_id))
     status = 'placed'
 
 
@@ -93,8 +96,30 @@ class MerchandiseFactory(factory.django.DjangoModelFactory):
 
     order = factory.SubFactory(OrderFactory)
     eb_merchandising_id = factory.Sequence(lambda n: n)
-    name = factory.LazyAttribute(lambda o: 'Item {}'.format(o.eb_merchandising_id))
+    name = factory.LazyAttribute(
+        lambda o: 'Item {}'.format(o.eb_merchandising_id))
     item_type = factory.fuzzy.FuzzyChoice(['Red', 'Blue', 'Green', ])
     currency = 'USD'
     quantity = factory.fuzzy.FuzzyInteger(1, 100)
     value = factory.fuzzy.FuzzyFloat(25, 75)
+
+
+class TransactionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Transaction
+
+    merchandise = factory.SubFactory(MerchandiseFactory)
+    date = factory.fuzzy.FuzzyDateTime(
+        datetime.now(tz=pytz.utc),
+        datetime.now(tz=pytz.utc) + timedelta(days=45),
+    )
+    notes = factory.fuzzy.FuzzyText(
+        length=256,
+        chars=string.ascii_letters,
+    )
+    device_name = factory.fuzzy.FuzzyText(
+        length=128,
+        chars=string.ascii_letters,
+    )
+    operation_type = random.choice(['HA', 'RE'])
+    from_who = factory.SubFactory(UserFactory)

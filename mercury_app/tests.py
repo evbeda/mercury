@@ -7,6 +7,8 @@ from .models import (
     UserOrganization,
     Order,
     Merchandise,
+    UserWebhook,
+    Transaction,
 )
 from .test_factories import (
     UserFactory,
@@ -15,6 +17,7 @@ from .test_factories import (
     EventFactory,
     OrderFactory,
     MerchandiseFactory,
+    TransactionFactory,
 )
 from .utils import (
     get_auth_token,
@@ -45,6 +48,7 @@ from .utils import (
     get_json_donut,
     get_summary_types_handed,
     get_summary_handed_over_dont_json,
+    create_order_webhook_from_view,
 )
 from mercury_app.views import Home, Summary
 from django.utils import timezone
@@ -514,6 +518,15 @@ class UtilsWebhook(TestBase):
                           request.build_absolute_uri('/')[:-1])
         self.assertFalse(result['status'])
 
+    @patch('mercury_app.utils.create_webhook', return_value=1231241)
+    def test_create_order_webhook_from_view(self, mock_create_webhook):
+        user = UserFactory()
+        result = UserWebhook.objects.all().count()
+        self.assertEqual(result, 0)
+        create_order_webhook_from_view(user)
+        result = UserWebhook.objects.all().count()
+        self.assertEqual(result, 1)
+
 
 class SelectEventsNotLoggedRedirectTest(TestCase):
 
@@ -599,6 +612,7 @@ class OrderModelTest(TestCase):
         self.assertTrue(isinstance(order, Order))
         self.assertEqual(order.__string__(), order.name)
 
+
 class MerchandiseModelTest(TestCase):
 
     def create_merchandise(
@@ -644,12 +658,23 @@ class UserOrganizationModelTest(TestBase):
         user_organization = self.create_user_organization()
         self.assertTrue(isinstance(user_organization, UserOrganization))
 
-@skip('Broken by model change')
+
 class SummaryTest(TestBase):
 
     def setUp(self):
         super(SummaryTest, self).setUp()
         self.order = OrderFactory()
+        self.maxDiff = None
+
+    def test_get_context_data(self):
+        event = EventFactory()
+        order = OrderFactory(event=event)
+        mercha = MerchandiseFactory(order=order)
+        response = self.client.get(
+            '/event/{}/summary/'.format(event.eb_event_id))
+        self.assertIsNotNone(response.context['data_handed_over_dont'])
+        self.assertIsNotNone(response.context['event'])
+        self.assertIsNotNone(response.context['data_tipes_handed'])
 
     def test_get_json_donut(self):
         expected = {'quantity': 1, 'percentage': 1,
@@ -671,7 +696,11 @@ class SummaryTest(TestBase):
                       'name': 'Orders Handed', 'id': 1},
                      {'quantity': 0, 'percentage': 0,
                       'name': 'Orders don\'t handed', 'id': 2}])
-        mercha = MerchandiseFactory()
+        mercha = MerchandiseFactory(quantity=1)
+        TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
         result = get_summary_handed_over_dont_json([mercha.order.id])
         self.assertEqual(expected, result)
 
@@ -680,15 +709,17 @@ class SummaryTest(TestBase):
                       'name': 'Orders Handed', 'id': 1},
                      {'quantity': 33.3, 'percentage': 33.3,
                       'name': 'Orders don\'t handed', 'id': 2}])
-        MerchandiseFactory(name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(name='Gorra',
-                           quantity=1,
-                           order=self.order)
+        mercha = MerchandiseFactory(name='Gorra',
+                                    quantity=3,
+                                    order=self.order)
+        TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
+        TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
         result = get_summary_handed_over_dont_json([self.order.id])
         self.assertEqual(expected, result)
 
@@ -697,18 +728,13 @@ class SummaryTest(TestBase):
                       'name': 'Orders Handed', 'id': 1},
                      {'quantity': 66.7, 'percentage': 66.7,
                       'name': 'Orders don\'t handed', 'id': 2}])
-        MerchandiseFactory(delivered=False,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(delivered=True,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(delivered=False,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
+        mercha = MerchandiseFactory(name='Gorra',
+                                    quantity=3,
+                                    order=self.order)
+        TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
         result = get_summary_handed_over_dont_json([self.order.id])
         self.assertEqual(expected, result)
 
@@ -717,10 +743,13 @@ class SummaryTest(TestBase):
                        'name': 'Gorra handed', 'id': 1},
                       {'quantity': 0.0, 'percentage': 0.0,
                        'name': 'Gorra don\'t handed', 'id': 2}]])
-        MerchandiseFactory(delivered=True,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
+        mercha = MerchandiseFactory(name='Gorra',
+                                    quantity=1,
+                                    order=self.order)
+        TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
         result = get_summary_types_handed([self.order.id])
         self.assertEqual(expected, result)
 
@@ -734,14 +763,20 @@ class SummaryTest(TestBase):
                       {'quantity': 0.0, 'percentage': 0.0,
                        'name': 'Remera don\'t handed', 'id': 2}]
                      ])
-        MerchandiseFactory(delivered=True,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(delivered=True,
-                           name='Remera',
-                           quantity=1,
-                           order=self.order)
+        mercha_one = MerchandiseFactory(name='Gorra',
+                                        quantity=1,
+                                        order=self.order)
+        mercha_two = MerchandiseFactory(name='Remera',
+                                        quantity=1,
+                                        order=self.order)
+        TransactionFactory(
+            merchandise=mercha_one,
+            operation_type='HA',
+        )
+        TransactionFactory(
+            merchandise=mercha_two,
+            operation_type='HA',
+        )
         result = get_summary_types_handed([self.order.id])
         self.assertEqual(expected, result)
 
@@ -755,37 +790,62 @@ class SummaryTest(TestBase):
                       {'quantity': 100.0, 'percentage': 100.0,
                        'name': 'Remera don\'t handed', 'id': 2}]
                      ])
-        MerchandiseFactory(delivered=False,
-                           name='Gorra',
+        MerchandiseFactory(name='Gorra',
                            quantity=1,
                            order=self.order)
-        MerchandiseFactory(delivered=False,
-                           name='Remera',
+        MerchandiseFactory(name='Remera',
                            quantity=1,
                            order=self.order)
         result = get_summary_types_handed([self.order.id])
         self.assertEqual(expected, result)
 
-    @skip('Broken, it has a bug')
     def test_get_summary_types_handed_four(self):
-        expected = ([[{'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra handed', 'id': 1},
-                      {'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Gorra don\'t handed', 'id': 2}],
-                     [{'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Remera handed', 'id': 1},
-                      {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Remera don\'t handed', 'id': 2}]
-                     ])
-        MerchandiseFactory(delivered=False,
-                           name='Gorra',
-                           quantity=1,
-                           order=self.order)
-        MerchandiseFactory(delivered=True,
-                           name='Remera',
-                           quantity=1,
-                           order=self.order)
-        result = get_summary_types_handed([self.order.id])
+        expected = ([
+            [
+                {
+                    'quantity': 0.0,
+                    'percentage': 0.0,
+                    'name': 'Gorra2 handed',
+                    'id': 1,
+                },
+                {
+                    'quantity': 100.0, 
+                    'percentage': 100.0, 
+                    'name': 'Gorra2 don\'t handed', 
+                    'id': 2,
+                },
+            ],
+            [
+                {
+                    'quantity': 100.0, 
+                    'percentage': 100.0, 
+                    'name': 'Remera2 handed', 
+                    'id': 1,
+                },
+                {
+                    'quantity': 0.0, 
+                    'percentage': 0.0, 
+                    'name': 'Remera2 don\'t handed', 
+                    'id': 2,
+                },
+            ],
+        ])
+        new_order = OrderFactory()
+        mercha1 = MerchandiseFactory(
+            name='Gorra2',
+            quantity=1,
+            order=new_order,
+        )
+        mercha = MerchandiseFactory(
+            name='Remera2',
+            quantity=1,
+            order=new_order,
+        )
+        tx = TransactionFactory(
+            merchandise=mercha,
+            operation_type='HA',
+        )
+        result = get_summary_types_handed([new_order.id])
         self.assertEqual(expected, result)
 
     def test_summary_resolve_home_class_view(self):
