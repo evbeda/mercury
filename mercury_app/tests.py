@@ -558,17 +558,23 @@ class UtilsTest(TestCase):
         self.assertEqual(result, None)
 
     def test_get_db_items_left_hand(self):
-        merchandise = MerchandiseFactory(quantity=2, order__id=5)
-        merchandising_query_obj = get_db_merchandising_by_order_id(5)
-        TransactionFactory(merchandise=merchandising_query_obj[0])
+        merchandise = MerchandiseFactory(quantity=2, order__id=99)
+        merchandising_query_obj = get_db_merchandising_by_order_id(99)
+        TransactionFactory(
+            merchandise=merchandising_query_obj[0],
+            operation_type='HA',
+        )
         items_left = get_db_items_left(merchandising_query_obj)
         result = items_left[0].get('items_left')
         self.assertEqual(result, 1)
 
     def test_get_db_items_left_refund(self):
-        merchandise = MerchandiseFactory(quantity=2, order__id=5)
-        merchandising_query_obj = get_db_merchandising_by_order_id(5)
-        TransactionFactory(merchandise=merchandising_query_obj[0])
+        merchandise = MerchandiseFactory(quantity=2, order__id=99)
+        merchandising_query_obj = get_db_merchandising_by_order_id(99)
+        TransactionFactory(
+            merchandise=merchandising_query_obj[0],
+            operation_type='HA',
+        )
         TransactionFactory(
             merchandise=merchandising_query_obj[0],
             operation_type='RE',
