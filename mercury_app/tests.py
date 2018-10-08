@@ -272,20 +272,31 @@ class HomeViewTestWithouUser(TestCase):
 
 class SelectEventsLoggedTest(TestBase):
 
-    @skip('Broken by refactor')
-    @patch('mercury_app.utils.get_api_organization', return_value=MOCK_ORGANIZATION_API.get('organizations'))
-    @patch('mercury_app.utils.get_api_events_org', return_value=MOCK_EVENT_API.get('events'))
-    def test_template_is_rendered_successfully_with_one_event_only(self, mock_get_api_events_org, mock_get_api_organization):
+    @patch('mercury_app.views.get_api_organization')
+    @patch('mercury_app.views.get_events_for_organizations')
+    def test_template_is_rendered_successfully_with_one_event_only(self, mock_get_events_for_organizations, mock_get_api_organization):
+        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get('organizations')
+        mock_get_events_for_organizations.return_value = get_mock_api_event(1).get('events')
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add')
 
-    @skip('Broken by refactor')
-    @patch('mercury_app.utils.get_api_events_id', return_value=MOCK_EVENT_API.get('events')[0])
+    @patch('mercury_app.views.get_api_organization')
+    @patch('mercury_app.views.get_events_for_organizations')
+    def test_template_is_rendered_successfully_with_five_events(self, mock_get_events_for_organizations, mock_get_api_organization):
+        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get('organizations')
+        mock_get_events_for_organizations.return_value = get_mock_api_event(5).get('events')
+        response = self.client.get('/select_events/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add')
+
+    @patch('mercury_app.views.get_api_events_id', return_value=get_mock_api_event(1, 1000).get('events')[0])
     def test_add_event(self, mock_get_api_events_id):
         response = self.client.post(
-            '/select_events/', {'organization_id': '1234', 'organization_name': 'TestOrg'})
+            '/select_events/', {'organization_id': '272770247903', 'organization_name': 'Mercury Team'})
         event = Event.objects.get(
-            eb_event_id=MOCK_EVENT_API.get('events')[0].get('id'))
+            eb_event_id=1000
+        )
         self.assertTrue(event)
         self.assertEqual(response.status_code, 302)
 
@@ -1034,7 +1045,6 @@ class ListItemMerchandisingTest(TestBase):
             operation_type='HA'
         )
         response = self.client.get('/view_order/5/')
-        # import ipdb; ipdb.set_trace()
         self.assertContains(response, 'Yes')
 
     def test_merchandise_post_form(self):

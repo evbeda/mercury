@@ -304,14 +304,17 @@ def get_social_user(user_id):
     return social_user[0]
 
 
-def get_mock_api_event(amount):
+def get_mock_api_event(amount, event_id=0):
     ### UP TO 50 EVENTS ###
     mocked_events_array = []
     fake = Faker()
     for number in range(amount):
         created = fake.date_time_between(
             start_date='-5d', end_date='-1d', tzinfo=pytz.timezone('US/Eastern'))
-        eb_id = str(randint(50000000000, 60000000000))
+        if event_id == 0:
+            eb_id = str(randint(50000000000, 60000000000))
+        else:
+            eb_id = event_id
         mocked_events_array.append(
             {
                 'name': {'text': fake.text(100), 'html': None},
