@@ -554,7 +554,8 @@ class UtilsTest(TestCase):
         self.assertEqual(result[0], None)
 
     def test_create_transaction(self):
-        tx = create_transaction(UserFactory(), MerchandiseFactory(), 'TEST NOTE', 'iPhone', 'HA')
+        tx = create_transaction(
+            UserFactory(), MerchandiseFactory(), 'TEST NOTE', 'iPhone', 'HA')
         self.assertTrue(isinstance(tx, Transaction))
         self.assertEqual(tx.notes, 'TEST NOTE')
 
@@ -594,6 +595,7 @@ class UtilsTest(TestCase):
         result = items_left[0].get('items_left')
         self.assertEqual(result, 2)
 
+
 class UtilsWebhook(TestBase):
 
     def test_get_auth_token(self):
@@ -628,7 +630,6 @@ class UtilsWebhook(TestBase):
     def test_get_social_user(self):
         result = get_social_user(563480245671)
         self.assertEqual(result.user_id, 1)
-
 
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
     def test_get_data(self, mock_get_api_order):
@@ -811,6 +812,18 @@ class SummaryTest(TestBase):
         self.assertIsNotNone(response.context['data_handed_over_dont'])
         self.assertIsNotNone(response.context['event'])
         self.assertIsNotNone(response.context['data_tipes_handed'])
+
+    @patch('mercury_app.views.get_auth_token', return_value=123123)
+    @patch('mercury_app.views.get_api_orders_of_event')
+    def test_get_context_data_create_orders(self, mock_api_orders, mock_get_token):
+        event = EventFactory()
+        self.assertEqual(Order.objects.filter(event=event).count(), 0)
+        mock_api_orders.return_value = get_mock_api_orders(
+            1, 1, event.eb_event_id)
+        response = self.client.get(
+            '/event/{}/summary/'.format(event.eb_event_id),
+        )
+        self.assertIsNotNone(Order.objects.filter(event=event).count(), 1)
 
     def test_get_json_donut(self):
         expected = {'quantity': 1, 'percentage': 1,
