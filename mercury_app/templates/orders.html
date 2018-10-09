@@ -14,6 +14,7 @@
         <tr>
           <th scope="col">Name owner</th>
           <th scope="col">Date</th>
+          <th scope="col">Estate</th>
           <th scope="col">Number</th>
           <th scope="col">Details</th>
         </tr>
@@ -23,6 +24,7 @@
        <tr>
         <td>{{ order.name }}</td>
         <td>{{ order.created}}</td>
+        <td>{{ order.estate }}</td>
         <td>{{ order.eb_order_id }}</td>
         <td><a href="{% url 'item_mercha' order_id=order.id %}" class="btn btn-success">View</a></td>
       </tr>

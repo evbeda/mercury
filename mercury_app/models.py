@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Sum
 
 
 class Organization(models.Model):
@@ -76,6 +77,22 @@ class Order(models.Model):
         choices=MERCH_STATUS,
         default='PE',
     )
+
+    @property
+    def estate(self):
+        total_mercha = Merchandise.objects.filter(
+            order=self).values(name_count=Sum('quantity'))
+        handed_mercha = Transaction.objects.filter(
+            merchandise__in=Merchandise.objects.filter(
+            order=self).values('id').order_by('id'), operation_type='HA').count()
+        if len(total_mercha) == 0:
+            return 'Without Merchandise'
+        elif total_mercha[0].get('name_count') == handed_mercha:
+            return 'Delivered'
+        elif handed_mercha == 0:
+            return 'Pending delivery'
+        else:
+            return 'Partially delivered'
 
     def __string__(self):
         return self.name
