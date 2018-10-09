@@ -1,38 +1,56 @@
-# mercury  
-
-Travis  
-[![Build Status](https://travis-ci.org/evbeda/mercury.svg?branch=master)](https://travis-ci.org/evbeda/mercury)  
-
-Coverage  
-[![Coverage Status](https://coveralls.io/repos/github/evbeda/mercury/badge.svg?branch=master)](https://coveralls.io/github/evbeda/mercury?branch=master)  
-
-Getting Started  
-We assume that you have already created and activated a virtual environment  
-
-clone  
-`git clone https://github.com/evbeda/mercury.git`
-
-install requeriments  
-
-`(env) $ pip install -r requeriments.txt`
-
-set environment  
-
-`(env) $ export DATABASE=postgres://user:password@localhost:5432/db`  
-`(env) $ export SOCIAL_AUTH_EVENTBRITE_SECRET=secret`  
-`(env) $ export SOCIAL_AUTH_EVENTBRITE_KEY=key`  
-
-run local server  
-
-`(env) $ python manage.py runserver`  
-
-login with Eventbrite in your localhost  
-
-http://localhost:8000/  
+# Gemini: Mercury on docker
 
 
+## Versions
 
+App | Version
+--- | ---
+Python | 3.6.6
+Django | 1.11
+Celery | 4.2.1
 
+## What is included
 
+- PostgreSQL as a Django database
+- Redis for celery
 
+## Docker Compose containers
 
+- db (Django PostgreSQL database)
+- redis (Redis result backend for Celery)
+- web (Django application)
+- worker (Celery worker)
+
+# Setup & Run
+
+## Run inside docker
+
+    # build docker containers
+    docker-compose build
+
+    # option 1: run 1 instance of web
+    docker-compose up
+
+You can also run manage.py commands using docker environment, for example tests.
+
+    docker-compose run web python ./manage.py test
+
+See docker's logs
+
+    docker-compose logs --tail 5
+
+## Run from local machine
+
+    # Install requirements
+    virtualenv env
+    source env/bin/activate
+    pip install -r requirements.txt
+
+    # Move to 'src' folder
+    cd src
+
+    # Run worker
+    celery -A mercury_app worker --beat
+
+    # Start application on another console
+    python manage.py runserver

@@ -1,0 +1,58 @@
+version: "3"
+
+services:
+  # PostgreSQL
+  db:
+    image: postgres:10.5
+    hostname: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+
+  # Redis
+  redis:
+    image: redis:4.0.11
+    hostname: redis
+    ports:
+      - "6379:6379"
+
+  # Django
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: web
+    # From documentation:
+    # However, Compose does not wait until a container is “ready”
+    # (whatever that means for your particular application) - only until it’s
+    # running. There’s a good reason for this.
+    command: ["./wait-for-postgres.sh", "db", "./entrypoint.sh"]
+    volumes:
+      # Mount src to app
+      - ./src:/app
+      # Mount entrypoint.sh to run in container
+      - ./entrypoint.sh:/app/entrypoint.sh
+      # Mount wait-for-postgres.sh to run in container
+      - ./wait-for-postgres.sh:/app/wait-for-postgres.sh
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: always
+
+  # Celery
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A mercury_app worker --beat
+    volumes:
+      - ./src:/app
+    depends_on:
+      - web
+      - redis
