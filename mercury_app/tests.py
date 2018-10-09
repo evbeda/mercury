@@ -1136,3 +1136,17 @@ class OrderModelPropertyEstate(TestCase):
     def test_without_merchandise(self):
         self.merchandise.delete()
         self.assertEqual(self.order.estate, 'Without Merchandise')
+
+    def test_partially_differents_types(self):
+        merchandise = MerchandiseFactory(quantity=2, order=self.order)
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        self.assertEqual(self.order.estate, 'Partially delivered')
+
+    def test_delivered_differents_types(self):
+        merchandise = MerchandiseFactory(quantity=2, order=self.order)
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        self.assertEqual(self.order.estate, 'Delivered')

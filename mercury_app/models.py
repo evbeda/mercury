@@ -81,13 +81,14 @@ class Order(models.Model):
     @property
     def estate(self):
         total_mercha = Merchandise.objects.filter(
-            order=self).values(name_count=Sum('quantity'))
+            order=self).aggregate(Sum('quantity'))
         handed_mercha = Transaction.objects.filter(
             merchandise__in=Merchandise.objects.filter(
-            order=self).values('id').order_by('id'), operation_type='HA').count()
-        if len(total_mercha) == 0:
+                order=self).values('id').order_by('id'),
+            operation_type='HA').count()
+        if total_mercha['quantity__sum'] == None:
             return 'Without Merchandise'
-        elif total_mercha[0].get('name_count') == handed_mercha:
+        elif total_mercha['quantity__sum'] == handed_mercha:
             return 'Delivered'
         elif handed_mercha == 0:
             return 'Pending delivery'
