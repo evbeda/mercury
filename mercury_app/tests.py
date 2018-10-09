@@ -635,6 +635,23 @@ class UtilsWebhook(TestBase):
         result = get_social_user(563480245671)
         self.assertEqual(result.user_id, 1)
 
+    def test_webhook_order_available(self):
+        user = UserFactory()
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=user, organization=org)
+        EventFactory(organization=org)
+        order = OrderFactory()
+        result = webhook_order_available(user, order)
+        self.assertEqual(result, True)
+
+    def test_webhook_order_available_none(self):
+        user = UserFactory()
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=user, organization=org)
+        order = OrderFactory()
+        result = webhook_order_available(user, order)
+        self.assertEqual(result, None)
+
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
     def test_get_data(self, mock_get_api_order):
         request = MagicMock(
