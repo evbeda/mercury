@@ -275,8 +275,10 @@ class SelectEventsLoggedTest(TestBase):
     @patch('mercury_app.views.get_api_organization')
     @patch('mercury_app.views.get_events_for_organizations')
     def test_template_is_rendered_successfully_with_one_event_only(self, mock_get_events_for_organizations, mock_get_api_organization):
-        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get('organizations')
-        mock_get_events_for_organizations.return_value = get_mock_api_event(1).get('events')
+        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
+            'organizations')
+        mock_get_events_for_organizations.return_value = get_mock_api_event(
+            1).get('events')
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -284,8 +286,10 @@ class SelectEventsLoggedTest(TestBase):
     @patch('mercury_app.views.get_api_organization')
     @patch('mercury_app.views.get_events_for_organizations')
     def test_template_is_rendered_successfully_with_five_events(self, mock_get_events_for_organizations, mock_get_api_organization):
-        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get('organizations')
-        mock_get_events_for_organizations.return_value = get_mock_api_event(5).get('events')
+        mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
+            'organizations')
+        mock_get_events_for_organizations.return_value = get_mock_api_event(
+            5).get('events')
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -823,7 +827,7 @@ class SummaryTest(TestBase):
         response = self.client.get(
             '/event/{}/summary/'.format(event.eb_event_id),
         )
-        self.assertIsNotNone(Order.objects.filter(event=event).count(), 1)
+        self.assertEqual(Order.objects.filter(event=event).count(), 1)
 
     def test_get_json_donut(self):
         expected = {'quantity': 1, 'percentage': 1,
@@ -1092,3 +1096,26 @@ class OrderListTest(TestBase):
             event.eb_event_id)
         )
         self.assertContains(response, 'Jaime Bond')
+
+
+class OrderModelPropertyEstate(TestCase):
+
+    def setUp(self):
+        self.order = OrderFactory()
+        self.merchandise = MerchandiseFactory(quantity=2, order=self.order)
+
+    def test_delivered(self):
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        self.assertEqual(self.order.estate, 'Delivered')
+
+    def test_pending_delivery(self):
+        self.assertEqual(self.order.estate, 'Pending delivery')
+
+    def test_partially_delivered(self):
+        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
+        self.assertEqual(self.order.estate, 'Partially delivered')
+
+    def test_without_merchandise(self):
+        self.merchandise.delete()
+        self.assertEqual(self.order.estate, 'Without Merchandise')
