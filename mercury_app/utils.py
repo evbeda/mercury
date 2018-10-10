@@ -1,6 +1,8 @@
 from mercury_site.celery import app
 from social_django.models import UserSocialAuth
 from eventbrite import Eventbrite
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import PermissionDenied
 import pytz
 from datetime import (
     timedelta,
@@ -11,6 +13,7 @@ from random import (
     randint,
     uniform,
 )
+from django.http import Http404
 import re
 from .models import (
     Order,
@@ -516,6 +519,7 @@ def get_mock_api_orders(amount, w_merchandise, event_id):
         w_merchandise -= 1
     return mocked_orders_array
 
+
 def get_json_donut(percentage, name, id_int):
     data_json = {'quantity': percentage, 'percentage': percentage,
                  'name': name, 'id': id_int}
@@ -573,22 +577,23 @@ def get_summary_handed_over_dont_json(order_ids):
         order_id__in=order_ids).aggregate(Sum('quantity'))['quantity__sum']
     total_delivered = Transaction.objects.filter(
         merchandise__order__id__in=order_ids, operation_type='HA').count()
-    if total_sold != 0:
-        handed_percentaje = round(
-            ((total_delivered *
-              100) / total_sold), 1)
-    else:
-        handed_percentaje = 0
-    dont_handed_percentaje = 100 - handed_percentaje
-    data_json = ([get_json_donut(
-        handed_percentaje,
-        'Orders Handed',
-        1),
-        get_json_donut(
-        dont_handed_percentaje,
-        'Orders don\'t handed',
-        2)])
-    return data_json
+    if total_sold is not None:
+        if total_sold != 0:
+            handed_percentaje = round(
+                ((total_delivered *
+                  100) / total_sold), 1)
+        else:
+            handed_percentaje = 0
+        dont_handed_percentaje = 100 - handed_percentaje
+        data_json = ([get_json_donut(
+            handed_percentaje,
+            'Orders Handed',
+            1),
+            get_json_donut(
+            dont_handed_percentaje,
+            'Orders don\'t handed',
+            2)])
+        return data_json
 
 
 def create_transaction(user, merchandise, note, device, operation):
@@ -619,7 +624,8 @@ def get_db_items_left(merchandising_query_obj):
                 transaction_count += 1
             else:
                 pass
-        items_left = merchandising_query[index].get('quantity') + transaction_count
+        items_left = merchandising_query[index].get(
+            'quantity') + transaction_count
         merchandising_query[index]['items_left'] = items_left
     return merchandising_query
 
@@ -632,3 +638,31 @@ def get_db_transaction_by_merchandise(merchandise):
         return transaction_query
     except Exception:
         return None
+
+
+class EventAccessMixin():
+    def get_event(self):
+        event = get_object_or_404(
+            Event,
+            eb_event_id=self.kwargs['event_id'],
+        )
+        org_id = UserOrganization.objects.filter(
+            user=self.request.user).values_list('organization', flat=True)
+        if event.organization.id not in org_id:
+            raise PermissionDenied("You don't have access to this event")
+        return event
+
+
+class OrderAccessMixin():
+    def get_merchandise(self):
+        order_id = int(self.kwargs['order_id'])
+        order = get_object_or_404(Order, id=order_id)
+        org_id = UserOrganization.objects.filter(
+            user=self.request.user).values_list('organization', flat=True)
+        orders_ids = Order.objects.filter(
+            event__organization__in=org_id).values_list('id', flat=True)
+        if int(order_id) not in orders_ids:
+            raise PermissionDenied("You don't have access to this event")
+        return Merchandise.objects.filter(
+            order=order_id,
+        )
