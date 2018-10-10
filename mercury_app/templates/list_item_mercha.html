@@ -1,40 +1,44 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-	<div class="row">
+  
     {% if message %}
     <div class="alert alert-success">{{ message }}</div>
     {% endif %}
     <div id="fondo_sin_imagen" >
       <div class="container">
-       <div class="row">
-        <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+                    <h2>Merchandise</h2>
 
-          <table class="table">
-            <h1>Merchandise</h1>
-            <thead class="thead-dark">
-              <div class="page-header">
-                <h4> Name owner <small> {{ order.name }}</p> </h4>
-                  <h4> Order number <small> {{ order.eb_order_id }}</small> </h4>
+                               <div class="row">
+    <div class="col-sm">
+    </div>
+    <div class="col-sm">
+    </div>
+    <div class="col-sm">
+<input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);">
+    </div>
+  </div>
+
+        <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+<div class="card text-white bg-secondary mb-3">
+  <div class="card-header">
+    Order Details
+  </div><div class="card-body">
+                <h6 class="font-weight-light"><small>Name </small> {{ order.name }} </h6>
+                <h6 class="font-weight-light"><small>Order# </small> {{ order.eb_order_id }} </h6>
+                <h6 class="font-weight-light"><small>Date </small> {{ order.created }} </h6>
                 </div>
-                <tr>
-                  <th scope="col">Item name</th>
-                  <th scope="col">Subtype</th>
-                  <th scope="col">Sold Quantity</th>
-                  <th scope="col">Unit value</th>
-                  <th scope="col">Delivered</th>
-                  <th scope="col">Amount left</th>
-                  <th scope="col">Amount to deliver</th>
-                </tr>
-              </thead>
-              <tbody>
+                </div>
                {% for item in merchandising %}
-               <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.item_type }}</td>
-                <td>{{ item.quantity }}</td>
-                <td>{{ item.value }}</td>
-                <p hidden="True">{{ item.items_value }}</p>
+               <br>
+               <div class="card border-info mb-3">
+  <div class="card-header bg-info text-white">
+    {{ item.name }}
+  </div><div class="card-body">
+                <h4><small>Subtype</small> {{ item.item_type }} </h4>
+                <h5><small>Sold</small> {{ item.quantity }} </h5>
+                <h5><small>Unit value</small> {{ item.value }} </h5>
+                <h5><small>Delivered</small> 
                 {% if item.quantity == item.items_left %}
                 <td>No</td>
                 {% elif item.items_left == 0%}
@@ -42,62 +46,34 @@
                 {% else %}
                 <td>Partially</td>
                 {% endif %}
-                <td>{{ item.items_left }}</td>
-                <td>
+              </h5>
+                <h5><small>Items left</small> {{ item.items_left }} </h5>
+
+                <h5><small>Amount to deliver</small>
                   <script type="text/javascript">
                     var max_value = "{{ item.items_left }}";
                   </script>
 
-<!--                 <input type='button' value='-' class='qtyminus' field='quantity' />
-                <input type='number' name='quantity' value='0' class='qty' />
-                <input type='button' value='+' class='qtyplus' field='quantity' />
-
-              -->
-
               <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-              <input readonly="readonly" type=text form="delivery" size=10 id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
+              <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
               <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+</h5>
+                </div>
+</div>
 
-            </td>
-            <!--<td><a href="{% url 'transaction' item_id=item.id %}" class="btn btn-info">Historial</a></td>-->
-          </tr>
           {% endfor %}
-          <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td><button type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button></td>
-          </tr>
-          {% csrf_token %}
-          <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td><input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);"></td>
-          </tr>
-
-        </tbody>
-      </table>
-    </form>
-    <div class = "row text-center">
-      <div class="col-3"> </div>
-      <div class="col-6">
-        {% if pagination.has_previous %}
-        <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-        {% endif %}
-        <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-        {% if pagination.has_next %}
-        <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-        {% endif %}
-      </div>
+            <div class="row">
+    <div class="col-sm">
+    </div>
+    <div class="col-sm">
+    </div>
+    <div class="col-sm">
+<button type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button></td>
     </div>
   </div>
+            {% csrf_token %}
+
+    </form>
 </div>
 </div>
 </div>
@@ -128,46 +104,5 @@
   }
 </script>
 
-<script type="text/javascript">
-
-  jQuery(document).ready(function(){
-    // This button will increment the value
-    $('.qtyplus').click(function(e){
-        // Stop acting like a button
-        e.preventDefault();
-        // Get the field name
-        fieldName = $(this).attr('field');
-        // Get its current value
-        var currentVal = parseInt($('input[name='+fieldName+']').val());
-        // If is not undefined
-        if (!isNaN(currentVal)) {
-            // Increment
-            if (currentVal < max_value) {
-              $('input[name='+fieldName+']').val(currentVal + 1);
-            }
-          } else {
-            // Otherwise put a 0 there
-            $('input[name='+fieldName+']').val(0);
-          }
-        });
-    // This button will decrement the value till 0
-    $(".qtyminus").click(function(e) {
-        // Stop acting like a button
-        e.preventDefault();
-        // Get the field name
-        fieldName = $(this).attr('field');
-        // Get its current value
-        var currentVal = parseInt($('input[name='+fieldName+']').val());
-        // If it isn't undefined or its greater than 0
-        if (!isNaN(currentVal) && currentVal > 0) {
-            // Decrement one
-            $('input[name='+fieldName+']').val(currentVal - 1);
-          } else {
-            // Otherwise put a 0 there
-            $('input[name='+fieldName+']').val(0);
-          }
-        });
-  });
-</script>
 
 {% endblock %}

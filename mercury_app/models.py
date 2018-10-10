@@ -3,6 +3,13 @@ from django.db import models
 from django.db.models import Sum
 
 
+MERCH_STATUS = (
+    ('CO', 'Completed'),
+    ('PA', 'Partial'),
+    ('PE', 'Pending'),
+)
+
+
 class Organization(models.Model):
     eb_organization_id = models.CharField(
         max_length=40,
@@ -55,11 +62,6 @@ class Event(models.Model):
 
 class Order(models.Model):
 
-    MERCH_STATUS = (
-        ('CO', 'Completed'),
-        ('PA', 'Partial'),
-        ('PE', 'Pending'),
-    )
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE
