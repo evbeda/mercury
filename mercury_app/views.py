@@ -44,6 +44,8 @@ from mercury_app.utils import (
     get_summary_types_handed,
     get_db_transaction_by_merchandise,
     create_transaction,
+    EventAccessMixin,
+    OrderAccessMixin,
 )
 
 
@@ -54,9 +56,8 @@ def accept_webhook(request):
     return HttpResponse('OK', 200)
 
 
-
 @method_decorator(login_required, name='dispatch')
-class FilteredOrderListView(SingleTableMixin, MyFilterView):
+class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
     table_class = OrderTable
     model = Order
     template_name = 'orderfilter.html'
@@ -72,22 +73,19 @@ class FilteredOrderListView(SingleTableMixin, MyFilterView):
         context = super(SingleTableMixin, self).get_context_data(**kwargs)
         table = self.get_table(**self.get_table_kwargs())
         context[self.get_context_table_name(table)] = table
-        context['event_name'] = Event.objects.get(
-            eb_event_id=self.kwargs['event_id']).name
+        event = self.get_event()
+        context['event_name'] = event.name
         return context
 
 
 @method_decorator(login_required, name='dispatch')
-class ListItemMerchandising(TemplateView, LoginRequiredMixin):
+class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
     template_name = 'list_item_mercha.html'
 
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
-        order_id = self.kwargs['order_id']
-        merchandising_query_obj = get_db_merchandising_by_order_id(
-            kwargs['order_id']
-        )
-        order = get_db_order_by_id(order_id)
+        order = get_db_order_by_id(self.kwargs['order_id'])
+        merchandising_query_obj = self.get_merchandise()
         context['merchandising'] = get_db_items_left(merchandising_query_obj)
         context['order'] = order
         return context
@@ -109,21 +107,27 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
         return redirect(reverse('index'))
 
 
+
+
+
 @method_decorator(login_required, name='dispatch')
-class Summary(TemplateView, LoginRequiredMixin):
+class Summary(TemplateView, LoginRequiredMixin, EventAccessMixin):
+
     template_name = 'summary.html'
 
     def get_context_data(self, **kwargs):
         context = super(Summary, self).get_context_data(**kwargs)
-        event_id = self.kwargs['event_id']
-        event = get_db_event_by_id(event_id)
-        order_ids = Order.objects.filter(event=event).values_list('id', flat=True)
+        event = self.get_event()
+        order_ids = Order.objects.filter(
+            event=event).values_list('id', flat=True)
         if len(order_ids) == 0:
             token = get_auth_token(self.request.user)
-            orders = get_api_orders_of_event(token, event_id)
+            orders = get_api_orders_of_event(token, event.eb_event_id)
             create_event_orders_from_api(event, orders)
-            order_ids = Order.objects.filter(event=event).values_list('id', flat=True)
-        context['data_handed_over_dont'] = get_summary_handed_over_dont_json(order_ids)
+            order_ids = Order.objects.filter(
+                event=event).values_list('id', flat=True)
+        context['data_handed_over_dont'] = get_summary_handed_over_dont_json(
+            order_ids)
         context['data_tipes_handed'] = get_summary_types_handed(order_ids)
         context['event'] = event
         return context
