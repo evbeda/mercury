@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django_tables2 import SingleTableMixin
 import json
 from mercury_app.models import (
     Organization,
@@ -17,7 +18,10 @@ from mercury_app.models import (
     UserWebhook,
     Transaction,
 )
-from .utils import (
+from mercury_app.tables import OrderTable
+from mercury_app.filters import OrderFilter
+from mercury_app.filterview_fix import MyFilterView
+from mercury_app.utils import (
     get_auth_token,
     get_api_organization,
     get_api_events_org,
@@ -50,6 +54,29 @@ def accept_webhook(request):
     return HttpResponse('OK', 200)
 
 
+
+@method_decorator(login_required, name='dispatch')
+class FilteredOrderListView(SingleTableMixin, MyFilterView):
+    table_class = OrderTable
+    model = Order
+    template_name = 'orderfilter.html'
+    filterset_class = OrderFilter
+
+    def get_queryset(self):
+        return Order.objects.filter(event__eb_event_id=self.kwargs['event_id'])
+
+    def get_table_kwargs(self):
+        return {'template_name': 'django_tables2/bootstrap4.html'}
+
+    def get_context_data(self, **kwargs):
+        context = super(SingleTableMixin, self).get_context_data(**kwargs)
+        table = self.get_table(**self.get_table_kwargs())
+        context[self.get_context_table_name(table)] = table
+        context['event_name'] = Event.objects.get(
+            eb_event_id=self.kwargs['event_id']).name
+        return context
+
+
 @method_decorator(login_required, name='dispatch')
 class ListItemMerchandising(TemplateView, LoginRequiredMixin):
     template_name = 'list_item_mercha.html'
@@ -80,18 +107,6 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
                     'HA',
                 )
         return redirect(reverse('index'))
-
-
-@method_decorator(login_required, name='dispatch')
-class OrderList(TemplateView, LoginRequiredMixin):
-    template_name = 'orders.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(OrderList, self).get_context_data(**kwargs)
-        event_id = self.kwargs['event_id']
-        event = get_db_event_by_id(event_id)
-        context['orders'] = get_db_orders_by_event(event)
-        return context
 
 
 @method_decorator(login_required, name='dispatch')

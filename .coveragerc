@@ -7,16 +7,15 @@ omit =
     */test*
     manage.py
     mercury_site/wsgi.py
-    kazienenv/*
     */tests/*,
     */migrations/*,
     */urls.py,
     */settings/*,
     */wsgi.py,
-    manage.py,
     */middleware.py,
     */apps.py,
     */__init__.py,
+    mercury_app/filterview_fix.py,
 
 [report]
 exclude_lines =
