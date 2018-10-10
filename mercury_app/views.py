@@ -25,6 +25,7 @@ from .utils import (
     get_api_orders_of_event,
     get_events_for_organizations,
     get_db_event_by_id,
+    get_db_order_by_id,
     get_db_merchandising_by_order_id,
     get_db_orders_by_event,
     get_db_events_by_organization,
@@ -55,8 +56,13 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
-        merchandising_query_obj = get_db_merchandising_by_order_id(kwargs['order_id'])
+        order_id = self.kwargs['order_id']
+        merchandising_query_obj = get_db_merchandising_by_order_id(
+            kwargs['order_id']
+        )
+        order = get_db_order_by_id(order_id)
         context['merchandising'] = get_db_items_left(merchandising_query_obj)
+        context['order'] = order
         return context
 
     def post(self, request, *args, **kwargs):

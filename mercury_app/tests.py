@@ -30,6 +30,7 @@ from .utils import (
     delete_webhook,
     get_events_for_organizations,
     get_db_event_by_id,
+    get_db_order_by_id,
     get_db_merchandising_by_order_id,
     get_db_orders_by_event,
     get_db_events_by_organization,
@@ -385,6 +386,11 @@ class UtilsTest(TestCase):
         event = EventFactory(eb_event_id=1234)
         result = get_db_event_by_id(1234)
         self.assertEqual(result, event)
+
+    def test_get_db_order_by_id(self):
+        order = OrderFactory(id=4)
+        result = get_db_order_by_id(4)
+        self.assertEqual(result, order)
 
     def test_get_db_event_by_id_no_result(self):
         result = get_db_event_by_id(1234)

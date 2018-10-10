@@ -8,51 +8,55 @@
     <div id="fondo_sin_imagen" >
       <div class="container">
        <div class="row">
-                  <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+        <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
 
-        <table class="table">
-          <h1>Merchandise</h1>
-          <thead class="thead-dark">
-            <tr>
-              <th scope="col">Item name</th>
-              <th scope="col">Subtype</th>
-              <th scope="col">Sold Quantity</th>
-              <th scope="col">Unit value</th>
-              <th scope="col">Delivered</th>
-              <th scope="col">Amount left</th>
-              <th scope="col">Amount to deliver</th>
-            </tr>
-          </thead>
-          <tbody>
-           {% for item in merchandising %}
-           <tr>
-            <td>{{ item.name }}</td>
-            <td>{{ item.item_type }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.value }}</td>
-            <p hidden="True">{{ item.items_value }}</p>
-            {% if item.quantity == item.items_left %}
-            <td>No</td>
-            {% elif item.items_left == 0%}
-            <td>Yes</td>
-            {% else %}
-            <td>Partially</td>
-            {% endif %}
-            <td>{{ item.items_left }}</td>
-            <td>
-              <script type="text/javascript">
-                var max_value = "{{ item.items_left }}";
-              </script>
+          <table class="table">
+            <h1>Merchandise</h1>
+            <thead class="thead-dark">
+              <div class="page-header">
+                <h4> Name owner <small> {{ order.name }}</p> </h4>
+                  <h4> Order number <small> {{ order.eb_order_id }}</small> </h4>
+                </div>
+                <tr>
+                  <th scope="col">Item name</th>
+                  <th scope="col">Subtype</th>
+                  <th scope="col">Sold Quantity</th>
+                  <th scope="col">Unit value</th>
+                  <th scope="col">Delivered</th>
+                  <th scope="col">Amount left</th>
+                  <th scope="col">Amount to deliver</th>
+                </tr>
+              </thead>
+              <tbody>
+               {% for item in merchandising %}
+               <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.item_type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.value }}</td>
+                <p hidden="True">{{ item.items_value }}</p>
+                {% if item.quantity == item.items_left %}
+                <td>No</td>
+                {% elif item.items_left == 0%}
+                <td>Yes</td>
+                {% else %}
+                <td>Partially</td>
+                {% endif %}
+                <td>{{ item.items_left }}</td>
+                <td>
+                  <script type="text/javascript">
+                    var max_value = "{{ item.items_left }}";
+                  </script>
 
 <!--                 <input type='button' value='-' class='qtyminus' field='quantity' />
                 <input type='number' name='quantity' value='0' class='qty' />
                 <input type='button' value='+' class='qtyplus' field='quantity' />
 
- -->
+              -->
 
-<input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-<input readonly="readonly" type=text form="delivery" size=10 id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
-<input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+              <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+              <input readonly="readonly" type=text form="delivery" size=10 id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
+              <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
 
             </td>
             <!--<td><a href="{% url 'transaction' item_id=item.id %}" class="btn btn-info">Historial</a></td>-->
@@ -80,26 +84,26 @@
 
         </tbody>
       </table>
-                </form>
-      <div class = "row text-center">
-        <div class="col-3"> </div>
-        <div class="col-6">
-          {% if pagination.has_previous %}
-          <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-          {% endif %}
-          <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-          {% if pagination.has_next %}
-          <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-          {% endif %}
-        </div>
+    </form>
+    <div class = "row text-center">
+      <div class="col-3"> </div>
+      <div class="col-6">
+        {% if pagination.has_previous %}
+        <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+        {% endif %}
+        <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 </div>
 </div>
+</div>
 <script language=javascript>
-function process(v, target, max){
+  function process(v, target, max){
     var value = parseInt(document.getElementById(target).value);
     if (max == 0){
       value = 0;
@@ -107,7 +111,7 @@ function process(v, target, max){
       if (v==1){
         value +=v;
       }else{
-          value = value;
+        value = value;
       }
     }else if (value == max && max != 0) {
       if (v==-1){
@@ -116,10 +120,10 @@ function process(v, target, max){
 
       }
     }else if (value < max) {
-    value+=v;
-  } else if (max == 0) {
-    value = 0
-}
+      value+=v;
+    } else if (max == 0) {
+      value = 0
+    }
     document.getElementById(target).value = value;
   }
 </script>
@@ -139,8 +143,8 @@ function process(v, target, max){
         if (!isNaN(currentVal)) {
             // Increment
             if (currentVal < max_value) {
-            $('input[name='+fieldName+']').val(currentVal + 1);
-          }
+              $('input[name='+fieldName+']').val(currentVal + 1);
+            }
           } else {
             // Otherwise put a 0 there
             $('input[name='+fieldName+']').val(0);

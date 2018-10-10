@@ -85,6 +85,13 @@ def get_db_event_by_id(event_id):
         return None
 
 
+def get_db_order_by_id(order_id):
+    try:
+        return Order.objects.get(id=order_id)
+    except Exception as e:
+        return None
+
+
 def create_event_orders_from_api(event, orders):
     created_orders = []
     try:
