@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'mercury_app',
     'django_tables2',
     'django_filters',
+    'fontawesome',
 ]
 
 MIDDLEWARE = [
