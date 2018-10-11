@@ -38,6 +38,7 @@ from .utils import (
     get_db_or_create_organization_by_id,
     get_db_transaction_by_merchandise,
     get_db_items_left,
+    update_db_merch_status,
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
@@ -580,7 +581,7 @@ class UtilsTest(TestCase):
         self.assertEqual(result, None)
 
     def test_get_db_items_left_hand(self):
-        merchandise = MerchandiseFactory(quantity=2, order__id=99)
+        MerchandiseFactory(quantity=2, order__id=99)
         merchandising_query_obj = get_db_merchandising_by_order_id(99)
         TransactionFactory(
             merchandise=merchandising_query_obj[0],
@@ -591,7 +592,7 @@ class UtilsTest(TestCase):
         self.assertEqual(result, 1)
 
     def test_get_db_items_left_refund(self):
-        merchandise = MerchandiseFactory(quantity=2, order__id=99)
+        MerchandiseFactory(quantity=2, order__id=99)
         merchandising_query_obj = get_db_merchandising_by_order_id(99)
         TransactionFactory(
             merchandise=merchandising_query_obj[0],
@@ -604,6 +605,28 @@ class UtilsTest(TestCase):
         items_left = get_db_items_left(merchandising_query_obj)
         result = items_left[0].get('items_left')
         self.assertEqual(result, 2)
+
+    def test_update_db_merch_status_pending(self):
+        order = OrderFactory()
+        MerchandiseFactory(order=order, quantity=1)
+        result = update_db_merch_status(order)
+        self.assertEqual(result, 'PE')
+
+    def test_update_db_merch_status_partial(self):
+        order = OrderFactory()
+        merchandise = MerchandiseFactory(order=order, quantity=2)
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        update_db_merch_status(order)
+        result = Order.objects.get(id=order.id).merch_status
+        self.assertEqual(result, 'PA')
+
+    def test_update_db_merch_status_delivered(self):
+        order = OrderFactory()
+        merchandise = MerchandiseFactory(order=order, quantity=1)
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        update_db_merch_status(order)
+        result = Order.objects.get(id=order.id).merch_status
+        self.assertEqual(result, 'CO')
 
 
 class UtilsWebhook(TestBase):
@@ -1157,46 +1180,74 @@ class OrderListTest(TestBase):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         event = EventFactory(organization=org)
-        OrderFactory(event=event, id=9)
-        OrderFactory(name='Jaime Bond', event=event)
+        OrderFactory(event=event, name='Jaime Bond')
         response = self.client.get('/event/{}/orders/'.format(
             event.eb_event_id)
         )
         self.assertContains(response, 'Jaime Bond')
 
+    def test_filter_name(self, mock_webhook):
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        event = EventFactory(organization=org, eb_event_id=50782024402)
+        OrderFactory(name='Charles Brown', event=event)
+        OrderFactory(name='Carlos Brown', event=event)
+        response = self.client.get('/event/50782024402/orders/?name={}\
+            &eb_order_id=&merch_status='.format('Charles'))
+        self.assertContains(response, 'Charles Brown')
+        response2 = self.client.get('/event/50782024402/orders/?name={}\
+            &eb_order_id=&merch_status='.format('Brown'))
+        self.assertContains(response2, 'Charles Brown')
+        self.assertContains(response2, 'Carlos Brown')
+        response3 = self.client.get('/event/50782024402/orders/?name={}\
+            &eb_order_id=&merch_status='.format('John'))
+        self.assertNotContains(response3, 'Charles Brown')
+        self.assertNotContains(response3, 'Carlos Brown')
 
-class OrderModelPropertyEstate(TestCase):
+    def test_filter_eb_order_id(self, mock_webhook):
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        event = EventFactory(organization=org, eb_event_id=50782024402)
+        OrderFactory(name='Charles Brown', event=event, eb_order_id=1113)
+        OrderFactory(name='Carlos Brown', event=event, eb_order_id=1112)
+        response = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
+            &merch_status='.format('1113'))
+        self.assertContains(response, 'Charles Brown')
+        response2 = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
+            &merch_status='.format('11'))
+        self.assertContains(response2, 'Charles Brown')
+        self.assertContains(response2, 'Carlos Brown')
+        response3 = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
+            &merch_status='.format('3454'))
+        self.assertNotContains(response3, 'Charles Brown')
+        self.assertNotContains(response3, 'Carlos Brown')
 
-    def setUp(self):
-        self.order = OrderFactory()
-        self.merchandise = MerchandiseFactory(quantity=2, order=self.order)
-
-    def test_delivered(self):
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        self.assertEqual(self.order.estate, 'Delivered')
-
-    def test_pending_delivery(self):
-        self.assertEqual(self.order.estate, 'Pending delivery')
-
-    def test_partially_delivered(self):
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        self.assertEqual(self.order.estate, 'Partially delivered')
-
-    def test_without_merchandise(self):
-        self.merchandise.delete()
-        self.assertEqual(self.order.estate, 'Without Merchandise')
-
-    def test_partially_differents_types(self):
-        merchandise = MerchandiseFactory(quantity=2, order=self.order)
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        self.assertEqual(self.order.estate, 'Partially delivered')
-
-    def test_delivered_differents_types(self):
-        merchandise = MerchandiseFactory(quantity=2, order=self.order)
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        TransactionFactory(merchandise=self.merchandise, operation_type='HA')
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        self.assertEqual(self.order.estate, 'Delivered')
+    def test_filter_order_status(self, mock_webhook):
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        event = EventFactory(organization=org, eb_event_id=50782024402)
+        order1 = OrderFactory(name='Charles Brown', event=event, eb_order_id=7)
+        order2 = OrderFactory(name='Carlos Brown', event=event, eb_order_id=8)
+        order3 = OrderFactory(name='Charlie Brown', event=event, eb_order_id=9)
+        merch1 = MerchandiseFactory(order=order1, quantity=1)
+        merch2 = MerchandiseFactory(order=order2, quantity=2)
+        MerchandiseFactory(order=order3, quantity=2)
+        TransactionFactory(merchandise=merch1, operation_type='HA')
+        update_db_merch_status(order1)
+        TransactionFactory(merchandise=merch2, operation_type='HA')
+        update_db_merch_status(order2)
+        response = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+            &merch_status={}'.format('CO'))
+        self.assertContains(response, 'Charles Brown')
+        self.assertNotContains(response, 'Carlos Brown')
+        self.assertNotContains(response, 'Charlie Brown')
+        response2 = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+            &merch_status={}'.format('PA'))
+        self.assertNotContains(response2, 'Charles Brown')
+        self.assertContains(response2, 'Carlos Brown')
+        self.assertNotContains(response2, 'Charlie Brown')
+        response3 = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+            &merch_status={}'.format('PE'))
+        self.assertNotContains(response3, 'Charles Brown')
+        self.assertNotContains(response3, 'Carlos Brown')
+        self.assertContains(response3, 'Charlie Brown')

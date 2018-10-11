@@ -4,9 +4,9 @@ from django.db.models import Sum
 
 
 MERCH_STATUS = (
-    ('CO', 'Completed'),
-    ('PA', 'Partial'),
-    ('PE', 'Pending'),
+    ('CO', 'Delivered'),
+    ('PA', 'Partially delivered'),
+    ('PE', 'Pending delivery'),
 )
 
 
@@ -66,12 +66,12 @@ class Order(models.Model):
         Event,
         on_delete=models.CASCADE
     )
+    name = models.CharField(max_length=256)
     eb_order_id = models.BigIntegerField(
         unique=True,
     )
     changed = models.DateTimeField()
     created = models.DateTimeField()
-    name = models.CharField(max_length=256)
     status = models.CharField(max_length=32)
     email = models.EmailField(max_length=256)
     merch_status = models.CharField(
@@ -79,23 +79,6 @@ class Order(models.Model):
         choices=MERCH_STATUS,
         default='PE',
     )
-
-    @property
-    def estate(self):
-        total_mercha = Merchandise.objects.filter(
-            order=self).aggregate(Sum('quantity'))
-        handed_mercha = Transaction.objects.filter(
-            merchandise__in=Merchandise.objects.filter(
-                order=self).values('id').order_by('id'),
-            operation_type='HA').count()
-        if total_mercha['quantity__sum'] == None:
-            return 'Without Merchandise'
-        elif total_mercha['quantity__sum'] == handed_mercha:
-            return 'Delivered'
-        elif handed_mercha == 0:
-            return 'Pending delivery'
-        else:
-            return 'Partially delivered'
 
     def __string__(self):
         return self.name

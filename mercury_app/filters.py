@@ -10,8 +10,10 @@ class OrderFilter(FilterSet):
 
     class Meta:
         model = Order
-        fields = {
-            'eb_order_id',
-            'merch_status',
-            'name',
+        exclude = {
+            'event',
+            'changed',
+            'created',
+            'status',
+            'email'
         }

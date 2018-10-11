@@ -23,6 +23,7 @@ from .models import (
     UserOrganization,
     UserWebhook,
     Transaction,
+    MERCH_STATUS,
 )
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
@@ -605,6 +606,7 @@ def create_transaction(user, merchandise, note, device, operation):
             device_name=device,
             operation_type=operation,
         )
+        update_db_merch_status(tx.merchandise.order)
         return tx
     except Exception:
         return None
@@ -638,6 +640,30 @@ def get_db_transaction_by_merchandise(merchandise):
         return transaction_query
     except Exception:
         return None
+
+
+def update_db_merch_status(order):
+    total_mercha = Merchandise.objects.filter(
+        order=order).aggregate(Sum('quantity'))
+    handed_mercha = Transaction.objects.filter(
+        merchandise__in=Merchandise.objects.filter(
+            order=order).values('id').order_by('id'),
+        operation_type='HA').count()
+    if total_mercha['quantity__sum'] == handed_mercha:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[0][0]
+        )
+        return MERCH_STATUS[0][0]
+    elif handed_mercha == 0:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[2][0]
+        )
+        return MERCH_STATUS[2][0]
+    else:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[1][0]
+        )
+        return MERCH_STATUS[1][0]
 
 
 class EventAccessMixin():

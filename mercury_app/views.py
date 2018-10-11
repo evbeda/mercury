@@ -195,18 +195,3 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             message = 'An error has occured while adding the event'
 
         return redirect(reverse('index', kwargs={'message': message}))
-
-
-@method_decorator(login_required, name='dispatch')
-class TransactionView(TemplateView, LoginRequiredMixin):
-    template_name = 'transaction.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(TransactionView, self).get_context_data(**kwargs)
-        item = self.kwargs['item_id']
-        context['transaction'] = (item)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        token = get_auth_token(self.request.user)
-        name = self.kwargs['name']
