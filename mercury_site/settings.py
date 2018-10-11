@@ -27,7 +27,7 @@ ALLOWED_HOSTS = [
     'ebmercury.herokuapp.com',
     'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
-    'ngrok.io',
+    '46378be0.ngrok.io',
 ]
 
 
