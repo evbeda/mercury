@@ -9,6 +9,7 @@
 	min-height: 80vh;
 	background-attachment: fixed;
 }
+body { padding-bottom: 70px; }
 .dark-overlay{
 	background-color: rgba(0,0,0,0.4);
 	min-height: 100vh;
