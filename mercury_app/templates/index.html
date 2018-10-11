@@ -2,50 +2,70 @@
 {% block content %}
 <div class="container">
 	<div class="row">
-    {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
-    {% endif %}
-<div id="fondo_sin_imagen" >
-  <div class="container">  
-   <div class="row">
-    <br>
-          <h1 class="font-weight-light">Events with Merchandising</h1>
-<br>
-    <table class="table table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Date</th>
-          <th scope="col">View</th>
-        </tr>
-      </thead>
-      <tbody>
-       {% for event in pagination %}
-       <tr>
-        <td>{{ event.name }}</td>
-        <td>{{ event.start_date_utc }}</td>
-        <td><a href="{% url 'summary' event_id=event.eb_event_id %}" class="btn btn-success">View</a></td>
-      </tr>
-      {% endfor %}
-      <tr>
-        <td>{% if not pagination %}You have no events{% endif %}</td>
-        <td></td>
-        <td><a href="{% url 'select_events' %}" class="btn btn-primary">Add</a></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class = "row text-center">
-    <div class="col-3"> </div>
-    <div class="col-6">
-      {% if pagination.has_previous %}
-      <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-      {% endif %}
-      <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-      {% if pagination.has_next %}
-      <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-      {% endif %}
+    <div class="container">  
+     <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <h1>Events with merchandise</h1> 
+          <p>Here you have a list of events you can manage</p> 
+        </div>
+      </div>
     </div>
+    {% if message %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{{ message }}</strong>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if not pagination %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>Wait!</strong> You have not events
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="row">
+      <table class="table table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Date</th>
+            <th scope="col">View</th>
+          </tr>
+        </thead>
+        <tbody>
+         {% for event in pagination %}
+         <tr>
+          <td>{{ event.name }}</td>
+          <td>{{ event.start_date_utc }}</td>
+          <td><a href="{% url 'summary' event_id=event.eb_event_id %}" class="btn btn-success">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+  <div class="row">
+   <div class="col-12">
+    
+     <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
+   </div>
+ </div>
+ <div class="row">
+  <div class="col-12 text-center">
+    {% if pagination.has_previous %}
+    <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+    {% endif %}
+    <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+    {% if pagination.has_next %}
+    <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+    {% endif %}
+  </div>
+</div>
 </div>
 </div>
 </div>

@@ -14,35 +14,97 @@
 
 {% block content %}
 
-<div class="container">
+<div class="container pb-5">
 	<div class="row">
+    <div class="container">  
+     <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <h1>Summary</h1> 
+          <p>{{ event.name }}</p>
+          <div class="row ">
+            <div class="col-12 text-right">
+              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event.eb_event_id %}
+              ">View orders</a>
+              <a href="{% url 'index'%}" class="btn btn-outline-primary">View my events</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{{ message }}</strong>
+        </div>
+      </div>
+    </div>
     {% endif %}
-    <div class="page-header">
-      <h1>Summary <small> Of {{ event.name }}</small>  
-        <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event.eb_event_id %}">View orders</a>
-      </h1>
-      <div class="js-donut-container text-center row">
+    <div class="row">
+      <div class="col-12 text-center">
         <h2>Handed/ Don't handed</h2>
       </div>
-      <div class="js-legend-container text-center">
+    </div>
+    <div class="row">
+      <div class="col-12 text-center">
+        <div class="js-donut-container text-center">
+        </div>
       </div>
-      <div class="container">
+    </div>
+    <div class="row">
+      <div class="col-12 text-center">
+        <div class="js-legend-container text-center">
+        </div>
       </div>
-      <div class="row text-center" id="subtipe-container">
+    </div>
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_0">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_0">
+        </div>
       </div>
-      <div class="row text-center" id="subtipe-container_legend">
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_1">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_1">
+        </div>
       </div>
-      <div class="text-center">
-        <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_1">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_1">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_0">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_0">
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_1">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_1">
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="text-center" id="subtipe-container_1">
+        </div>
+        <div class="text-center" id="subtipe-container_legend_1">
+        </div>
       </div>
     </div>
   </div>
+</div>
+</div>
+</div>
+</div>
+</div>
 
-</div>
-</div>
-<br>
 <script type="text/javascript">
   let data_handed = {{ data_handed_over_dont |safe }};
   let data_tipes_handed = {{ data_tipes_handed |safe }};
@@ -64,19 +126,7 @@
   });
   d3.select('.js-legend-container').datum(data_handed).call(legendChart);
   d3.select('.js-donut-container').datum(data_handed).call(donutChart);
-
-  for (var i = 0; i < data_tipes_handed.length; i++) { 
-    element = document.createElement('div')
-    element.className = "col-md-4 text-center js-donut-container-subtipe" + i
-    element.id = 'subtipe' + i
-    h1 = document.createElement('h3')
-    h1.innerHTML = data_tipes_handed[i][0]['name']
-    document.getElementById('subtipe-container').appendChild(element);
-    document.getElementById('subtipe' + i).appendChild(h1);
-    legend_cont = document.createElement('div')
-    legend_cont.className = "col-md-4 text-center js-donut-container-legend" + i
-    legend_cont.id = 'subtipe_legend' + i
-    document.getElementById('subtipe-container_legend').appendChild(legend_cont);
+  for (var i = 0; i <= data_tipes_handed.length; i++) { 
     let donutChartSubtipe = britecharts.donut()
     let legendChartSubtipe = britecharts.legend()
     donutChartSubtipe
@@ -86,14 +136,14 @@
     .height(275)
     .colorSchema(colors_array[i])
     .on('customMouseOver', function(data) {
-      legendChartSubtipe.highlight(data_tipes_handed[i].id);
+      legendChartSubtipe.highlight(data_tipes_handed[i][0].id);
     })
     .on('customMouseOut', function() {
       legendChartSubtipe.clearHighlight();
     });
     legendChartSubtipe.colorSchema(colors_array[i]);
-    d3.select('.js-donut-container-subtipe'+ i).datum(data_tipes_handed[i]).call(donutChartSubtipe);
-    d3.select('.js-donut-container-legend' + i).datum(data_tipes_handed[i]).call(legendChartSubtipe);
+    d3.select('#subtipe-container_'+ i).datum(data_tipes_handed[i]).call(donutChartSubtipe);
+    d3.select('#subtipe-container_' + i).datum(data_tipes_handed[i]).call(legendChartSubtipe);
   }
 </script>
 {% endblock %}

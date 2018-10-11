@@ -1,79 +1,82 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container">
-  
-    {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
-    {% endif %}
-    <div id="fondo_sin_imagen" >
-      <div class="container">
-                    <h2>Merchandise</h2>
-
-                               <div class="row">
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-<input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);">
+<div class="container mb-5">
+  <div class="row">
+    <div class="col-12">
+      <div class="jumbotron">
+        <h1>Merchandise</h1> 
+        <p>Details</p>
+        <div class="row ">
+          <div class="col-12 text-right">
+            <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
+            <input type=button class="btn btn-outline-primary" value="Go Back" onClick="javascript:history.go(-1);">
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
-        <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
-<div class="card text-white bg-secondary mb-3">
-  <div class="card-header">
-    Order Details
-  </div><div class="card-body">
-                <h6 class="font-weight-light"><small>Name </small> {{ order.name }} </h6>
-                <h6 class="font-weight-light"><small>Order# </small> {{ order.eb_order_id }} </h6>
-                <h6 class="font-weight-light"><small>Date </small> {{ order.created }} </h6>
-                </div>
-                </div>
-               {% for item in merchandising %}
-               <br>
-               <div class="card border-info mb-3">
-  <div class="card-header bg-info text-white">
-    {{ item.name }}
-  </div><div class="card-body">
-                <h4><small>Subtype</small> {{ item.item_type }} </h4>
-                <h5><small>Sold</small> {{ item.quantity }} </h5>
-                <h5><small>Unit value</small> {{ item.value }} </h5>
-                <h5><small>Delivered</small> 
-                {% if item.quantity == item.items_left %}
-                <td>No</td>
-                {% elif item.items_left == 0%}
-                <td>Yes</td>
-                {% else %}
-                <td>Partially</td>
-                {% endif %}
-              </h5>
-                <h5><small>Items left</small> {{ item.items_left }} </h5>
-
-                <h5><small>Amount to deliver</small>
-                  <script type="text/javascript">
-                    var max_value = "{{ item.items_left }}";
-                  </script>
-
-              <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-              <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
-              <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-</h5>
-                </div>
-</div>
-
-          {% endfor %}
-            <div class="row">
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-<button type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button></td>
+  {% if message %}
+  <div class="row">
+    <div class="col-12">
+      <div class="alert alert-warning">
+        <strong>{{ message }}</strong>
+      </div>
     </div>
   </div>
-            {% csrf_token %}
-
+  {% endif %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card bg-secondary text-white">
+        <h5 class="card-header">Order details</h5>
+        <div class="card-body">
+          <h6 class="font-weight-light"><small>Name </small> {{ order.name }} </h6>
+          <h6 class="font-weight-light"><small>Order# </small> {{ order.eb_order_id }} </h6>
+          <h6 class="font-weight-light"><small>Date </small> {{ order.created }} </h6>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+       {% for item in merchandising %}
+       <br>
+       <div class="card">
+        <h5 class="card-header">{{ item.name }}</h5>
+        <div class="card-body">
+          <h6 class="font-weight-light"><small>Subtype</small> {{ item.item_type }} </h6>
+          <h6 class="font-weight-light"><small>Sold</small> {{ item.quantity }} </h6>
+          <h6 class="font-weight-light"><small>Unit value</small> {{ item.value }} </h6>
+          <h6 class="font-weight-light"><small>Delivered</small>
+            {% if item.quantity == item.items_left %}
+            <td>No</td>
+            {% elif item.items_left == 0%}
+            <td>Yes</td>
+            {% else %}
+            <td>Partially</td>
+            {% endif %}
+          </h6>
+          <h6 class="font-weight-light"><small>Items left</small> {{ item.items_left }} </h6>
+          <h6 class="font-weight-light"><small>Amount to deliver</small>
+            <script type="text/javascript">
+              var max_value = "{{ item.items_left }}";
+            </script>
+            <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+            <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
+            <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+          </h5>
+        </div>
+      </div>
+      {% endfor %}
+      <div class="row">
+        <div class="col text-right m-2">
+          <button type="submit" form="delivery" class="btn btn-outline-success" value="Submit">Mark as delivered</button></td>
+        </div>
+      </div>
+      {% csrf_token %}
     </form>
+  </div>
+</div>
 </div>
 </div>
 </div>
@@ -93,7 +96,6 @@
       if (v==-1){
         value +=v;
       }else{
-
       }
     }else if (value < max) {
       value+=v;
@@ -103,6 +105,4 @@
     document.getElementById(target).value = value;
   }
 </script>
-
-
 {% endblock %}

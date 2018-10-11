@@ -4,33 +4,47 @@
 {% load render_table from django_tables2 %}
 {% load bootstrap4 %}
 
-    <div class="container">
-        {% block body %}
-
-      <h1>Orders <small> Of {{ event_name }}</small></h1>
-
-                        <div class="row">
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-    </div>
-    <div class="col-sm">
-<input type=button class="btn btn-outline-primary" value="Go Back" onClick="javascript:history.go(-1);">
-    </div>
-  </div>
-
-            {% if filter %}
-                <div class="col-sm-10">
-                    <form action="" method="get" class="form form-inline">
-                        {% bootstrap_form filter.form layout='inline' %}
-                        {% bootstrap_button 'filter' %}
-                    </form>
-                </div>
-            {% endif %}
-            <div class="col-sm-10">
-                {% render_table table %}
+<div class="container mb-5" >
+    {% block body %}
+    <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <h1>{{ event_name }}</h1> 
+          <p>Orders</p>
+          <div class="row ">
+            <div class="col-12 text-right">
+                <a href="{% url 'index'%}" class="btn btn-primary">View my events</a>
+                <input type=button class="btn btn-outline-primary" value="Go Back" onClick="javascript:history.go(-1);">
             </div>
         </div>
-        {% endblock %}
     </div>
+</div>
+</div>
+{% if message %}
+<div class="row">
+  <div class="col-12">
+    <div class="alert alert-warning">
+      <strong>{{ message }}</strong>
+  </div>
+</div>
+</div>
+{% endif %}
+<div class="row">
+    <div class="col-12 text-center ">
+        {% if filter %}
+        <form action="" method="get" class="form-inline justify-content-center">
+            {% bootstrap_form filter.form layout='inline' %}
+            <button class="btn btn-outline-secondary">Filter</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-12 text-center">
+        {% render_table table %}
+    </div>
+</div>
+</div>
+{% endblock %}
+</div>
 {% endblock %}
