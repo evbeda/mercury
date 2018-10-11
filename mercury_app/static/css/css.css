@@ -1,3 +1,4 @@
+
 #fondo{
 	background-image: url("../img/fondo_mercury.jpg");
 	background-size: cover;
@@ -9,21 +10,22 @@
 	min-height: 80vh;
 	background-attachment: fixed;
 }
-body { padding-bottom: 70px; }
 .dark-overlay{
 	background-color: rgba(0,0,0,0.4);
 	min-height: 100vh;
 }
- footer{
-	background-color: rgb(40,44,47);
-}
 footer{
+	background-color: rgb(40,44,47);
 	padding-bottom: 3vh;
 	padding-top: 3vh;
 	color:white;
 }
 footer a{
 	color: rgb(1 ,161 ,165);
+}
+
+.content--fullheight {
+	min-height: 90vh;
 }
  #first_form{
 	font-family: 'Raleway';

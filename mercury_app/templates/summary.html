@@ -48,58 +48,57 @@
     </div>
     <div class="row">
       <div class="col-12 text-center">
-        <div class="js-donut-container text-center">
+        <div class="js-donut-container embed-responsive text-center">
         </div>
       </div>
     </div>
     <div class="row">
       <div class="col-12 text-center">
-        <div class="js-legend-container text-center">
+        <div class="js-legend-container embed-responsive text-center">
         </div>
       </div>
     </div>
     <div class="row">
       <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_0">
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_0">
         </div>
-        <div class="text-center" id="subtipe-container_legend_0">
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_1">
-        </div>
-        <div class="text-center" id="subtipe-container_legend_1">
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_legend_0">
         </div>
       </div>
       <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_1">
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_1">
         </div>
-        <div class="text-center" id="subtipe-container_legend_1">
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_legend_1">
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_1">
+        </div>
+        <div class="text-center sub-cont embed-responsive" id="subtipe-container_legend_1">
         </div>
       </div>
     </div>
     <div class="row">
       <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_0">
+        <div class="text-center sub-cont" id="subtipe-container_0">
         </div>
-        <div class="text-center" id="subtipe-container_legend_0">
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_1">
-        </div>
-        <div class="text-center" id="subtipe-container_legend_1">
+        <div class="text-center sub-cont" id="subtipe-container_legend_0">
         </div>
       </div>
       <div class="col-lg-4">
-        <div class="text-center" id="subtipe-container_1">
+        <div class="text-center sub-cont" id="subtipe-container_1">
         </div>
-        <div class="text-center" id="subtipe-container_legend_1">
+        <div class="text-center sub-cont" id="subtipe-container_legend_1">
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="text-center sub-cont" id="subtipe-container_1">
+        </div>
+        <div class="text-center sub-cont" id="subtipe-container_legend_1">
         </div>
       </div>
     </h1>
     <div class="js-donut-container text-center row">
-      <h2>Handed/ Don't handed</h2>
     </div>
     <div class="js-legend-container text-center">
     </div>
@@ -126,11 +125,9 @@
   let donutChart = britecharts.donut()
   let legendChart = britecharts.legend()
   donutChart
+  .width(290)
   .isAnimated(true)
-  .width(400)
-  .height(400)
-  .externalRadius(500 / 2.5)
-  .internalRadius(500 / 5)
+  .height(290)
   .on('customMouseOver', function(data) {
     legendChart.highlight(data.data.id);
   })
@@ -145,7 +142,6 @@
     donutChartSubtipe
     .width(275)
     .isAnimated(true)
-    .highlightSliceById(1)
     .height(275)
     .colorSchema(colors_array[i])
     .on('customMouseOver', function(data) {

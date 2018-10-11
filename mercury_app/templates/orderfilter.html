@@ -34,13 +34,15 @@
         {% if filter %}
         <form action="" method="get" class="form-inline justify-content-center">
             {% bootstrap_form filter.form layout='inline' %}
-            <button class="btn btn-outline-secondary">Filter</button>
+            <div class="form-group is-valid">
+                <button class="btn btn-outline-secondary">Filter</button>
+            </div>
         </form>
         {% endif %}
     </div>
 </div>
 <div class="row mt-2">
-    <div class="col-12 text-center">
+    <div class="col-12 text-center table-responsive">
         {% render_table table %}
     </div>
 </div>
