@@ -16,7 +16,7 @@ class OrderTable(tables.Table):
     )
 
     def render_actions(self, value, record):
-        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/10/" class="fa fa-eye fa-2x"></a></div></div>'.format(record.id))
+        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/" class="fa fa-eye fa-2x"></a></div></div>'.format(record.id))
 
     class Meta:
         model = Order

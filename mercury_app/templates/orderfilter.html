@@ -9,12 +9,12 @@
     <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>{{ event_name }}</h1> 
+          <h1>{{ event_name }}</h1>
           <p>Orders</p>
           <div class="row ">
             <div class="col-12 text-right">
-                <a href="{% url 'index'%}" class="btn btn-primary">My events</a>
-                <input type=button class="btn btn-outline-primary" value="Go Back" onClick="javascript:history.go(-1);">
+                <a href="{% url 'summary' event_id=event_eb_event_id %}" class="btn btn-info">Summary</a>
+                <a href="{% url 'index'%}" class="btn btn-outline-primary">My events</a>
             </div>
         </div>
     </div>

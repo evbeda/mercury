@@ -855,18 +855,18 @@ class SummaryTest(TestBase):
 
     def test_get_summary_handed_over_dont_json_one(self):
         expected = ([{'quantity': 0, 'percentage': 0,
-                      'name': 'Orders Handed', 'id': 1},
+                      'name': 'Delivered Orders', 'id': 1},
                      {'quantity': 100, 'percentage': 100,
-                      'name': 'Orders don\'t handed', 'id': 2}])
+                      'name': 'Undelivered Orders', 'id': 2}])
         mercha = MerchandiseFactory()
         result = get_summary_handed_over_dont_json([mercha.order.id])
         self.assertEqual(expected, result)
 
     def test_get_summary_handed_over_dont_json_two(self):
         expected = ([{'quantity': 100, 'percentage': 100,
-                      'name': 'Orders Handed', 'id': 1},
+                      'name': 'Delivered Orders', 'id': 1},
                      {'quantity': 0, 'percentage': 0,
-                      'name': 'Orders don\'t handed', 'id': 2}])
+                      'name': 'Undelivered Orders', 'id': 2}])
         mercha = MerchandiseFactory(quantity=1)
         TransactionFactory(
             merchandise=mercha,
@@ -877,9 +877,9 @@ class SummaryTest(TestBase):
 
     def test_get_summary_handed_over_dont_json_three(self):
         expected = ([{'quantity': 66.7, 'percentage': 66.7,
-                      'name': 'Orders Handed', 'id': 1},
+                      'name': 'Delivered Orders', 'id': 1},
                      {'quantity': 33.3, 'percentage': 33.3,
-                      'name': 'Orders don\'t handed', 'id': 2}])
+                      'name': 'Undelivered Orders', 'id': 2}])
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=3,
                                     order=self.order)
@@ -896,9 +896,9 @@ class SummaryTest(TestBase):
 
     def test_get_summary_handed_over_dont_json_four(self):
         expected = ([{'quantity': 33.3, 'percentage': 33.3,
-                      'name': 'Orders Handed', 'id': 1},
+                      'name': 'Delivered Orders', 'id': 1},
                      {'quantity': 66.7, 'percentage': 66.7,
-                      'name': 'Orders don\'t handed', 'id': 2}])
+                      'name': 'Undelivered Orders', 'id': 2}])
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=3,
                                     order=self.order)
@@ -913,7 +913,7 @@ class SummaryTest(TestBase):
         expected = ([[{'quantity': 100.0, 'percentage': 100.0,
                        'name': 'Gorra handed', 'id': 1},
                       {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra don\'t handed', 'id': 2}]])
+                       'name': 'Gorra not handed', 'id': 2}]])
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=1,
                                     order=self.order)
@@ -928,11 +928,11 @@ class SummaryTest(TestBase):
         expected = ([[{'quantity': 100.0, 'percentage': 100.0,
                        'name': 'Gorra handed', 'id': 1},
                       {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra don\'t handed', 'id': 2}],
+                       'name': 'Gorra not handed', 'id': 2}],
                      [{'quantity': 100.0, 'percentage': 100.0,
                        'name': 'Remera handed', 'id': 1},
                       {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Remera don\'t handed', 'id': 2}]
+                       'name': 'Remera not handed', 'id': 2}]
                      ])
         mercha_one = MerchandiseFactory(name='Gorra',
                                         quantity=1,
@@ -955,11 +955,11 @@ class SummaryTest(TestBase):
         expected = ([[{'quantity': 0.0, 'percentage': 0.0,
                        'name': 'Gorra handed', 'id': 1},
                       {'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Gorra don\'t handed', 'id': 2}],
+                       'name': 'Gorra not handed', 'id': 2}],
                      [{'quantity': 0.0, 'percentage': 0.0,
                        'name': 'Remera handed', 'id': 1},
                       {'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Remera don\'t handed', 'id': 2}]
+                       'name': 'Remera not handed', 'id': 2}]
                      ])
         MerchandiseFactory(name='Gorra',
                            quantity=1,
@@ -982,7 +982,7 @@ class SummaryTest(TestBase):
                 {
                     'quantity': 100.0,
                     'percentage': 100.0,
-                    'name': 'Gorra2 don\'t handed',
+                    'name': 'Gorra2 not handed',
                     'id': 2,
                 },
             ],
@@ -996,7 +996,7 @@ class SummaryTest(TestBase):
                 {
                     'quantity': 0.0,
                     'percentage': 0.0,
-                    'name': 'Remera2 don\'t handed',
+                    'name': 'Remera2 not handed',
                     'id': 2,
                 },
             ],
@@ -1123,7 +1123,6 @@ class ListItemMerchandisingTest(TestBase):
             quantity=1,
             order=order,
         )
-
         response = self.client.post(
             '/view_order/7/', {'123': '1', 'csrftoken': 'TEST'})
         self.assertEqual(response.status_code, 302)
