@@ -31,7 +31,7 @@
           <thead class="thead-dark">
             <tr>
               <th scope="col">Name</th>
-              <th scope="col">Date</th>
+              <th scope="col">Start date</th>
               <th scope="col">View</th>
             </tr>
           </thead>
@@ -46,7 +46,7 @@
                 <input type="hidden" name="id_event" value="{{ event.id }}">
                 <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
                 <input type="hidden" name="organization_name" value="{{ event.org_name }}">
-                <input type="submit" name="" value="Add" class="btn btn-success">
+                <input type="submit" name="" value="Manage" class="btn btn-success">
               </form>
             </td>
           </tr>
@@ -65,39 +65,6 @@
         </div>
       </div>
     </div>
-  <div class="row">
-    <div class="col-12">
-    <table class="table">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Start date</th>
-          <th scope="col">View</th>
-        </tr>
-      </thead>
-      <tbody>
-       {% for event in pagination %}
-       <tr>
-        <td>{{ event.name.text }}</td>
-        <td>{{ event.start.local }}</td>
-        <td>
-          <form action="{% url 'select_events' %}" method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="id_event" value="{{ event.id }}">
-            <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
-            <input type="hidden" name="organization_name" value="{{ event.org_name }}">
-            <input type="submit" name="" value="Manage" class="btn btn-success">
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <div class="row">
-   <div class="col-12">
-    <a class="btn btn-primary btn-block text-white" onClick="javascript:history.go(-1);">Go back</a>
-   </div>
- </div>
  <div class="row">
   <div class="col-12 text-center">
     {% if pagination.has_previous %}
