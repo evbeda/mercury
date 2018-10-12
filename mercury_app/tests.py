@@ -210,55 +210,26 @@ class HomeViewTest(TestBase):
 
     def test_home_none_entry(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
-        self.assertNotContains(response, 'class="btn btn-success">View</a>')
+        self.assertNotContains(response, 'fa fa-eye')
         self.assertContains(response, 'Add')
 
     def test_home_one_entry(self, mock_create_order_webhook_from_view):
-        org = Organization.objects.create(
-            eb_organization_id=1, name='test_organization')
-        Event.objects.create(organization=org,
-                             name='Evento',
-                             description='description',
-                             eb_event_id=1,
-                             date_tz='America/Argentina/Mendoza',
-                             start_date_utc='2018-10-22T22:00:09Z',
-                             end_date_utc='2018-10-22T22:00:09Z',
-                             created='2017-11-23 23:33:57-03',
-                             changed='2017-11-23 23:33:57-03',
-                             status='completed',
-                             )
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        EventFactory(organization=org)
         response = self.client.get('/')
-        self.assertContains(response, 'View')
+        self.assertContains(response, 'fa fa-eye')
         self.assertContains(response, 'Add')
 
     def test_home_two_entry(self, mock_create_order_webhook_from_view):
-        org = Organization.objects.create(
-            eb_organization_id=1, name='test_organization')
-        Event.objects.create(organization=org,
-                             name='Evento',
-                             description='description',
-                             eb_event_id=1,
-                             date_tz='America/Argentina/Mendoza',
-                             start_date_utc='2018-10-22T22:00:09Z',
-                             end_date_utc='2018-10-22T22:00:09Z',
-                             created='2017-11-23 23:33:57-03',
-                             changed='2017-11-23 23:33:57-03',
-                             status='completed',
-                             )
-        Event.objects.create(organization=org,
-                             name='ev',
-                             description='description nueva',
-                             eb_event_id=2,
-                             date_tz='America/Argentina/Cordoba',
-                             start_date_utc='2017-10-22T22:00:09Z',
-                             end_date_utc='2017-10-22T22:00:09Z',
-                             created='2016-11-23 23:33:57-03',
-                             changed='2016-11-23 23:33:57-03',
-                             status='completed',
-                             )
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        EventFactory(name='Hello', organization=org)
+        EventFactory(name='Goodbye', organization=org)
         response = self.client.get('/')
-        self.assertContains(response, 'ev')
-        self.assertContains(response, 'View')
+        self.assertContains(response, 'Hello')
+        self.assertContains(response, 'Goodbye')
+        self.assertContains(response, 'fa fa-eye')
         self.assertContains(response, 'Add')
 
 
