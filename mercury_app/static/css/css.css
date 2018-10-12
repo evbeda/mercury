@@ -48,5 +48,9 @@ footer a{
     height: 25px;
     text-align: center;
 }
+
+#hip_not_underline {
+	text-decoration: none;
+}
 input.qtyplus { width:25px; height:25px;}
 input.qtyminus { width:25px; height:25px;}

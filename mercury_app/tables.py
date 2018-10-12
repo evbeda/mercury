@@ -13,11 +13,10 @@ class OrderTable(tables.Table):
         verbose_name='Actions',
         orderable=False,
         empty_values=(),
-        attrs={"th": {"style": "text-align: justify"}},
     )
 
     def render_actions(self, value, record):
-        return format_html('<ul class="fa-ul fa-2x row"><a href="/view_order/{}/"><li><i class="fa fa-eye"></i></li></a> &nbsp &nbsp &nbsp <a href=""><li> <i class="fa fa-trash"></i> </li></ul></a>'.format(record.id))
+        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/10/" class="fa fa-eye fa-2x"></a></div></div>'.format(record.id))
 
     class Meta:
         model = Order
