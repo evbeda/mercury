@@ -558,7 +558,7 @@ def get_summary_types_handed(order_ids):
                 1),
                 get_json_donut(
                 dont_handed_percentaje,
-                '{} don\'t handed'.format(total_mercha[i]['name']),
+                '{} not handed'.format(total_mercha[i]['name']),
                 2)])
     else:
         for i in range(len(total_mercha)):
@@ -568,7 +568,7 @@ def get_summary_types_handed(order_ids):
                 1),
                 get_json_donut(
                 100,
-                '{} don\'t handed'.format(total_mercha[i]['name']),
+                '{} not handed'.format(total_mercha[i]['name']),
                 2)])
     return data_json
 
@@ -588,11 +588,11 @@ def get_summary_handed_over_dont_json(order_ids):
         dont_handed_percentaje = 100 - handed_percentaje
         data_json = ([get_json_donut(
             handed_percentaje,
-            'Orders Handed',
+            'Delivered Orders',
             1),
             get_json_donut(
             dont_handed_percentaje,
-            'Orders don\'t handed',
+            'Undelivered Orders',
             2)])
         return data_json
 

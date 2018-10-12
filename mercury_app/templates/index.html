@@ -3,12 +3,12 @@
 {% load fontawesome %}
 <div class="container">
 	<div class="row">
-    <div class="container">  
+    <div class="container">
      <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>Events with merchandise</h1> 
-          <p>Here you have a list of events you can manage</p> 
+          <h1>Events with merchandise</h1>
+          <p>Here you have a list of events you can manage</p>
         </div>
       </div>
     </div>
@@ -25,7 +25,7 @@
     <div class="row">
       <div class="col-12">
         <div class="alert alert-warning">
-          <strong>Wait!</strong> You have not events
+          <strong>Wait!</strong> You have no events
         </div>
       </div>
     </div>
@@ -46,7 +46,7 @@
           <td>{{ event.start_date_utc }}</td>
           <td>
             <ul class="fa-ul fa-2x row">
-              <a href="{% url 'summary' event_id=event.eb_event_id %}"> 
+              <a href="{% url 'summary' event_id=event.eb_event_id %}">
                 <li> {% fontawesome_icon 'eye' %} </li></a>
                 &nbsp &nbsp &nbsp &nbsp
               <a href="">
@@ -65,6 +65,7 @@
      <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
    </div>
  </div>
+
  <div class="row">
   <div class="col-12 text-center">
     {% if pagination.has_previous %}
@@ -76,6 +77,13 @@
     {% endif %}
   </div>
 </div>
+  <div class="row">
+   <div class="col-12">
+
+     <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
+   </div>
+ </div>
+
 </div>
 </div>
 </div>

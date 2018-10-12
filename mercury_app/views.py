@@ -73,7 +73,9 @@ class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
         context = super(SingleTableMixin, self).get_context_data(**kwargs)
         table = self.get_table(**self.get_table_kwargs())
         context[self.get_context_table_name(table)] = table
+        table.paginate(page=self.request.GET.get('page', 1), per_page=10)
         event = self.get_event()
+        context['event_eb_event_id'] = event.eb_event_id
         context['event_name'] = event.name
         return context
 
@@ -104,10 +106,12 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                     'unique',
                     'HA',
                 )
-        return redirect(reverse('index'))
-
-
-
+        event_id = Order.objects.get(
+            id=self.kwargs['order_id']).event.eb_event_id
+        return redirect(reverse(
+            'orders',
+            kwargs={'event_id': event_id},
+        ))
 
 
 @method_decorator(login_required, name='dispatch')
