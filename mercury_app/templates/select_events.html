@@ -15,11 +15,12 @@
     <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>Add events!</h1>
-          <p>Here you have a list of your events in Eventbrite</p>
+          <h1>Add events</h1>
+          <p>Here you have a list of your events at Eventbrite. Please select an event to manage.</p>
           <div class="col-12 text-right">
             <a class="btn btn-outline-primary" href="{% url 'index'%}" >My events</a>
           </div>
+
         </div>
       </div>
     </div>
@@ -31,11 +32,11 @@
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Start date</th>
-              <th scope="col">View</th>
+              <th scope="col">Action</th>
             </tr>
           </thead>
           <tbody>
-          
+
            {% for event in events %}
            <tr>
             <td>{{ event.name.text }}</td>

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'django_filters',
     'fontawesome',
+    'sekizai',
 ]
 
 MIDDLEWARE = [
@@ -79,6 +80,7 @@ TEMPLATES = [
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
                 'django.template.context_processors.request',
+                'sekizai.context_processors.sekizai',
             ],
         },
     },

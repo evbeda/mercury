@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
-{% load fontawesome %}
 <div class="container">
 	<div class="row">
     <div class="container">
      <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>Events with merchandise</h1>
-          <p>Here you have a list of events you can manage</p>
+          <h1>Managed Events</h1>
+          <p>Here you have a list of events you have chosen to manage.</p>
         </div>
       </div>
     </div>
@@ -25,7 +24,7 @@
     <div class="row">
       <div class="col-12">
         <div class="alert alert-warning">
-          <strong>Wait!</strong> You have no events
+          <strong>Oops!</strong> It looks like you have not added any events. Please add an event.
         </div>
       </div>
     </div>
@@ -45,14 +44,18 @@
           <td>{{ event.name }}</td>
           <td>{{ event.start_date_utc }}</td>
           <td>
-            <ul class="fa-ul fa-2x row">
+          <div class="row">
+            <div class="col">
               <a href="{% url 'summary' event_id=event.eb_event_id %}">
-                <li> {% fontawesome_icon 'eye' %} </li></a>
-                &nbsp &nbsp &nbsp &nbsp
-              <a href="">
-                <li> {% fontawesome_icon 'trash' %} </li>
+                <i class="material-icons md-18">search</i>
               </a>
-           </ul>
+            </div>
+                        <div class="col">
+
+              <a href="">
+                <i class="material-icons md-18">delete_outline</i>
+              </a>
+            </div>
          </td>
        </tr>
        {% endfor %}

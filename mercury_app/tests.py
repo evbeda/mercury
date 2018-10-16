@@ -210,7 +210,7 @@ class HomeViewTest(TestBase):
 
     def test_home_none_entry(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
-        self.assertNotContains(response, 'fa fa-eye')
+        self.assertNotContains(response, 'search')
         self.assertContains(response, 'Add')
 
     def test_home_one_entry(self, mock_create_order_webhook_from_view):
@@ -218,7 +218,7 @@ class HomeViewTest(TestBase):
         UserOrganizationFactory(user=self.user, organization=org)
         EventFactory(organization=org)
         response = self.client.get('/')
-        self.assertContains(response, 'fa fa-eye')
+        self.assertContains(response, 'search')
         self.assertContains(response, 'Add')
 
     def test_home_two_entry(self, mock_create_order_webhook_from_view):
@@ -229,7 +229,7 @@ class HomeViewTest(TestBase):
         response = self.client.get('/')
         self.assertContains(response, 'Hello')
         self.assertContains(response, 'Goodbye')
-        self.assertContains(response, 'fa fa-eye')
+        self.assertContains(response, 'search')
         self.assertContains(response, 'Add')
 
 
@@ -1124,7 +1124,7 @@ class ListItemMerchandisingTest(TestBase):
             order=order,
         )
         response = self.client.post(
-            '/view_order/7/', {'123': '1', 'csrftoken': 'TEST'})
+            '/view_order/7/', {'123': '1', 'comment': 'test', 'csrftoken': 'TEST'})
         self.assertEqual(response.status_code, 302)
         transaction_count = Transaction.objects.filter(
             merchandise=merchandise

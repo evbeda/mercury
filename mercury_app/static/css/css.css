@@ -52,5 +52,30 @@ footer a{
 #hip_not_underline {
 	text-decoration: none;
 }
+.dot-co {
+  height: 10px;
+  width: 10px;
+  background-color: #47EC34;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-pa {
+  height: 10px;
+  width: 10px;
+  background-color: #ECDA34;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-pe {
+  height: 10px;
+  width: 10px;
+  background-color: #EC3434;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-padding {
+   padding: 10px !important;
+   margin: 10px !important;
+}
 input.qtyplus { width:25px; height:25px;}
 input.qtyminus { width:25px; height:25px;}

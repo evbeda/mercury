@@ -67,7 +67,7 @@ class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
         return Order.objects.filter(event__eb_event_id=self.kwargs['event_id'])
 
     def get_table_kwargs(self):
-        return {'template_name': 'django_tables2/bootstrap4.html'}
+        return {'template_name': 'custom_table_with_header.html'}
 
     def get_context_data(self, **kwargs):
         context = super(SingleTableMixin, self).get_context_data(**kwargs)
@@ -77,6 +77,7 @@ class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
         event = self.get_event()
         context['event_eb_event_id'] = event.eb_event_id
         context['event_name'] = event.name
+        context['order_count'] = self.get_queryset().count()
         return context
 
 
@@ -94,7 +95,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
 
     def post(self, request, *args, **kwargs):
         data = self.request.POST
-        keys = list(data)[:-1]
+        keys = list(data)[:-2]
         for item in keys:
             for qty in range(int(data[item])):
                 create_transaction(
@@ -102,7 +103,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                     Merchandise.objects.get(
                         eb_merchandising_id=item,
                     ),
-                    '',
+                    data['comment'],
                     'unique',
                     'HA',
                 )

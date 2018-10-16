@@ -245,10 +245,11 @@ def create_order_webhook_from_view(user):
     if not UserWebhook.objects.filter(user=user).exists():
         token = get_auth_token(user)
         webhook_id = create_webhook(token)
-        UserWebhook.objects.create(
-            user=user,
-            webhook_id=webhook_id,
-        )
+        if webhook_id is not None:
+            UserWebhook.objects.create(
+                user=user,
+                webhook_id=webhook_id,
+            )
 
 
 def create_webhook(token):
@@ -257,7 +258,7 @@ def create_webhook(token):
         'actions': WH_ACTIONS,
     }
     response = Eventbrite(token).post('/webhooks/', data)
-    return (response['id'])
+    return (response.get('id', None))
 
 
 def delete_webhook(token, webhook_id):

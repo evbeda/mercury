@@ -1,7 +1,6 @@
 {% load bootstrap4 %}
 {% load static %}
-{% load fontawesome %}
-
+{% load sekizai_tags %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,9 +12,8 @@
   <link href='http://fonts.googleapis.com/css?family=Raleway:400,100,200,300,500,600,800,700,900' rel='stylesheet' type='text/css'>
   {% block scripts %}
   {% endblock %}
-{% fontawesome_stylesheet %}
 {% bootstrap_css %}
-{% bootstrap_javascript jquery='full' %}
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar sticky-top navbar-expand-sm navbar-dark bg-dark">
@@ -43,7 +41,7 @@
           </div>
         </li>
       </ul>
-      {% endif %} 
+      {% endif %}
     </div>
   </ul>
 </div>
@@ -57,5 +55,8 @@
     <a href="#">Mercury.com</a>
   </div>
 </footer>
+{% bootstrap_javascript jquery='full' %}
+{% render_block "js" %}
+
 </body>
 </html>

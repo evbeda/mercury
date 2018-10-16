@@ -1,30 +1,74 @@
 {% extends 'base.html' %}
+{% load sekizai_tags %}
 {% block content %}
 {% load static %}
 {% load render_table from django_tables2 %}
 {% load bootstrap4 %}
+{% addtoblock "js" %}
+<script>
+    function getParams() {
+        var vars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+            vars[key] = value;
+        });
+        return vars;
+    }
+    $(function() {
+        var name;
+        var eb_order_id;
+        if (getParams()['name'] == null) {
+            name = '';
+        }else{
+            name = getParams()['name'];
+        }
+        if (getParams()['eb_order_id'] == null) {
+            eb_order_id = '';
+        }else{
+            eb_order_id = getParams()['eb_order_id'];
+        }
+        $("#id_merch_status").hide();
+        $("#co-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=CO");
+        $("#pa-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=PA");
+        $("#pe-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=PE");
+        $("#all-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=");
 
+        switch(getParams()['merch_status']) {
+            case 'CO':
+            $("#co-nav").addClass('active');
+            break;
+            case 'PA':
+            $("#pa-nav").addClass('active');
+            break;
+            case 'PE':
+            $("#pe-nav").addClass('active');
+            break;
+            default:
+            $("#all-nav").addClass('active');
+        }
+    });
+
+</script>
+{% endaddtoblock %}
 <div class="container mb-5" >
     {% block body %}
     <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>{{ event_name }}</h1>
-          <p>Orders</p>
+          <h1>Orders</h1>
+          <p>{{ event_name }}</p>
           <div class="row ">
             <div class="col-12 text-right">
                 <a href="{% url 'summary' event_id=event_eb_event_id %}" class="btn btn-info">Summary</a>
-                <a href="{% url 'index'%}" class="btn btn-outline-primary">My events</a>
             </div>
         </div>
     </div>
 </div>
 </div>
-{% if message %}
+{% if order_count == 0 %}
 <div class="row">
   <div class="col-12">
     <div class="alert alert-warning">
-      <strong>{{ message }}</strong>
+      <strong>Oops!</strong> It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again.
   </div>
 </div>
 </div>
