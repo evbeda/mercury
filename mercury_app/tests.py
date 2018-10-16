@@ -250,8 +250,8 @@ class SelectEventsLoggedTest(TestBase):
     def test_template_is_rendered_successfully_with_one_event_only(self, mock_get_events_for_organizations, mock_get_api_organization):
         mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
             'organizations')
-        mock_get_events_for_organizations.return_value = get_mock_api_event(
-            1).get('events')
+        fake_events = get_mock_api_event(1)
+        mock_get_events_for_organizations.return_value = fake_events['events'], fake_events['pagination']
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -261,8 +261,8 @@ class SelectEventsLoggedTest(TestBase):
     def test_template_is_rendered_successfully_with_five_events(self, mock_get_events_for_organizations, mock_get_api_organization):
         mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
             'organizations')
-        mock_get_events_for_organizations.return_value = get_mock_api_event(
-            5).get('events')
+        fake_events = get_mock_api_event(1)
+        mock_get_events_for_organizations.return_value = fake_events['events'], fake_events['pagination']
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -306,7 +306,7 @@ class APICallsTest(TestCase):
         mock_api_call.assert_called_once()
         self.assertEquals(
             mock_api_call.call_args_list[0][0][0],
-            '/organizations/5678/events/',
+            '/organizations/5678/events/?page=1',
         )
 
     def test_get_api_events_id(self, mock_api_call):
@@ -465,12 +465,12 @@ class UtilsTest(TestCase):
     @patch('mercury_app.utils.get_api_events_org')
     @patch('mercury_app.utils.get_auth_token')
     def test_get_events_for_organizations(self, mock_get_auth_token, mock_get_api_events_org):
-        fake_events = get_mock_api_event(5)
-        mock_get_api_events_org.return_value = fake_events['events']
+        fake_events = get_mock_api_event(2)
+        mock_get_api_events_org.return_value = fake_events['events'], fake_events['pagination']
         org = OrganizationFactory(eb_organization_id=272770247903).__dict__
-        result = get_events_for_organizations([org], 'patched')
+        result = get_events_for_organizations([org], 'patched',1)
         self.assertEqual(len(result), len(fake_events['events']))
-        self.assertEqual(result[0]['org_name'], org['name'])
+        self.assertEqual(result[0][0]['org_name'], org['name'])
 
     def test_get_mock_api_event(self):
         events = get_mock_api_event(2)['events']

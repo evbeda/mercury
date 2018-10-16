@@ -167,19 +167,19 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         context = super(SelectEvents, self).get_context_data(**kwargs)
         token = get_auth_token(self.request.user)
         organizations = get_api_organization(token)
-        events = {'events': get_events_for_organizations(
+        events, pagination = get_events_for_organizations(
             organizations,
             self.request.user,
-        )}
-        paginator = Paginator(tuple(events['events']), 10)
-        page = self.request.GET.get('page')
-        try:
-            pagination = paginator.page(page)
-        except PageNotAnInteger:
-            pagination = paginator.page(1)
-        except EmptyPage:
-            pagination = paginator.page(paginator.num_pages)
-        context['pagination'] = pagination
+            self.request.GET.get('page'),
+        )
+        context['events'] = events
+        if pagination:
+            context['has_next'] = pagination.get('has_more_items')
+            context['has_previous'] = True if pagination.get('page_number') > 1 else False
+            context['number'] = pagination.get('page_number')
+            context['num_pages'] = pagination.get('page_count')
+            context['next_page_number'] = pagination.get('page_number') + 1
+            context['previous_page_number'] = pagination.get('page_number') - 1
         return context
 
     def post(self, request, *args, **kwargs):

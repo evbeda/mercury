@@ -60,12 +60,16 @@ def get_api_orders_of_event(token, event_id):
     return eventbrite.get(url, expand=('merchandise',))['orders']
 
 
-def get_api_events_org(token, organization):
+def get_api_events_org(token, organization, page_number=None):
     """
     Get events of one organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    return eventbrite.get('/organizations/{}/events/'.format(organization['id'])).get('events')
+    if page_number == None:
+        page_number = 1
+    api_query = eventbrite.get(
+        '/organizations/{}/events/?page={}'.format(organization['id'], page_number))
+    return api_query.get('events'), api_query.get('pagination')
 
 
 def get_api_events_id(token, event_id):
@@ -225,12 +229,16 @@ def create_event_from_api(organization, event):
         return None
 
 
-def get_events_for_organizations(organizations, user):
+def get_events_for_organizations(organizations, user, page_number):
     for organization in organizations:
-        event = get_api_events_org(get_auth_token(user), organization)
-        for e in event:
-            e['org_name'] = organization['name']
-    return event
+        event, pagination = get_api_events_org(
+            get_auth_token(user), organization, page_number)
+        if event:
+            for e in event:
+                e['org_name'] = organization['name']
+        else:
+            event = None
+    return event, pagination
 
 
 def create_order_webhook_from_view(user):
