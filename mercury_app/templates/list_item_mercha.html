@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
+{% load sekizai_tags %}
 {% block content %}
 <div class="container mb-5">
   <div class="row">
     <div class="col-12">
       <div class="jumbotron">
-        <h1>Merchandise</h1>
-        <p>Details</p>
+        <h1>Order Details</h1>
+        <p>Merchandise items that belong to this order.</p>
         <div class="row ">
           <div class="col-12 text-right">
-              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=order.event.eb_event_id %}">Event orders</a>
-              <a class="btn btn-outline-primary" href="{% url 'index'%}" >My events</a>
+            <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=order.event.eb_event_id %}">Event orders</a>
           </div>
         </div>
       </div>
@@ -26,62 +26,96 @@
   {% endif %}
   <div class="row">
     <div class="col-12">
-      <div class="card bg-secondary text-white">
-        <h5 class="card-header">Order details</h5>
-        <div class="card-body">
-          <h5 class="font-weight-light"><strong> {{ order.name }} </strong>  </h5>
-          <h6 class="font-weight-light"><small>Order number </small> {{ order.eb_order_id }} </h6>
-          <h6 class="font-weight-light"><small>Order Date </small> {{ order.created }} </h6>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-12">
-      <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
-       {% for item in merchandising %}
-       <br>
-       <div class="card">
-        <h5 class="card-header">{{ item.name }}</h5>
-        <div class="card-body">
-          <h6 class="font-weight-light"><small>Subtype</small> {{ item.item_type }} </h6>
-          <h6 class="font-weight-light"><small>Sold</small> {{ item.quantity }} </h6>
-          <h6 class="font-weight-light"><small>Unit value</small> {{ item.value }} </h6>
-          <h6 class="font-weight-light"><small>Delivered</small>
-            {% if item.quantity == item.items_left %}
-            <td>No</td>
-            {% elif item.items_left == 0%}
-            <td>Yes</td>
-            {% else %}
-            <td>Partially</td>
+      {% if order.merch_status == 'CO' %}
+      <div class="card bg-success text-white">
+        {% elif order.merch_status == 'PA' %}
+        <div class="card bg-warning text-white">
+          {% else %}
+          <div class="card bg-danger text-white">
             {% endif %}
-          </h6>
-          <h6 class="font-weight-light"><small>Items left</small> {{ item.items_left }} </h6>
-          <h6 class="font-weight-light"><small>Amount to deliver</small>
-            <script type="text/javascript">
-              var max_value = "{{ item.items_left }}";
-            </script>
-            <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-            <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
-            <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-          </h5>
+            <h5 class="card-header">Order details</h5>
+            <div class="card-body">
+              <h5 class="font-weight-light"><strong> {{ order.name }} </strong>  </h5>
+              <h6 class="font-weight-light"><small>Order Status</small>
+                {% if order.merch_status == 'CO' %}
+                Delivered
+                {% elif order.merch_status == 'PA' %}
+                Partial
+                {% else %}
+                Pending
+                {% endif %}
+              </h6>
+              <h6 class="font-weight-light"><small>Order number </small> {{ order.eb_order_id }} </h6>
+              <h6 class="font-weight-light"><small>Order Date </small> {{ order.created }} </h6>
+            </div>
+          </div>
         </div>
       </div>
-      {% endfor %}
       <div class="row">
-        <div class="col text-right m-2">
-          <button type="submit" form="delivery" class="btn btn-outline-success" value="Submit">Mark as delivered</button></td>
-        </div>
-      </div>
-      {% csrf_token %}
-    </form>
-  </div>
+        <div class="col-12">
+          <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+           {% for item in merchandising %}
+           <br>
+           <div class="card">
+            <h5 class="card-header">{{ item.name }}</h5>
+            <div class="card-body">
+              <div class="row">
+                <div class="col">
+                  <h6 class="font-weight-light">Subtype</h6>
+                  <h6 class="font-weight-light">Sold</h6>
+                  <h6 class="font-weight-light">Unit value</h6>
+                  <h6 class="font-weight-light">Delivered</h6>
+                  <h6 class="font-weight-light">Items left</h6>
+                  <h6 class="font-weight-light">Amount to deliver</h6>
+
+
+                </div>
+                <div class="col">
+                  <h6 class="font-weight-light">{{ item.item_type }} </h6>
+                  <h6 class="font-weight-light">{{ item.quantity }} </h6>
+                  <h6 class="font-weight-light">{{ item.value }} </h6>
+                  <h6 class="font-weight-light">
+                    {% if item.quantity == item.items_left %}
+                    No
+                    {% elif item.items_left == 0%}
+                    Yes
+                    {% else %}
+                    Partially
+                    {% endif %}
+                  </h6>
+                  <h6 class="font-weight-light"> {{ item.items_left }} </h6>
+                  <h6 class="font-weight-light">
+                    <script type="text/javascript">
+                      var max_value = "{{ item.items_left }}";
+                    </script>
+                    <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+                    <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' min="0" max="{{ item.items_left }}" value='0'>
+                    <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+                  </h6>
+
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="row">
+            <div class="col text-right m-2">
+             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="(Optional) Add a comment to this delivery"></textarea>
+             <br>
+             <button  type="button" id="select-all" class="btn btn-outline-success" >Select All</button>
+             <button  type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button>
+           </div>
+         </div>
+         {% csrf_token %}
+       </form>
+     </div>
+   </div>
+ </div>
 </div>
 </div>
 </div>
-</div>
-</div>
-<script language=javascript>
+{% addtoblock "js" %}
+<script>
   function process(v, target, max){
     var value = parseInt(document.getElementById(target).value);
     if (max == 0){
@@ -104,5 +138,14 @@
     }
     document.getElementById(target).value = value;
   }
+  $(function(){
+    $('#select-all').click(function() {
+      $(":input[type=text][readonly='readonly']").each(function() {
+        $(this).val($(this).attr('max'));
+      });
+    });
+  });
+
 </script>
+{% endaddtoblock %}
 {% endblock %}

@@ -15,5 +15,5 @@ class OrderFilter(FilterSet):
             'changed',
             'created',
             'status',
-            'email'
+            'email',
         }
