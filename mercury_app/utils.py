@@ -690,6 +690,10 @@ def update_db_merch_status(order):
         return MERCH_STATUS[1][0]
 
 
+def delete_events(event_id):
+    Event.objects.filter(eb_event_id=event_id).delete()
+
+
 class EventAccessMixin():
     def get_event(self):
         event = get_object_or_404(

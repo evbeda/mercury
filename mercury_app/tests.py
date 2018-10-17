@@ -59,8 +59,9 @@ from .utils import (
     get_json_donut,
     get_summary_types_handed,
     create_order_webhook_from_view,
+    delete_events,
 )
-from mercury_app.views import Home, Summary
+from mercury_app.views import Home, Summary, DeleteEvents
 from django.utils import timezone
 from django.urls import resolve
 from datetime import datetime
@@ -1308,3 +1309,22 @@ class ScanQRViewTest(TestBase):
             follow=True
         )
         self.assertEqual(response.status_code, 404)
+
+
+class DeleteEventsTest(TestBase):
+
+    def setUp(self):
+        super(DeleteEventsTest, self).setUp()
+        self.event = EventFactory()
+
+    def test_delete_one_event(self):
+        response = self.client.get(
+            '/event/{}/delete/'.format(self.event.eb_event_id))
+        self.assertIsNotNone(response.context['event'])
+
+    def test_delate_event(self):
+        self.client.post(
+            '/event/{}/delete/'.format(self.event.eb_event_id))
+        delete_events(self.event.eb_event_id)
+        self.assertEqual(Event.objects.filter(
+            eb_event_id=self.event.eb_event_id).count(), 0)

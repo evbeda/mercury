@@ -46,10 +46,12 @@ from mercury_app.utils import (
     get_summary_types_handed,
     get_db_transaction_by_merchandise,
     create_transaction,
+    delete_events,
     EventAccessMixin,
     OrderAccessMixin,
 )
-
+import time
+import dateutil.parser
 
 @csrf_exempt
 def accept_webhook(request):
@@ -123,7 +125,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
         order = get_db_order_by_id(self.kwargs['order_id'])
-        merchandising_query_obj = self.get_merchandise()
+        merchandising_query_obj = self.get_merchandise()        
         context['merchandising'] = get_db_items_left(merchandising_query_obj)
         context['order'] = order
         return context
@@ -209,6 +211,8 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             self.request.user,
             self.request.GET.get('page'),
         )
+        for event in events:
+            event['start']['local'] = (dateutil.parser.parse(event['start']['local'])).strftime('%b. %e, %Y - %I %p')
         context['events'] = events
         if pagination:
             context['has_next'] = pagination.get('has_more_items')
@@ -236,3 +240,23 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             message = 'An error has occured while adding the event'
 
         return redirect(reverse('index', kwargs={'message': message}))
+
+
+@method_decorator(login_required, name='dispatch')
+class DeleteEvents(TemplateView, LoginRequiredMixin, EventAccessMixin):
+    template_name = 'delete.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DeleteEvents, self).get_context_data(**kwargs)
+        event = get_db_event_by_id(self.kwargs['event_id'])
+        context['event'] = event
+        return context
+
+    def post(self, request, *args, **kwargs):
+        event_id = self.kwargs['event_id']
+        delete_events(event_id)
+        if isinstance(get_db_event_by_id(event_id), Event) is False:
+            message_error = 'The event has been successfully removed'
+        else:
+            message_error = 'An error has occured while the event was being deleted'
+        return redirect(reverse('index', kwargs={'message': message_error}))

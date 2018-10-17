@@ -59,6 +59,9 @@ class Event(models.Model):
     def __string__(self):
         return self.name
 
+    def date_start_date_utc(self):
+        return self.start_date_utc.strftime('%b. %e, %Y - %I %p')
+
 
 class Order(models.Model):
 
@@ -82,6 +85,9 @@ class Order(models.Model):
 
     def __string__(self):
         return self.name
+
+    def date_created(self):
+        return self.created.strftime('%b. %e, %Y - %I:%M %p')
 
 
 class Merchandise(models.Model):
