@@ -86,6 +86,12 @@ def get_api_order(token, order_id):
     return eventbrite.get(url, expand=('merchandise',))
 
 
+def get_api_order_barcode(token, org_id, barcode):
+    eventbrite = Eventbrite(token)
+    url = '/organizations/{}/barcode/{}/order/'.format(org_id, barcode)
+    return eventbrite.get(url)
+
+
 def get_db_event_by_id(event_id):
     try:
         return Event.objects.get(eb_event_id=event_id)
