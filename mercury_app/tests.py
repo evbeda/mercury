@@ -26,6 +26,7 @@ from .utils import (
     get_api_events_org,
     get_api_events_id,
     get_api_orders_of_event,
+    get_api_order_barcode,
     create_webhook,
     delete_webhook,
     get_events_for_organizations,
@@ -327,6 +328,14 @@ class APICallsTest(TestCase):
         self.assertEquals(
             mock_api_call.call_args_list[0][1]['expand'][0],
             'merchandise'
+        )
+
+    def test_get_api_order_barcode(self, mock_api_call):
+        get_api_order_barcode('TEST', '111', '1115555')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/organizations/111/barcode/1115555/order/',
         )
 
     @patch('mercury_app.utils.Eventbrite.post', return_value={'id': '1'})
@@ -1221,3 +1230,48 @@ class OrderListTest(TestBase):
         self.assertNotContains(response3, 'Charles Brown')
         self.assertNotContains(response3, 'Carlos Brown')
         self.assertContains(response3, 'Charlie Brown')
+
+
+class ScanQRViewTest(TestBase):
+
+    def setUp(self):
+        super(ScanQRViewTest, self).setUp()
+        self.org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=self.org)
+        self.event = EventFactory(organization=self.org)
+
+    def test_camera_screen(self):
+        response = self.client.get('/event/{}/scanqr/'.format(self.event.eb_event_id))
+        self.assertContains(response, 'canvas')
+
+    @patch('mercury_app.views.get_api_order_barcode')
+    def test_scan_post_success(self, mock_get_api_order_barcode):
+        order = OrderFactory(event=self.event, eb_order_id='1234')
+        MerchandiseFactory(name='shirt', order=order)
+        mock_get_api_order_barcode.return_value = {'id': '1234'}
+        response = self.client.post(
+            '/event/{}/scanqr/'.format(self.event.eb_event_id),
+            {
+                'code': '55555',
+                'org': '22222',
+                'event': '1111',
+            },
+            follow=True
+        )
+        self.assertContains(response, 'shirt')
+
+    @patch('mercury_app.views.get_api_order_barcode')
+    def test_scan_post_failure(self, mock_get_api_order_barcode):
+        order = OrderFactory(event=self.event, eb_order_id='1234')
+        MerchandiseFactory(name='shirt', order=order)
+        mock_get_api_order_barcode.return_value = {'id': '12344'}
+        response = self.client.post(
+            '/event/{}/scanqr/'.format(self.event.eb_event_id),
+            {
+                'code': '55555',
+                'org': '22222',
+                'event': '1111',
+            },
+            follow=True
+        )
+        self.assertEqual(response.status_code, 404)

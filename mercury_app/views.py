@@ -27,6 +27,7 @@ from mercury_app.utils import (
     get_api_events_org,
     get_api_events_id,
     get_api_orders_of_event,
+    get_api_order_barcode,
     get_events_for_organizations,
     get_db_event_by_id,
     get_db_order_by_id,
@@ -54,6 +55,41 @@ def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
+
+
+
+@method_decorator(login_required, name='dispatch')
+class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
+    template_name = 'scanqr.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(ScanQRView, self).get_context_data(**kwargs)
+        context['event_id'] = self.kwargs['event_id']
+        context['organization_id'] = Event.objects.get(
+            eb_event_id=self.kwargs['event_id']
+        ).organization.eb_organization_id
+        return context
+
+    def post(self, request, *args, **kwargs):
+        data = self.request.POST
+        qrcode = data['code']
+        org_id = data['org']
+        event_id = data['event']
+        token = get_auth_token(self.request.user)
+        order = get_api_order_barcode(token, org_id, qrcode)
+        try:
+            eb_order_id = order.get('id')
+            order_id = Order.objects.get(eb_order_id=eb_order_id).id
+            return redirect(reverse(
+                'item_mercha',
+                kwargs={'order_id': order_id},
+            ))
+        except Exception as e:
+            print(e)
+            return redirect(reverse(
+                'summary',
+                kwargs={'event_id': event_id},
+            ))
 
 
 @method_decorator(login_required, name='dispatch')

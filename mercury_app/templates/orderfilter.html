@@ -58,7 +58,8 @@
           <p>{{ event_name }}</p>
           <div class="row ">
             <div class="col-12 text-right">
-                <a href="{% url 'summary' event_id=event_eb_event_id %}" class="btn btn-info">Summary</a>
+                <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">Scan QR</a>
+                <a href="{% url 'summary' event_id=event_eb_event_id %}" class="btn btn-outline-info">Summary</a>
             </div>
         </div>
     </div>

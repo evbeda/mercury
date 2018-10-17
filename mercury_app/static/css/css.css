@@ -77,5 +77,11 @@ footer a{
    padding: 10px !important;
    margin: 10px !important;
 }
+i.icon-gray {
+    color: gray;
+}
+i.icon-black {
+    color: black;
+}
 input.qtyplus { width:25px; height:25px;}
 input.qtyminus { width:25px; height:25px;}

@@ -47,13 +47,13 @@
           <div class="row">
             <div class="col">
               <a href="{% url 'summary' event_id=event.eb_event_id %}">
-                <i class="material-icons md-18">search</i>
+                <i class="material-icons md-18 icon-black">search</i>
               </a>
             </div>
                         <div class="col">
 
               <a href="">
-                <i class="material-icons md-18">delete_outline</i>
+                <i class="material-icons md-18 icon-gray">delete_outline</i>
               </a>
             </div>
          </td>
@@ -75,10 +75,11 @@
   </div>
 </div>
   <div class="row">
-   <div class="col-12">
+  <div class="col-10"></div>
+  <div class="col-2">
+    <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
+</div>
 
-     <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
-   </div>
  </div>
 
 </div>
