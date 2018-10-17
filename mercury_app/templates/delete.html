@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+ <div class="row">
+   <div class="container">
+    <div class="row">
+     <div class="col-12">
+       <div class="jumbotron">
+        <h1>Delete event </h1>
+      </div>
+    </div>
+  </div>
+  <form action="{% url 'delete' event_id=event.eb_event_id %}" method="POST">
+   <div class="row text-center">
+     <div class="col-12">
+       <h3>You are about to delete the event <strong> {{event.name}} </strong> </h3>
+       {% csrf_token %}
+       <div class="pt-3">
+        <a href="{% url 'index'}" class="btn btn-outline-primary">Cancelar</a>
+        <input type="submit" name="delete" value="Delete" class="btn btn-danger">
+      </div>
+    </div>
+  </div>
+</form>
+</div>
+</div>
+</div>
+</div>
+
+{% endblock %}

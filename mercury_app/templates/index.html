@@ -42,7 +42,7 @@
          {% for event in pagination %}
          <tr>
           <td>{{ event.name }}</td>
-          <td>{{ event.start_date_utc }}</td>
+          <td>{{ event.date_start_date_utc }}</td>
           <td>
           <div class="row">
             <div class="col">
@@ -52,7 +52,7 @@
             </div>
                         <div class="col">
 
-              <a href="">
+              <a href="{% url 'delete' event_id=event.eb_event_id %}">
                 <i class="material-icons md-18 icon-gray">delete_outline</i>
               </a>
             </div>
