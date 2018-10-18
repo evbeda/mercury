@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django_tables2 import SingleTableMixin
+from django_tables2 import SingleTableMixin, SingleTableView
 import json
 from mercury_app.models import (
     Organization,
@@ -18,7 +18,7 @@ from mercury_app.models import (
     UserWebhook,
     Transaction,
 )
-from mercury_app.tables import OrderTable
+from mercury_app.tables import OrderTable, TransactionTable
 from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
 from mercury_app.utils import (
@@ -50,14 +50,36 @@ from mercury_app.utils import (
     EventAccessMixin,
     OrderAccessMixin,
 )
-import time
 import dateutil.parser
+
 
 @csrf_exempt
 def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
+
+
+@method_decorator(login_required, name='dispatch')
+class TransactionListView(SingleTableView, LoginRequiredMixin, EventAccessMixin):
+    table_class = TransactionTable
+    model = Transaction
+    template_name = 'transaction.html'
+
+    def get_queryset(self):
+        return Transaction.objects.filter(merchandise__order__id=self.kwargs['order_id'])
+
+    def get_context_data(self, **kwargs):
+        context = super(SingleTableView, self).get_context_data(**kwargs)
+        table = self.get_table(**self.get_table_kwargs())
+        context[self.get_context_table_name(table)] = table
+        table.paginate(page=self.request.GET.get('page', 1), per_page=10)
+        order = Order.objects.get(id=self.kwargs['order_id'])
+        context['order_name'] = order.name
+        context['order_number'] = order.eb_order_id
+        context['event_id'] = order.event.eb_event_id
+        context['transaction_count'] = self.get_queryset().count()
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -125,7 +147,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
     def get_context_data(self, **kwargs):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
         order = get_db_order_by_id(self.kwargs['order_id'])
-        merchandising_query_obj = self.get_merchandise()        
+        merchandising_query_obj = self.get_merchandise()
         context['merchandising'] = get_db_items_left(merchandising_query_obj)
         context['order'] = order
         return context
