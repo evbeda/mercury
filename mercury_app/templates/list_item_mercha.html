@@ -103,7 +103,7 @@
              <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="(Optional) Add a comment to this delivery"></textarea>
              <br>
              <button  type="button" id="select-all" class="btn btn-outline-success" >Select All</button>
-             <button  type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button>
+             <button  type="submit" id="deliver-btn" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button>
            </div>
          </div>
          {% csrf_token %}
@@ -139,6 +139,21 @@
     document.getElementById(target).value = value;
   }
   $(function(){
+    var enableButtons = false
+    $(":input[type=text][readonly='readonly']").each(function() {
+      if ($(this).attr('max') == 0) {
+        var minus = '#minus'+$(this).attr('id');
+        var plus = '#plus'+$(this).attr('id');
+        $(minus).attr('disabled', true);
+        $(plus).attr('disabled', true);
+      }else{
+        enableButtons = true
+      }
+    });
+    $('#select-all').attr('disabled', !enableButtons);
+    $('#deliver-btn').attr('disabled', !enableButtons);
+    $('#comment').attr('disabled', !enableButtons);
+
     $('#select-all').click(function() {
       $(":input[type=text][readonly='readonly']").each(function() {
         $(this).val($(this).attr('max'));
