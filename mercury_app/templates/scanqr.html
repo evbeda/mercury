@@ -14,35 +14,34 @@
         resultFunction: function(result) {
             decoder.pause();
             beep();
-            beepSound.onended = function(){
-                var url = '/event/'+{{event_id}}+'/scanqr/';
-                var form = $('<form action="' + url + '" method="post">' +
-                  '<input type="text" name="code" value="' + result.code + '" />' +
-                  '<input type="text" name="org" value="' + {{organization_id}} + '" />' +
-                  '<input type="text" name="event" value="' + {{event_id}} + '" />' +
-                  "{% csrf_token %}" +
-                  '</form>');
-                $('body').append(form);
-                form.submit();}
+            var url = '/event/'+{{event_id}}+'/scanqr/';
+            var form = $('<form action="' + url + '" method="post">' +
+              '<input type="text" name="code" value="' + result.code + '" />' +
+              '<input type="text" name="org" value="' + {{organization_id}} + '" />' +
+              '<input type="text" name="event" value="' + {{event_id}} + '" />' +
+              "{% csrf_token %}" +
+              '</form>');
+            $('body').append(form);
+            form.submit();
 
-            }
-        };
-        var decoder = new WebCodeCamJS("canvas").buildSelectMenu('select', 'environment|back').init(arg).play();
-        if (navigator.userAgent.match(/iPhone/i)) {
-            decoder.options.video.facingMode = "back";
         }
-        document.querySelector('select').addEventListener('change', function(){
-            decoder.stop().play();
-        });
-    </script>
-    {% endblock %}
+    };
+    var decoder = new WebCodeCamJS("canvas").buildSelectMenu('select', 'environment|back').init(arg).play();
+    if (navigator.userAgent.match(/iPhone/i)) {
+        decoder.options.video.facingMode = "back";
+    }
+    document.querySelector('select').addEventListener('change', function(){
+        decoder.stop().play();
+    });
+</script>
+{% endblock %}
 
 {% block content %}
-    <div class="container pb-5">
+<div class="container pb-5">
 
-        <div class="row">
-            <div class="container">
-             <div class="row">
+    <div class="row">
+        <div class="container">
+           <div class="row">
               <div class="col-12">
                 <div class="jumbotron">
                   <h1>QR Scan</h1>
