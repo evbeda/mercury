@@ -23,8 +23,10 @@ from .test_factories import (
 from .utils import (
     get_auth_token,
     get_api_organization,
+    get_summary_orders,
     get_api_events_org,
     get_api_events_id,
+    get_percentage_handed,
     get_api_orders_of_event,
     get_api_order_barcode,
     create_webhook,
@@ -56,7 +58,6 @@ from .utils import (
     get_social_user,
     get_json_donut,
     get_summary_types_handed,
-    get_summary_handed_over_dont_json,
     create_order_webhook_from_view,
 )
 from mercury_app.views import Home, Summary
@@ -859,36 +860,87 @@ class SummaryTest(TestBase):
     def test_get_json_donut(self):
         expected = {'quantity': 1, 'percentage': 1,
                     'name': 'nombre', 'id': 2}
-        result = get_json_donut(1, 'nombre', 2)
+        result = get_json_donut(1, 1, 'nombre', 2)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_orders_one(self):
+        expected = [{'quantity': 0, 'percentage': 0,
+                     'name': 'Pending', 'id': 1},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Delivered', 'id': 2},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Partial', 'id': 3}]
+        event = EventFactory()
+        result = get_summary_orders(event)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_orders_two(self):
+        expected = [{'quantity': 1, 'percentage': 100,
+                     'name': 'Pending', 'id': 1},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Delivered', 'id': 2},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Partial', 'id': 3}]
+        event = EventFactory()
+        order = OrderFactory(event=event)
+        result = get_summary_orders(event)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_orders_three(self):
+        expected = [{'quantity': 0, 'percentage': 0,
+                     'name': 'Pending', 'id': 1},
+                    {'quantity': 1, 'percentage': 100,
+                     'name': 'Delivered', 'id': 2},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Partial', 'id': 3}]
+        event = EventFactory()
+        OrderFactory(event=event, merch_status='CO')
+        result = get_summary_orders(event)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_orders_pa(self):
+        expected = [{'quantity': 0, 'percentage': 0,
+                     'name': 'Pending', 'id': 1},
+                    {'quantity': 0, 'percentage': 0,
+                     'name': 'Delivered', 'id': 2},
+                    {'quantity': 1, 'percentage': 100,
+                     'name': 'Partial', 'id': 3}]
+        event = EventFactory()
+        OrderFactory(event=event, merch_status='PA')
+        result = get_summary_orders(event)
+        self.assertEqual(expected, result)
+
+    def test_get_summary_orders_five(self):
+        expected = [{'quantity': 0, 'percentage': 0,
+                     'name': 'Pending', 'id': 1},
+                    {'quantity': 1, 'percentage': 50,
+                     'name': 'Delivered', 'id': 2},
+                    {'quantity': 1, 'percentage': 50,
+                     'name': 'Partial', 'id': 3}]
+        event = EventFactory()
+        OrderFactory(event=event, merch_status='PA')
+        OrderFactory(event=event, merch_status='CO')
+        result = get_summary_orders(event)
         self.assertEqual(expected, result)
 
     def test_get_summary_handed_over_dont_json_one(self):
-        expected = ([{'quantity': 0, 'percentage': 0,
-                      'name': 'Delivered Orders', 'id': 1},
-                     {'quantity': 100, 'percentage': 100,
-                      'name': 'Undelivered Orders', 'id': 2}])
-        mercha = MerchandiseFactory()
-        result = get_summary_handed_over_dont_json([mercha.order.id])
+        expected = [0.0, 3, 0]
+        mercha = MerchandiseFactory(quantity=3)
+        result = get_percentage_handed([mercha.order.id])
         self.assertEqual(expected, result)
 
     def test_get_summary_handed_over_dont_json_two(self):
-        expected = ([{'quantity': 100, 'percentage': 100,
-                      'name': 'Delivered Orders', 'id': 1},
-                     {'quantity': 0, 'percentage': 0,
-                      'name': 'Undelivered Orders', 'id': 2}])
+        expected = [100.0, 1, 1]
         mercha = MerchandiseFactory(quantity=1)
         TransactionFactory(
             merchandise=mercha,
             operation_type='HA',
         )
-        result = get_summary_handed_over_dont_json([mercha.order.id])
+        result = get_percentage_handed([mercha.order.id])
         self.assertEqual(expected, result)
 
     def test_get_summary_handed_over_dont_json_three(self):
-        expected = ([{'quantity': 66.7, 'percentage': 66.7,
-                      'name': 'Delivered Orders', 'id': 1},
-                     {'quantity': 33.3, 'percentage': 33.3,
-                      'name': 'Undelivered Orders', 'id': 2}])
+        expected = [66.7, 3, 2]
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=3,
                                     order=self.order)
@@ -900,14 +952,11 @@ class SummaryTest(TestBase):
             merchandise=mercha,
             operation_type='HA',
         )
-        result = get_summary_handed_over_dont_json([self.order.id])
+        result = get_percentage_handed([self.order.id])
         self.assertEqual(expected, result)
 
     def test_get_summary_handed_over_dont_json_four(self):
-        expected = ([{'quantity': 33.3, 'percentage': 33.3,
-                      'name': 'Delivered Orders', 'id': 1},
-                     {'quantity': 66.7, 'percentage': 66.7,
-                      'name': 'Undelivered Orders', 'id': 2}])
+        expected = [33.3, 3, 1]
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=3,
                                     order=self.order)
@@ -915,14 +964,15 @@ class SummaryTest(TestBase):
             merchandise=mercha,
             operation_type='HA',
         )
-        result = get_summary_handed_over_dont_json([self.order.id])
+        result = get_percentage_handed([self.order.id])
         self.assertEqual(expected, result)
 
     def test_get_summary_types_handed_one(self):
-        expected = ([[{'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Gorra handed', 'id': 1},
-                      {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra not handed', 'id': 2}]])
+        expected = [{'handed': 1,
+                     'handed_percentage': 100.0,
+                     'name': 'Gorra',
+                     'not_handed_percentage': 0.0,
+                     'total': 1}]
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=1,
                                     order=self.order)
@@ -934,15 +984,17 @@ class SummaryTest(TestBase):
         self.assertEqual(expected, result)
 
     def test_get_summary_types_handed_two(self):
-        expected = ([[{'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Gorra handed', 'id': 1},
-                      {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra not handed', 'id': 2}],
-                     [{'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Remera handed', 'id': 1},
-                      {'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Remera not handed', 'id': 2}]
-                     ])
+        expected = [{'handed': 1,
+                     'handed_percentage': 100.0,
+                     'name': 'Gorra',
+                     'not_handed_percentage': 0.0,
+                     'total': 1},
+                    {'handed': 1,
+                     'handed_percentage': 100.0,
+                     'name': 'Remera',
+                     'not_handed_percentage': 0.0,
+                     'total': 1}]
+
         mercha_one = MerchandiseFactory(name='Gorra',
                                         quantity=1,
                                         order=self.order)
@@ -961,15 +1013,16 @@ class SummaryTest(TestBase):
         self.assertEqual(expected, result)
 
     def test_get_summary_types_handed_three(self):
-        expected = ([[{'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Gorra handed', 'id': 1},
-                      {'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Gorra not handed', 'id': 2}],
-                     [{'quantity': 0.0, 'percentage': 0.0,
-                       'name': 'Remera handed', 'id': 1},
-                      {'quantity': 100.0, 'percentage': 100.0,
-                       'name': 'Remera not handed', 'id': 2}]
-                     ])
+        expected = [{'handed': 0,
+                     'handed_percentage': 0.0,
+                     'name': 'Gorra',
+                     'not_handed_percentage': 100.0,
+                     'total': 1},
+                    {'handed': 0,
+                     'handed_percentage': 0.0,
+                     'name': 'Remera',
+                     'not_handed_percentage': 100.0,
+                     'total': 1}]
         MerchandiseFactory(name='Gorra',
                            quantity=1,
                            order=self.order)
@@ -980,44 +1033,24 @@ class SummaryTest(TestBase):
         self.assertEqual(expected, result)
 
     def test_get_summary_types_handed_four(self):
-        expected = ([
-            [
-                {
-                    'quantity': 0.0,
-                    'percentage': 0.0,
-                    'name': 'Gorra2 handed',
-                    'id': 1,
-                },
-                {
-                    'quantity': 100.0,
-                    'percentage': 100.0,
-                    'name': 'Gorra2 not handed',
-                    'id': 2,
-                },
-            ],
-            [
-                {
-                    'quantity': 100.0,
-                    'percentage': 100.0,
-                    'name': 'Remera2 handed',
-                    'id': 1,
-                },
-                {
-                    'quantity': 0.0,
-                    'percentage': 0.0,
-                    'name': 'Remera2 not handed',
-                    'id': 2,
-                },
-            ],
-        ])
+        expected = [{'handed': 0,
+                     'handed_percentage': 0.0,
+                     'name': 'Gorra',
+                     'not_handed_percentage': 100.0,
+                     'total': 1},
+                    {'handed': 1,
+                     'handed_percentage': 100.0,
+                     'name': 'Remera',
+                     'not_handed_percentage': 0.0,
+                     'total': 1}]
         new_order = OrderFactory()
         MerchandiseFactory(
-            name='Gorra2',
+            name='Gorra',
             quantity=1,
             order=new_order,
         )
         mercha = MerchandiseFactory(
-            name='Remera2',
+            name='Remera',
             quantity=1,
             order=new_order,
         )
