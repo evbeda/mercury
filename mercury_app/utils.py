@@ -571,14 +571,16 @@ def get_summary_types_handed(order_ids):
                               "handed": handed_mercha[i].get("name_count"),
                               "total": total_mercha[i].get("name_count"),
                               "handed_percentage": handed_percentaje,
-                              "not_handed_percentage": dont_handed_percentaje})
+                              "not_handed_percentage": dont_handed_percentaje,
+                              "pending" : total_mercha[i].get("name_count") - handed_mercha[i].get("name_count")})
     else:
         for i in range(len(total_mercha)):
             data_json.append({"name": total_mercha[i].get("name"),
                               "handed": 0,
                               "total": total_mercha[i].get("name_count"),
                               "handed_percentage": 0,
-                              "not_handed_percentage": 100})
+                              "not_handed_percentage": 100,
+                              "pending" : 0})
     return data_json
 
 

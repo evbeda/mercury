@@ -973,6 +973,7 @@ class SummaryTest(TestBase):
                      'handed_percentage': 100.0,
                      'name': 'Gorra',
                      'not_handed_percentage': 0.0,
+                     'pending': 0,
                      'total': 1}]
         mercha = MerchandiseFactory(name='Gorra',
                                     quantity=1,
@@ -989,11 +990,13 @@ class SummaryTest(TestBase):
                      'handed_percentage': 100.0,
                      'name': 'Gorra',
                      'not_handed_percentage': 0.0,
+                     'pending': 0,
                      'total': 1},
                     {'handed': 1,
                      'handed_percentage': 100.0,
                      'name': 'Remera',
                      'not_handed_percentage': 0.0,
+                     'pending': 0,
                      'total': 1}]
 
         mercha_one = MerchandiseFactory(name='Gorra',
@@ -1018,11 +1021,13 @@ class SummaryTest(TestBase):
                      'handed_percentage': 0.0,
                      'name': 'Gorra',
                      'not_handed_percentage': 100.0,
+                     'pending': 1,
                      'total': 1},
                     {'handed': 0,
                      'handed_percentage': 0.0,
                      'name': 'Remera',
                      'not_handed_percentage': 100.0,
+                     'pending': 1,
                      'total': 1}]
         MerchandiseFactory(name='Gorra',
                            quantity=1,
@@ -1038,11 +1043,13 @@ class SummaryTest(TestBase):
                      'handed_percentage': 0.0,
                      'name': 'Gorra',
                      'not_handed_percentage': 100.0,
+                     'pending': 1,
                      'total': 1},
                     {'handed': 1,
                      'handed_percentage': 100.0,
                      'name': 'Remera',
                      'not_handed_percentage': 0.0,
+                     'pending': 0,
                      'total': 1}]
         new_order = OrderFactory()
         MerchandiseFactory(
