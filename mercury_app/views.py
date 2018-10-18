@@ -25,7 +25,9 @@ from mercury_app.utils import (
     get_auth_token,
     get_api_organization,
     get_api_events_org,
+    get_summary_orders,
     get_api_events_id,
+    get_percentage_handed,
     get_api_orders_of_event,
     get_api_order_barcode,
     get_events_for_organizations,
@@ -41,7 +43,6 @@ from mercury_app.utils import (
     create_event_from_api,
     create_order_webhook_from_view,
     get_data,
-    get_summary_handed_over_dont_json,
     get_summary_types_handed,
     get_db_transaction_by_merchandise,
     create_transaction,
@@ -55,7 +56,6 @@ def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
-
 
 
 @method_decorator(login_required, name='dispatch')
@@ -166,9 +166,10 @@ class Summary(TemplateView, LoginRequiredMixin, EventAccessMixin):
             create_event_orders_from_api(event, orders)
             order_ids = Order.objects.filter(
                 event=event).values_list('id', flat=True)
-        context['data_handed_over_dont'] = get_summary_handed_over_dont_json(
+        context['data_handed_over_dont'] = get_percentage_handed(
             order_ids)
         context['data_tipes_handed'] = get_summary_types_handed(order_ids)
+        context['data_orders'] = get_summary_orders(event)
         context['event'] = event
         return context
 

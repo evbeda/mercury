@@ -7,7 +7,7 @@ import pytz
 from datetime import (
     timedelta,
 )
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from faker import Faker
 from random import (
     randint,
@@ -536,8 +536,8 @@ def get_mock_api_orders(amount, w_merchandise, event_id):
     return mocked_orders_array
 
 
-def get_json_donut(percentage, name, id_int):
-    data_json = {'quantity': percentage, 'percentage': percentage,
+def get_json_donut(percentage,quantity, name, id_int):
+    data_json = {'quantity': quantity, 'percentage': percentage,
                  'name': name, 'id': id_int}
     return data_json
 
@@ -567,28 +567,22 @@ def get_summary_types_handed(order_ids):
             else:
                 handed_percentaje = 0
             dont_handed_percentaje = 100 - handed_percentaje
-            data_json.append([get_json_donut(
-                handed_percentaje,
-                '{} handed'.format(total_mercha[i]['name']),
-                1),
-                get_json_donut(
-                dont_handed_percentaje,
-                '{} not handed'.format(total_mercha[i]['name']),
-                2)])
+            data_json.append({"name": total_mercha[i].get("name"),
+                              "handed": handed_mercha[i].get("name_count"),
+                              "total": total_mercha[i].get("name_count"),
+                              "handed_percentage": handed_percentaje,
+                              "not_handed_percentage": dont_handed_percentaje})
     else:
         for i in range(len(total_mercha)):
-            data_json.append([get_json_donut(
-                0,
-                '{} handed'.format(total_mercha[i]['name']),
-                1),
-                get_json_donut(
-                100,
-                '{} not handed'.format(total_mercha[i]['name']),
-                2)])
+            data_json.append({"name": total_mercha[i].get("name"),
+                              "handed": 0,
+                              "total": total_mercha[i].get("name_count"),
+                              "handed_percentage": 0,
+                              "not_handed_percentage": 100})
     return data_json
 
 
-def get_summary_handed_over_dont_json(order_ids):
+def get_percentage_handed(order_ids):
     total_sold = Merchandise.objects.filter(
         order_id__in=order_ids).aggregate(Sum('quantity'))['quantity__sum']
     total_delivered = Transaction.objects.filter(
@@ -600,16 +594,31 @@ def get_summary_handed_over_dont_json(order_ids):
                   100) / total_sold), 1)
         else:
             handed_percentaje = 0
-        dont_handed_percentaje = 100 - handed_percentaje
-        data_json = ([get_json_donut(
-            handed_percentaje,
-            'Delivered Orders',
-            1),
-            get_json_donut(
-            dont_handed_percentaje,
-            'Undelivered Orders',
-            2)])
-        return data_json
+        return [handed_percentaje, total_sold, total_delivered]
+
+def get_summary_orders(event):
+    orders_pending = Order.objects.filter(
+        merch_status='PE', event=event).aggregate(quantity=Count('id'))
+    orders_delivered = Order.objects.filter(
+        merch_status='CO', event=event).aggregate(quantity=Count('id'))
+    orders_partially = Order.objects.filter(
+        merch_status='PA', event=event).aggregate(quantity=Count('id'))
+    total = orders_pending['quantity'] + \
+        orders_delivered['quantity'] + orders_partially['quantity']
+    if total != 0:
+        pending_percentage = (orders_pending['quantity'] * 100) / total
+        delivered_percentage = (orders_delivered['quantity'] * 100) / total
+        partially_percentage = (orders_partially['quantity'] * 100) / total
+    else:
+        pending_percentage = 0
+        delivered_percentage = 0
+        partially_percentage = 0
+    data_json = [
+        get_json_donut(round(pending_percentage),orders_pending['quantity'], 'Pending', 1),
+        get_json_donut(round(delivered_percentage),orders_delivered['quantity'], 'Delivered', 2),
+        get_json_donut(round(partially_percentage),orders_partially['quantity'], 'Partial', 3),
+    ]
+    return data_json
 
 
 def create_transaction(user, merchandise, note, device, operation):
