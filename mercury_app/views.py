@@ -85,7 +85,6 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                 kwargs={'order_id': order_id},
             ))
         except Exception as e:
-            print(e)
             return redirect(reverse(
                 'summary',
                 kwargs={'event_id': event_id},
