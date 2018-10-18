@@ -1335,3 +1335,43 @@ class DeleteEventsTest(TestBase):
         delete_events(self.event.eb_event_id)
         self.assertEqual(Event.objects.filter(
             eb_event_id=self.event.eb_event_id).count(), 0)
+
+
+class TransactionViewTest(TestBase):
+
+    def setUp(self):
+        super(TransactionViewTest, self).setUp()
+        self.org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=self.org)
+        self.event = EventFactory(organization=self.org)
+
+    def test_transaction_status_code(self):
+        OrderFactory(event=self.event, id=55)
+        response = self.client.get('/view_order/55/transactions/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_one_transaction_in_view(self):
+        order = OrderFactory(event=self.event, id=56)
+        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
+        response = self.client.get('/view_order/56/transactions/')
+        self.assertContains(response, 'Cap')
+
+    def test_two_transactions_in_view(self):
+        order = OrderFactory(event=self.event, id=56)
+        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='HA')
+        response = self.client.get('/view_order/56/transactions/')
+        self.assertContains(response, 'Cap')
+        self.assertContains(response, 'Water')
+        self.assertContains(response, 'Hand')
+        self.assertNotContains(response, 'Refund')
+
+    def test_two_transactions_in_view(self):
+        order = OrderFactory(event=self.event, id=56)
+        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='RE')
+        response = self.client.get('/view_order/56/transactions/')
+        self.assertContains(response, 'Cap')
+        self.assertContains(response, 'Water')
+        self.assertContains(response, 'Refund')

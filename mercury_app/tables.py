@@ -1,5 +1,5 @@
 import django_tables2 as tables
-from mercury_app.models import Order
+from mercury_app.models import Order, Transaction
 from django.utils.html import format_html
 from fontawesome.fields import IconField
 from django.utils.safestring import mark_safe
@@ -38,3 +38,21 @@ class OrderTable(tables.Table):
         fields = ('name', 'eb_order_id',)
         sequence = ('state_image', 'name', 'eb_order_id', 'actions',)
         show_header = False
+
+
+class TransactionTable(tables.Table):
+    date = tables.Column(verbose_name='Date')
+    from_who = tables.Column(verbose_name='Responsible')
+    notes = tables.Column(verbose_name='Comment')
+    operation_type = tables.Column(verbose_name='Operation Type')
+    merchandise = tables.Column(verbose_name='Item')
+
+    def render_merchandise(self, value, record):
+        return '{} - {}'.format(record.merchandise.name, record.merchandise.item_type)
+
+    class Meta:
+        model = Transaction
+        template_name = 'django_tables2/bootstrap-responsive.html'
+        fields = ('date', 'from_who', 'notes', 'operation_type','merchandise')
+        sequence = ('operation_type','merchandise', 'date', 'from_who', 'notes',)
+
