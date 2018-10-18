@@ -30,7 +30,7 @@ class OrderTable(tables.Table):
             return format_html('<span class="dot-pe"></span>')
 
     def render_actions(self, value, record):
-        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/"><i class="material-icons md-18 icon-black">info</i></a></div></div>'.format(record.id))
+        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/"><i class="material-icons md-18 icon-gray">info</i></a></div></div>'.format(record.id))
 
     class Meta:
         model = Order
