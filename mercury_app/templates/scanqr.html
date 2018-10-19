@@ -54,6 +54,16 @@
                   </div>
               </div>
           </div>
+              {% if errormsg %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{{ errormsg }}</strong>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
       </div>
       <div class="col-sm">
       </div>
