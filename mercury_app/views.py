@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -88,10 +88,10 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
 
     def get_context_data(self, **kwargs):
         context = super(ScanQRView, self).get_context_data(**kwargs)
+        context['errormsg'] = self.request.session.get('qrerror')
+        self.request.session['qrerror'] = None
         context['event_id'] = self.kwargs['event_id']
-        context['organization_id'] = Event.objects.get(
-            eb_event_id=self.kwargs['event_id']
-        ).organization.eb_organization_id
+        context['organization_id'] = get_object_or_404(Event, eb_event_id=self.kwargs['event_id']).organization.eb_organization_id
         return context
 
     def post(self, request, *args, **kwargs):
@@ -109,8 +109,9 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                 kwargs={'order_id': order_id},
             ))
         except Exception as e:
+            self.request.session['qrerror'] = 'There was an error processing your QR Code ({}).'.format(e)
             return redirect(reverse(
-                'summary',
+                'scanqr',
                 kwargs={'event_id': event_id},
             ))
 
@@ -215,8 +216,9 @@ class Home(TemplateView, LoginRequiredMixin):
             pagination = paginator.page(1)
         except EmptyPage:
             pagination = paginator.page(paginator.num_pages)
+        context['message'] = self.request.session.get('message')
+        self.request.session['message'] = None
         context['pagination'] = pagination
-        context['message'] = message
         return context
 
 
@@ -258,10 +260,12 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         create_userorganization_assoc(org[0], self.request.user)
         if isinstance(create_event_from_api(org[0], events['events']), Event):
             message = 'The event was successfully added!'
+            self.request.session['message'] = message
         else:
-            message = 'An error has occured while adding the event'
+            message_error = 'An error has occured while adding the event'
+            self.request.session['message'] = message_error
 
-        return redirect(reverse('index', kwargs={'message': message}))
+        return redirect(reverse('index'))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -278,7 +282,9 @@ class DeleteEvents(TemplateView, LoginRequiredMixin, EventAccessMixin):
         event_id = self.kwargs['event_id']
         delete_events(event_id)
         if isinstance(get_db_event_by_id(event_id), Event) is False:
-            message_error = 'The event has been successfully removed'
+            message = 'The event has been successfully removed'
+            self.request.session['message'] = message
         else:
             message_error = 'An error has occured while the event was being deleted'
-        return redirect(reverse('index', kwargs={'message': message_error}))
+            self.request.session['message'] = message_error
+        return redirect(reverse('index'))
