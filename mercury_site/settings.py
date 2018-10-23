@@ -27,7 +27,7 @@ ALLOWED_HOSTS = [
     'ebmercury.herokuapp.com',
     'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
-    '46378be0.ngrok.io',
+    '957ac297.ngrok.io',
 ]
 
 
@@ -164,6 +164,13 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+#email configuration
+EMAIL_USE_TLS = True
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
 
 # Static files (CSS, JavaScript, Images)
