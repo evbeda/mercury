@@ -34,6 +34,20 @@ from mercury_app.app_settings import (
     WH_ACTIONS,
     REGEX_ORDER,
 )
+from io import BytesIO
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import mm, inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Table
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.enums import TA_JUSTIFY,TA_LEFT,TA_CENTER,TA_RIGHT
 
 
 def get_auth_token(user):
@@ -701,6 +715,44 @@ def update_db_merch_status(order):
 
 def delete_events(event_id):
     Event.objects.filter(eb_event_id=event_id).delete()
+
+
+def pdf_merchandise(order_id):
+    temp = BytesIO()
+    p = canvas.Canvas(temp, pagesize=A4)
+
+    p.setLineWidth(.3)
+    p.setFont('Helvetica', 30)
+    p.drawString(30, 750, 'Merchandise PDF')
+
+    order = Order.objects.get(id=order_id)
+
+    p.setFont('Helvetica-Bold', 12)
+    p.drawString(30, 700, 'Name owner: ' + order.name)
+
+    p.setFont('Helvetica-Bold', 12)
+    p.drawString(30, 685, 'Order: ' + str(order.eb_order_id))
+
+    merchandising = Merchandise.objects.filter(order=order_id)
+    horizontal = 650
+    total = 0
+    for merchandise in merchandising:
+        p.setFont('Helvetica', 10)
+        p.drawString(30, horizontal - 15, 'Product:  ' + merchandise.name)
+        p.drawString(30, horizontal - 30, 'Type:  ' + merchandise.item_type)
+        p.drawString(30, horizontal - 45, 'Quantity:  ' + str(
+            merchandise.quantity)
+        )
+        p.drawString(30, horizontal - 60, 'Value:  ' + merchandise.value)
+        total += float(merchandise.value)
+        # p.line(747, 0, 0, 0)
+        horizontal -= 70
+
+    p.setFont('Helvetica-Bold', 12)
+    p.drawString(420, horizontal - 50, 'Total: ' + str(total))
+    p.showPage()
+    p.save()
+    return temp.getvalue()
 
 
 class EventAccessMixin():
