@@ -44,48 +44,61 @@
           <td>{{ event.name }}</td>
           <td>{{ event.date_start_date_utc }}</td>
           <td>
-          <div class="row">
-            <div class="col">
-              <a href="{% url 'summary' event_id=event.eb_event_id %}">
-                <i class="material-icons md-18 icon-black">search</i>
-              </a>
-            </div>
-                        <div class="col">
+            {% if event.is_processing %}
+            <div class="row">
+              <div class="col">
+                Processing...
+              </div>
+              <div class="col">
+                <a href="/">
+                  <i class="material-icons md-18 icon-black">refresh</i>
+                </a>
+              </div>
+              {% else %}
 
-              <a href="{% url 'delete' event_id=event.eb_event_id %}">
-                <i class="material-icons md-18 icon-gray">delete_outline</i>
-              </a>
-            </div>
-         </td>
-       </tr>
-       {% endfor %}
-     </tbody>
-   </table>
- </div>
+              <div class="row">
+                <div class="col">
+                  <a href="{% url 'summary' event_id=event.eb_event_id %}">
+                    <i class="material-icons md-18 icon-black">search</i>
+                  </a>
+                </div>
+                <div class="col">
 
- <div class="row">
-  <div class="col-12 text-center">
-    {% if pagination.has_previous %}
-    <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-    {% endif %}
-    <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-    {% endif %}
+                  <a href="{% url 'delete' event_id=event.eb_event_id %}">
+                    <i class="material-icons md-18 icon-gray">delete_outline</i>
+                  </a>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="row">
+        <div class="col-12 text-center">
+          {% if pagination.has_previous %}
+          <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
+          {% endif %}
+          <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
+          {% if pagination.has_next %}
+          <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="row">
+        <div class="col-sm"></div>
+        <div class="col-sm"></div>
+        <div class="col-sm">
+          <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
+        </div>
+
+      </div>
+
+    </div>
   </div>
-</div>
-{% endif %}
-  <div class="row">
-  <div class="col-sm"></div>
-  <div class="col-sm"></div>
-  <div class="col-sm">
-    <a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-3">Add events</a>
-</div>
-
- </div>
-
-</div>
-</div>
 </div>
 </div>
 </div>

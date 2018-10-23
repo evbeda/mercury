@@ -15,6 +15,7 @@ from .models import (
     Merchandise,
     Transaction,
     UserWebhook,
+    Attendee,
 )
 import random
 
@@ -85,7 +86,8 @@ class OrderFactory(factory.django.DjangoModelFactory):
         lambda o: o.event.created + timedelta(hours=1))
     changed = factory.LazyAttribute(
         lambda o: o.created + timedelta(hours=3))
-    name = factory.LazyAttribute(lambda o: 'buyer_{}'.format(o.eb_order_id))
+    first_name = factory.LazyAttribute(lambda o: 'buyer_first_{}'.format(o.eb_order_id))
+    last_name = factory.LazyAttribute(lambda o: 'buyer_last_{}'.format(o.eb_order_id))
     email = factory.LazyAttribute(
         lambda o: 'buyer_{}@email.com'.format(o.eb_order_id))
     status = 'placed'
@@ -132,3 +134,16 @@ class UserWebhookFactory(factory.django.DjangoModelFactory):
 
     webhook_id = str(factory.fuzzy.FuzzyInteger(1, 10000))
     user = factory.SubFactory(UserFactory)
+
+
+class AttendeeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Attendee
+
+    order = factory.SubFactory(OrderFactory)
+    eb_attendee_id = factory.fuzzy.FuzzyInteger(10000000000, 20000000000)
+    first_name = factory.LazyAttribute(lambda o: 'buyer_first_{}'.format(o.eb_attendee_id))
+    last_name = factory.LazyAttribute(lambda o: 'buyer_last_{}'.format(o.eb_attendee_id))
+    barcode = factory.fuzzy.FuzzyInteger(300000000000, 400000000000)
+    barcode_url = 'https://www.eventbriteapi.com/qrcode/{}/?sig=dwefwefwefwefw'.format(barcode)
+    checked_in = False

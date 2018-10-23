@@ -1,8 +1,10 @@
 from mercury_site.celery import app
 from social_django.models import UserSocialAuth
 from eventbrite import Eventbrite
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
+from django.core.cache import cache
 import pytz
 from django.template import loader
 from django.core.mail import send_mail, EmailMessage
@@ -27,8 +29,10 @@ from .models import (
     UserWebhook,
     Transaction,
     MERCH_STATUS,
+    Attendee,
 )
 from mercury_app.pdf_utils import pdf_merchandise
+from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
     URL_ENDPOINT,
@@ -60,9 +64,16 @@ def get_api_orders_of_event(token, event_id):
     Get organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    url = '/events/{}/orders/'.format(event_id)
-    return eventbrite.get(url, expand=('merchandise',))['orders']
-
+    result = []
+    page = 1
+    continuation = True
+    while (continuation):
+        url = '/events/{}/orders/?page={}'.format(event_id, page)
+        call = eventbrite.get(url, expand=('merchandise',))
+        result.extend(call.get('orders'))
+        page += 1
+        continuation = has_continuation(call)
+    return result
 
 def get_api_events_org(token, organization, page_number=None):
     """
@@ -92,8 +103,32 @@ def get_api_order(token, order_id):
 
 def get_api_order_barcode(token, org_id, barcode):
     eventbrite = Eventbrite(token)
-    url = '/organizations/{}/barcode/{}/order/'.format(org_id, barcode)
+    url = '/organizations/{}/orders/search?barcodes={}'.format(org_id, barcode)
+    return eventbrite.get(url).get('orders')[0]
+
+
+def get_api_order_attendees(token, order_id):
+    eventbrite = Eventbrite(token)
+    result = []
+    page = 1
+    continuation = True
+    while (continuation):
+        url = '/orders/{}/attendees/?page={}'.format(order_id, page)
+        call = eventbrite.get(url, expand=('merchandise',))
+        result.extend(call.get('attendees'))
+        page += 1
+        continuation = has_continuation(call)
+    return result
+
+
+def get_api_attendee_checked(token, attendee_id, event_id):
+    eventbrite = Eventbrite(token)
+    url = '/events/{}/attendees/{}/'.format(event_id, attendee_id)
     return eventbrite.get(url)
+
+
+def has_continuation(request):
+    return request.get('pagination').get('has_more_items')
 
 
 def get_db_event_by_id(event_id):
@@ -110,30 +145,46 @@ def get_db_order_by_id(order_id):
         return None
 
 
-def create_event_orders_from_api(event, orders):
+@app.task(ignore_result=True)
+def create_event_orders_from_api(userid, eventid, orders=None):
     created_orders = []
+    event = Event.objects.get(id=eventid)
+    token = get_auth_token(get_user_model().objects.get(id=userid))
+    if orders is None:
+        orders = get_api_orders_of_event(token, event.eb_event_id)
     try:
         for order in orders:
-            if order.get('merchandise'):
-                order_creation = Order.objects.get_or_create(
-                    event=event,
-                    eb_order_id=order['id'],
-                    created=order['created'],
-                    changed=order['changed'],
-                    name=order['name'],
-                    status=order['status'],
-                    email=order['email'],
-                )
-                for item in order['merchandise']:
-                    create_merchandise_from_order(item, order_creation[0])
-                created_orders.append(order_creation)
+            if (order is not None and len(order.get('merchandise')) > 0):
+                order_transactions = create_order_atomic.delay(userid, eventid, order)
+                created_orders.append(order_transactions)
     except Exception:
         created_orders.append(None)
         if len(created_orders) < len(orders):
             remaining_orders = orders[len(created_orders):]
-            more_orders = create_event_orders_from_api(event, remaining_orders)
+            more_orders = create_event_orders_from_api.delay(userid, eventid, remaining_orders)
             created_orders.extend(more_orders)
+    cache.delete(event.eb_event_id)
     return created_orders
+
+
+@app.task(ignore_result=True)
+def create_order_atomic(userid, eventid, order):
+    with transaction.atomic():
+        event = Event.objects.get(id=eventid)
+        order_creation, _ = Order.objects.get_or_create(
+            event=event,
+            eb_order_id=order['id'],
+            created=order['created'],
+            changed=order['changed'],
+            first_name=order['first_name'],
+            last_name=order['last_name'],
+            status=order['status'],
+            email=order['email'],
+        )
+        create_attendee_from_order(userid, order_creation)
+        for item in order['merchandise']:
+            create_merchandise_from_order(item, order_creation)
+        return order_creation
 
 
 def create_merchandise_from_order(item, order):
@@ -153,6 +204,30 @@ def create_merchandise_from_order(item, order):
         return merchandise
     except Exception:
         return None
+
+
+def create_attendee_from_order(userid, order):
+    token = get_auth_token(get_user_model().objects.get(id=userid))
+    attendees = get_api_order_attendees(token, order.eb_order_id)
+    created_attendees = []
+    for attendee in attendees:
+        first_name = attendee.get('profile').get('first_name')
+        last_name = attendee.get('profile').get('last_name')
+        eb_attendee_id = attendee.get('id')
+        barcode = attendee.get('barcodes')[0].get('barcode')
+        barcode_url = attendee.get('barcodes')[0].get('qr_code_url')
+        checked_in = attendee.get('checked_in')
+        att = Attendee.objects.create(
+            order=order,
+            first_name=first_name,
+            last_name=last_name,
+            eb_attendee_id=eb_attendee_id,
+            barcode=barcode,
+            barcode_url=barcode_url,
+            checked_in=checked_in,
+        )
+        created_attendees.append(att)
+    return created_attendees
 
 
 def get_db_merchandising_by_order_id(order_id):
@@ -262,6 +337,19 @@ def create_order_webhook_from_view(user):
             )
 
 
+def update_attendee_checked_from_api(user, barcode):
+    attendee = Attendee.objects.get(barcode=barcode)
+    result = get_api_attendee_checked(
+        get_auth_token(user),
+        attendee.eb_attendee_id,
+        attendee.order.event.eb_event_id,
+    )
+    Attendee.objects.filter(barcode=barcode).update(
+        checked_in=result.get('checked_in')
+    )
+    return result.get('checked_in')
+
+
 def create_webhook(token):
     data = {
         'endpoint_url': URL_ENDPOINT,
@@ -319,10 +407,12 @@ def get_data(body, domain):
         )
         event = Event.objects.get(eb_event_id=order['event_id'])
         if webhook_order_available(social_user.user, order):
-            orders = create_event_orders_from_api(event, [order])
+            orders = create_event_orders_from_api(social_user.user.id, event.id, [order])
             email = send_email_with_pdf.delay(orders[0][0].id,
                                               orders[0][0].email)
+
             return {'status': True, 'email': email}
+
     else:
 
         return {'status': False, 'email': False}
@@ -731,7 +821,6 @@ def update_db_merch_status(order):
 
 def delete_events(event_id):
     Event.objects.filter(eb_event_id=event_id).delete()
-
 
 class EventAccessMixin():
     def get_event(self):

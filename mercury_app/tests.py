@@ -9,6 +9,7 @@ from .models import (
     Merchandise,
     UserWebhook,
     Transaction,
+    Attendee,
 )
 from .test_factories import (
     UserFactory,
@@ -19,6 +20,7 @@ from .test_factories import (
     MerchandiseFactory,
     TransactionFactory,
     UserWebhookFactory,
+    AttendeeFactory,
 )
 from .pdf_utils import pdf_merchandise
 from django.template import loader
@@ -34,6 +36,8 @@ from .utils import (
     get_percentage_handed,
     get_api_orders_of_event,
     get_api_order_barcode,
+    get_api_order_attendees,
+    get_api_attendee_checked,
     create_webhook,
     delete_webhook,
     get_events_for_organizations,
@@ -51,7 +55,10 @@ from .utils import (
     create_event_orders_from_api,
     create_event_from_api,
     create_merchandise_from_order,
+    create_attendee_from_order,
     create_transaction,
+    create_order_atomic,
+    update_attendee_checked_from_api,
     get_mock_api_event,
     get_mock_api_orders,
     get_data,
@@ -75,6 +82,7 @@ from unittest.mock import (
     patch,
     MagicMock,
 )
+from mercury_app.mock_api import MOCK_API_ATTENDEE
 import json
 
 MOCK_ORGANIZATION_API = {
@@ -193,7 +201,6 @@ class TestMerchandise(TestCase):
 class TestBase(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(
-            id=1,
             username='mercury_user',
             password='the_best_password_of_ever',
             is_active=True,
@@ -202,10 +209,12 @@ class TestBase(TestCase):
         )
         self.user.set_password('the_best_password_of_ever_2')
         self.user.save()
+        from factory import fuzzy
+        self.social_auth_user_id = fuzzy.FuzzyInteger(50000000000, 60000000000)
         self.auth = UserSocialAuth.objects.create(
             user=self.user,
             provider='eventbrite',
-            uid='563480245671',
+            uid=self.social_auth_user_id,
             extra_data={'access_token': 'AAAAAAAAAABBBBBBBBB'},
         )
         login = self.client.login(
@@ -258,15 +267,26 @@ class HomeViewTest(TestBase):
         self.assertNotContains(response, 'search')
         self.assertContains(response, 'Add')
 
-    def test_home_one_entry(self, mock_create_order_webhook_from_view):
+    @patch('mercury_app.models.Event.is_processing', return_value=True)
+    def test_home_processing_entry(self, mock_create_order_webhook_from_view, mock_is_processing):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         EventFactory(organization=org)
         response = self.client.get('/')
-        self.assertContains(response, 'search')
+        self.assertContains(response, 'Processing')
+        self.assertNotContains(response, 'search')
         self.assertContains(response, 'Add')
 
-    def test_home_two_entry(self, mock_create_order_webhook_from_view):
+    @patch('mercury_app.models.Event.is_processing', return_value=False)
+    def test_home_one_entry(self, mock_create_order_webhook_from_view, mock_is_processing):
+        org = OrganizationFactory()
+        UserOrganizationFactory(user=self.user, organization=org)
+        EventFactory(organization=org)
+        response = self.client.get('/')
+        self.assertContains(response, 'Add')
+
+    @patch('mercury_app.models.Event.is_processing', return_value=False)
+    def test_home_two_entry(self, mock_create_order_webhook_from_view, mock_is_processing):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         EventFactory(name='Hello', organization=org)
@@ -274,11 +294,10 @@ class HomeViewTest(TestBase):
         response = self.client.get('/')
         self.assertContains(response, 'Hello')
         self.assertContains(response, 'Goodbye')
-        self.assertContains(response, 'search')
         self.assertContains(response, 'Add')
 
 
-class HomeViewTestWithouUser(TestCase):
+class HomeViewTestWithoutUser(TestCase):
 
     def setUp(self):
         pass
@@ -314,8 +333,10 @@ class SelectEventsLoggedTest(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
 
+    @patch('mercury_app.views.cache')
+    @patch('mercury_app.views.create_event_orders_from_api')
     @patch('mercury_app.views.get_api_events_id', return_value=get_mock_api_event(1, 1000).get('events')[0])
-    def test_add_event(self, mock_get_api_events_id):
+    def test_add_event(self, mock_get_api_events_id, mock_create_event_orders_from_api, mock_cache):
         response = self.client.post(
             '/select_events/', {'organization_id': '272770247903', 'organization_name': 'Mercury Team'})
         event = Event.objects.get(
@@ -336,12 +357,13 @@ class APICallsTest(TestCase):
             '/users/me/organizations',
         )
 
-    def test_get_api_orders_of_event(self, mock_api_call):
+    @patch('mercury_app.utils.has_continuation', return_value=False)
+    def test_get_api_orders_of_event(self, mock_has_continuation, mock_api_call):
         get_api_orders_of_event('TEST', '1234')
         mock_api_call.assert_called_once()
         self.assertEquals(
             mock_api_call.call_args_list[0][0][0],
-            '/events/1234/orders/',
+            '/events/1234/orders/?page=1',
         )
         self.assertEquals(
             mock_api_call.call_args_list[0][1]['expand'][0],
@@ -381,7 +403,24 @@ class APICallsTest(TestCase):
         mock_api_call.assert_called_once()
         self.assertEquals(
             mock_api_call.call_args_list[0][0][0],
-            '/organizations/111/barcode/1115555/order/',
+            '/organizations/111/orders/search?barcodes=1115555',
+        )
+
+    @patch('mercury_app.utils.has_continuation', return_value=False)
+    def test_get_api_order_attendees(self, mock_continuation, mock_api_call):
+        get_api_order_attendees('TEST', '222')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/orders/222/attendees/?page=1',
+        )
+
+    def test_get_api_attendee_checked(self, mock_api_call):
+        get_api_attendee_checked('TEST', '2342', '34532')
+        mock_api_call.assert_called_once()
+        self.assertEquals(
+            mock_api_call.call_args_list[0][0][0],
+            '/events/34532/attendees/2342/',
         )
 
     @patch('mercury_app.utils.Eventbrite.post', return_value={'id': '1'})
@@ -407,7 +446,7 @@ class APICallsTest(TestCase):
         self.assertEquals(result.count(), 0)
 
 
-class UtilsTest(TestCase):
+class UtilsTest(TestBase):
 
     def test_get_merchas_for_email(self):
         order = OrderFactory(id=20, email="algun@email.com")
@@ -555,6 +594,14 @@ class UtilsTest(TestCase):
         result = create_userorganization_assoc(None, None)
         self.assertEqual(result, None)
 
+    @patch('mercury_app.utils.get_api_attendee_checked')
+    def test_update_attendee_checked_from_api(self, mock_get_api_attendee_checked):
+        mock_get_api_attendee_checked.return_value = {'checked_in': True}
+        att = AttendeeFactory()
+        update_attendee_checked_from_api(self.user, att.barcode)
+        att_search = Attendee.objects.get(barcode=att.barcode)
+        self.assertEqual(att_search.checked_in, True)
+
     @patch('mercury_app.utils.get_api_events_org')
     @patch('mercury_app.utils.get_auth_token')
     def test_get_events_for_organizations(self, mock_get_auth_token, mock_get_api_events_org):
@@ -592,22 +639,57 @@ class UtilsTest(TestCase):
         result = create_event_from_api(org, None)
         self.assertEqual(result, None)
 
-    def test_create_event_orders_from_api(self):
+    @patch('mercury_app.utils.cache')
+    @patch('mercury_app.utils.create_order_atomic.delay')
+    @patch('mercury_app.utils.get_api_orders_of_event')
+    def test_create_event_orders_from_api(self, mock_get_api_orders_of_event, mock_create_order_atomic, mock_cache):
         event = EventFactory()
-        orders = get_mock_api_orders(5, 2, event.eb_event_id)
-        result = create_event_orders_from_api(event, orders)
-        self.assertEqual(len(result), 2)
-        self.assertTrue(isinstance(result[0][0], Order))
+        mock_create_order_atomic.return_value = OrderFactory()
+        mock_get_api_orders_of_event.return_value = get_mock_api_orders(3, 3, event.eb_event_id)
+        userid = self.user.id
+        result = create_event_orders_from_api(userid, event.id)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(isinstance(result[0], Order))
 
-    def test_create_event_orders_from_api_empty_order(self):
+
+    @patch('mercury_app.utils.get_api_order_attendees', return_value=MOCK_API_ATTENDEE['attendees'])
+    def test_create_attendee_from_order(self, mock_get_api_order_attendees):
+        order = OrderFactory(eb_order_id=846464739)
+        result = create_attendee_from_order(self.user.id, order)
+        self.assertEquals(result[0].first_name, 'Jane')
+
+    @patch('mercury_app.utils.cache')
+    @patch('mercury_app.utils.create_order_atomic.delay')
+    @patch('mercury_app.utils.get_api_orders_of_event')
+    def test_create_event_orders_from_api_empty_order(self, mock_get_api_orders_of_event, mock_create_order_atomic, mock_cache):
         event = EventFactory()
         orders = get_mock_api_orders(1, 1, event.eb_event_id)
         orders.append(None)
         orders.extend(get_mock_api_orders(1, 1, event.eb_event_id))
-        result = create_event_orders_from_api(event, orders)
-        self.assertEqual(len(result), 3)
-        self.assertTrue(isinstance(result[2][0], Order))
-        self.assertEqual(result[1], None)
+        mock_create_order_atomic.return_value = OrderFactory()
+        mock_get_api_orders_of_event.return_value = orders
+        result = create_event_orders_from_api(self.user.id, event.id, orders)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(isinstance(result[1], Order))
+
+    @patch('mercury_app.utils.create_merchandise_from_order')
+    @patch('mercury_app.utils.create_attendee_from_order')
+    def test_create_order_atomic_success(self, mock_create_attendee_from_order, mock_create_merchandise_from_order):
+        event = EventFactory(eb_event_id=444)
+        order = get_mock_api_orders(1, 1, 444)
+        result = create_order_atomic(self.user.id, event.id, order[0])
+        self.assertTrue(isinstance(result, Order))
+
+    @patch('mercury_app.utils.create_merchandise_from_order')
+    @patch('mercury_app.utils.create_attendee_from_order', side_effect=Exception())
+    def test_create_order_atomic_fail(self, mock_create_attendee_from_order, mock_create_merchandise_from_order):
+        event = EventFactory(eb_event_id=444)
+        order = get_mock_api_orders(1, 1, 444)
+        with self.assertRaises(Exception):
+            result = create_order_atomic(self.user.id, event.id, order[0])
+            self.assertFail()
+        orders = Order.objects.filter(event__eb_event_id=444)
+        self.assertEqual(len(orders), 0)
 
     def test_create_merchandise_from_order(self):
         result = []
@@ -712,7 +794,7 @@ class UtilsWebhook(TestBase):
         self.assertEqual(result, '')
 
     def test_webhook_available_to_process(self):
-        user_id = '563480245671'
+        user_id = self.social_auth_user_id
         self.assertTrue(webhook_available_to_process(user_id))
 
     def test_webhook_not_available_to_process(self):
@@ -720,7 +802,7 @@ class UtilsWebhook(TestBase):
         self.assertFalse(webhook_available_to_process(user_id))
 
     def test_social_user_exists(self):
-        user_id = '563480245671'
+        user_id = self.social_auth_user_id
         self.assertTrue(social_user_exists(user_id))
 
     def test_social_user_not_exists(self):
@@ -728,12 +810,12 @@ class UtilsWebhook(TestBase):
         self.assertFalse(social_user_exists(user_id))
 
     def test_get_social_user_id(self):
-        result = get_social_user_id(563480245671)
-        self.assertEqual(result, 1)
+        result = get_social_user_id(self.social_auth_user_id)
+        self.assertEqual(result, self.user.id)
 
     def test_get_social_user(self):
-        result = get_social_user(563480245671)
-        self.assertEqual(result.user_id, 1)
+        result = get_social_user(self.social_auth_user_id)
+        self.assertEqual(result.user_id, self.user.id)
 
     def test_webhook_order_available(self):
         user = UserFactory()
@@ -756,7 +838,7 @@ class UtilsWebhook(TestBase):
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
     def test_get_data(self, mock_get_api_order, mock_send_email_with_pdf):
         request = MagicMock(
-            body='{"config": {"action": "order.placed", "user_id": 563480245671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
+            body='{"config": {"action": "order.placed", "user_id": self.social_auth_user_id, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
         )
         org = OrganizationFactory(eb_organization_id=1)
         UserOrganizationFactory(
@@ -863,33 +945,6 @@ class EventModelTest(TestCase):
         self.assertEqual(event.__string__(), event.name)
 
 
-class OrderModelTest(TestCase):
-
-    def create_order(
-        self, name='order', eb_order_id=2323, changed=timezone.now(),
-        created=timezone.now(), status='pending', email='hola@hola',
-        merch_status='PE'
-    ):
-        organization = Organization.objects.create(
-            eb_organization_id=23223, name='Eventbrite'
-        )
-        event = Event.objects.create(
-            name='event', organization=organization, description='event1',
-            eb_event_id='456', date_tz=timezone.now(),
-            start_date_utc=timezone.now(), end_date_utc=timezone.now(),
-            created=timezone.now(), changed=timezone.now(), status='pending')
-        return Order.objects.create(
-            eb_order_id=eb_order_id, event=event, changed=changed,
-            created=created, name=name, status=status, email=email,
-            merch_status=merch_status
-        )
-
-    def test_order_creation(self):
-        order = self.create_order()
-        self.assertTrue(isinstance(order, Order))
-        self.assertEqual(order.__string__(), order.name)
-
-
 class MerchandiseModelTest(TestCase):
 
     def create_merchandise(
@@ -907,10 +962,16 @@ class MerchandiseModelTest(TestCase):
             changed=timezone.now(), status='pending'
         )
         order = Order.objects.create(
-            name='order', event=event,
-            eb_order_id=2323, changed=timezone.now(),
-            created=timezone.now(), status='pending',
-            email='hola@hola', merch_status='PE')
+            first_name='First',
+            last_name='Last',
+            event=event,
+            eb_order_id=2323,
+            changed=timezone.now(),
+            created=timezone.now(),
+            status='pending',
+            email='hola@hola',
+            merch_status='PE',
+        )
         return Merchandise.objects.create(
             order=order, name=name, item_type=item_type,
             currency=currency, value=value)
@@ -953,18 +1014,6 @@ class SummaryTest(TestBase):
         self.assertIsNotNone(response.context['data_handed_over_dont'])
         self.assertIsNotNone(response.context['event'])
         self.assertIsNotNone(response.context['data_tipes_handed'])
-
-    @patch('mercury_app.views.get_auth_token', return_value=123123)
-    @patch('mercury_app.views.get_api_orders_of_event')
-    def test_get_context_data_create_orders(self, mock_api_orders, mock_get_token):
-        event = EventFactory(organization=self.organization)
-        self.assertEqual(Order.objects.filter(event=event).count(), 0)
-        mock_api_orders.return_value = get_mock_api_orders(
-            1, 1, event.eb_event_id)
-        response = self.client.get(
-            '/event/{}/summary/'.format(event.eb_event_id),
-        )
-        self.assertEqual(Order.objects.filter(event=event).count(), 1)
 
     def test_get_json_donut(self):
         expected = {'quantity': 1, 'percentage': 1,
@@ -1309,7 +1358,11 @@ class OrderListTest(TestBase):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         event = EventFactory(organization=org)
-        OrderFactory(event=event, name='Jaime Bond')
+        AttendeeFactory(
+            order__event=event,
+            first_name='Jaime',
+            last_name='Bond',
+        )
         response = self.client.get('/event/{}/orders/'.format(
             event.eb_event_id)
         )
@@ -1319,16 +1372,24 @@ class OrderListTest(TestBase):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         event = EventFactory(organization=org, eb_event_id=50782024402)
-        OrderFactory(name='Charles Brown', event=event)
-        OrderFactory(name='Carlos Brown', event=event)
-        response = self.client.get('/event/50782024402/orders/?name={}\
+        AttendeeFactory(
+            order__event=event,
+            first_name='Charles',
+            last_name='Brown',
+        )
+        AttendeeFactory(
+            order__event=event,
+            first_name='Carlos',
+            last_name='Brown',
+        )
+        response = self.client.get('/event/50782024402/orders/?full_name={}\
             &eb_order_id=&merch_status='.format('Charles'))
         self.assertContains(response, 'Charles Brown')
-        response2 = self.client.get('/event/50782024402/orders/?name={}\
+        response2 = self.client.get('/event/50782024402/orders/?full_name={}\
             &eb_order_id=&merch_status='.format('Brown'))
         self.assertContains(response2, 'Charles Brown')
         self.assertContains(response2, 'Carlos Brown')
-        response3 = self.client.get('/event/50782024402/orders/?name={}\
+        response3 = self.client.get('/event/50782024402/orders/?full_name={}\
             &eb_order_id=&merch_status='.format('John'))
         self.assertNotContains(response3, 'Charles Brown')
         self.assertNotContains(response3, 'Carlos Brown')
@@ -1337,27 +1398,56 @@ class OrderListTest(TestBase):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         event = EventFactory(organization=org, eb_event_id=50782024402)
-        OrderFactory(name='Charles Brown', event=event, eb_order_id=1113)
-        OrderFactory(name='Carlos Brown', event=event, eb_order_id=1112)
-        response = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
-            &merch_status='.format('1113'))
-        self.assertContains(response, 'Charles Brown')
-        response2 = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
-            &merch_status='.format('11'))
-        self.assertContains(response2, 'Charles Brown')
-        self.assertContains(response2, 'Carlos Brown')
-        response3 = self.client.get('/event/50782024402/orders/?name=&eb_order_id={}\
-            &merch_status='.format('3454'))
-        self.assertNotContains(response3, 'Charles Brown')
-        self.assertNotContains(response3, 'Carlos Brown')
+        order1 = OrderFactory(
+            event=event,
+        )
+        AttendeeFactory(
+            order=order1,
+            first_name=order1.first_name,
+            last_name=order1.last_name,
+        )
+        order2 = OrderFactory(
+            event=event,
+        )
+        response = self.client.get('/event/50782024402/orders/?full_name=&eb_order_id={}\
+            &merch_status='.format(order1.eb_order_id))
+        self.assertContains(response, '{} {}'.format(
+            order1.first_name,
+            order1.last_name
+        ))
+        response2 = self.client.get('/event/50782024402/orders/?full_name=&eb_order_id={}\
+            &merch_status='.format('3454234234242423424'))
+        self.assertNotContains(response2, '{} {}'.format(
+            order1.first_name,
+            order1.last_name
+        ))
+        self.assertNotContains(response2, '{} {}'.format(
+            order2.first_name,
+            order2.last_name
+        ))
 
     def test_filter_order_status(self, mock_webhook):
         org = OrganizationFactory()
         UserOrganizationFactory(user=self.user, organization=org)
         event = EventFactory(organization=org, eb_event_id=50782024402)
-        order1 = OrderFactory(name='Charles Brown', event=event, eb_order_id=7)
-        order2 = OrderFactory(name='Carlos Brown', event=event, eb_order_id=8)
-        order3 = OrderFactory(name='Charlie Brown', event=event, eb_order_id=9)
+        order1 = OrderFactory(event=event)
+        order2 = OrderFactory(event=event)
+        order3 = OrderFactory(event=event)
+        AttendeeFactory(
+            order=order1,
+            first_name='Charles',
+            last_name='Brown',
+        )
+        AttendeeFactory(
+            order=order2,
+            first_name='Carlos',
+            last_name='Brown',
+        )
+        AttendeeFactory(
+            order=order3,
+            first_name='Charlie',
+            last_name='Brown',
+        )
         merch1 = MerchandiseFactory(order=order1, quantity=1)
         merch2 = MerchandiseFactory(order=order2, quantity=2)
         MerchandiseFactory(order=order3, quantity=2)
@@ -1365,17 +1455,17 @@ class OrderListTest(TestBase):
         update_db_merch_status(order1)
         TransactionFactory(merchandise=merch2, operation_type='HA')
         update_db_merch_status(order2)
-        response = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+        response = self.client.get('/event/50782024402/orders/?full_name=&eb_order_id=\
             &merch_status={}'.format('CO'))
         self.assertContains(response, 'Charles Brown')
         self.assertNotContains(response, 'Carlos Brown')
         self.assertNotContains(response, 'Charlie Brown')
-        response2 = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+        response2 = self.client.get('/event/50782024402/orders/?full_name=&eb_order_id=\
             &merch_status={}'.format('PA'))
         self.assertNotContains(response2, 'Charles Brown')
         self.assertContains(response2, 'Carlos Brown')
         self.assertNotContains(response2, 'Charlie Brown')
-        response3 = self.client.get('/event/50782024402/orders/?name=&eb_order_id=\
+        response3 = self.client.get('/event/50782024402/orders/?full_name=&eb_order_id=\
             &merch_status={}'.format('PE'))
         self.assertNotContains(response3, 'Charles Brown')
         self.assertNotContains(response3, 'Carlos Brown')
@@ -1395,8 +1485,13 @@ class ScanQRViewTest(TestBase):
             '/event/{}/scanqr/'.format(self.event.eb_event_id))
         self.assertContains(response, 'canvas')
 
+    @patch('mercury_app.views.update_attendee_checked_from_api')
     @patch('mercury_app.views.get_api_order_barcode')
-    def test_scan_post_success(self, mock_get_api_order_barcode):
+    def test_scan_post_success(
+        self,
+        mock_get_api_order_barcode,
+        mock_update_attendee_checked_from_api,
+    ):
         order = OrderFactory(event=self.event, eb_order_id='1234')
         MerchandiseFactory(name='shirt', order=order)
         mock_get_api_order_barcode.return_value = {'id': '1234'}

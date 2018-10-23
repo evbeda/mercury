@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
 from django.utils import timezone
@@ -19,6 +20,7 @@ from mercury_app.models import (
     Merchandise,
     UserWebhook,
     Transaction,
+    Attendee,
 )
 from mercury_app.tables import OrderTable, TransactionTable
 from mercury_app.filters import OrderFilter
@@ -43,6 +45,7 @@ from mercury_app.utils import (
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
+    update_attendee_checked_from_api,
     create_order_webhook_from_view,
     get_data,
     get_summary_types_handed,
@@ -55,12 +58,20 @@ from mercury_app.utils import (
     get_merchas_for_email,
 )
 import dateutil.parser
+from django.core.cache import cache
 
 
 @csrf_exempt
 def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
+    return HttpResponse('OK', 200)
+
+
+@csrf_exempt
+def checkin_webhook(request):
+        # get_data.delay(json.loads(request.body),
+        #                request.build_absolute_uri('/')[:-1])
     return HttpResponse('OK', 200)
 
 
@@ -79,7 +90,7 @@ class TransactionListView(SingleTableView, LoginRequiredMixin, EventAccessMixin)
         context[self.get_context_table_name(table)] = table
         table.paginate(page=self.request.GET.get('page', 1), per_page=10)
         order = Order.objects.get(id=self.kwargs['order_id'])
-        context['order_name'] = order.name
+        context['order_name'] = '{} {}'.format(order.first_name, order.last_name)
         context['order_number'] = order.eb_order_id
         context['event_id'] = order.event.eb_event_id
         context['transaction_count'] = self.get_queryset().count()
@@ -109,6 +120,12 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
         try:
             eb_order_id = order.get('id')
             order_id = Order.objects.get(eb_order_id=eb_order_id).id
+            checked_in = update_attendee_checked_from_api(
+                self.request.user,
+                qrcode,
+            )
+            if not checked_in:
+                messages.info(request, 'This attendee has not checked in.')
             return redirect(reverse(
                 'item_mercha',
                 kwargs={'order_id': order_id},
@@ -125,12 +142,16 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
 @method_decorator(login_required, name='dispatch')
 class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
     table_class = OrderTable
-    model = Order
+    model = Attendee
     template_name = 'orderfilter.html'
     filterset_class = OrderFilter
 
     def get_queryset(self):
-        return Order.objects.filter(event__eb_event_id=self.kwargs['event_id'])
+        return Attendee.objects.filter(order__event__eb_event_id=self.kwargs['event_id']).order_by(
+            'first_name',
+            'last_name',
+            'barcode',
+        ).distinct('first_name', 'last_name')
 
     def get_table_kwargs(self):
         return {'template_name': 'custom_table_with_header.html'}
@@ -204,12 +225,6 @@ class Summary(TemplateView, LoginRequiredMixin, EventAccessMixin):
         event = self.get_event()
         order_ids = Order.objects.filter(
             event=event).values_list('id', flat=True)
-        if len(order_ids) == 0:
-            token = get_auth_token(self.request.user)
-            orders = get_api_orders_of_event(token, event.eb_event_id)
-            create_event_orders_from_api(event, orders)
-            order_ids = Order.objects.filter(
-                event=event).values_list('id', flat=True)
         context['data_handed_over_dont'] = get_percentage_handed(
             order_ids)
         context['data_tipes_handed'] = get_summary_types_handed(order_ids)
@@ -279,8 +294,11 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         org_name = self.request.POST.get('organization_name')
         org = get_db_or_create_organization_by_id(org_id, org_name)
         create_userorganization_assoc(org[0], self.request.user)
-        if isinstance(create_event_from_api(org[0], events['events']), Event):
+        event = create_event_from_api(org[0], events['events'])
+        if isinstance(event, Event):
             message = 'The event was successfully added!'
+            cache.set(event.eb_event_id, True, 600)
+            create_event_orders_from_api.delay(self.request.user.id, event.id)
             self.request.session['message'] = message
         else:
             message_error = 'An error has occured while adding the event'

@@ -1,5 +1,5 @@
 import django_tables2 as tables
-from mercury_app.models import Order, Transaction
+from mercury_app.models import Order, Transaction, Attendee
 from django.utils.html import format_html
 from fontawesome.fields import IconField
 from django.utils.safestring import mark_safe
@@ -13,15 +13,18 @@ class OrderTable(tables.Table):
         empty_values=(),
         attrs={'td': {'width': '10px', 'padding-right': '5px', 'class': 'dot-padding'}},
     )
-    eb_order_id = tables.Column(verbose_name='Order ID')
     actions = tables.Column(
         verbose_name='Actions',
         orderable=False,
         empty_values=(),
     )
+    full_name = tables.Column(
+        verbose_name='Full Name',
+        empty_values=(),
+    )
 
     def render_state_image(self, value, record):
-        status = record.merch_status
+        status = record.order.merch_status
         if status == 'CO':
             return format_html('<span class="dot-co"></span>')
         elif status == 'PA':
@@ -29,14 +32,17 @@ class OrderTable(tables.Table):
         else:
             return format_html('<span class="dot-pe"></span>')
 
+    def render_full_name(self, value, record):
+        return '{} {}'.format(record.first_name, record.last_name)
+
     def render_actions(self, value, record):
-        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/"><i class="material-icons md-18 icon-gray">info</i></a></div></div>'.format(record.id))
+        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/"><i class="material-icons md-18 icon-gray">info</i></a></div></div>'.format(record.order.id))
 
     class Meta:
-        model = Order
+        model = Attendee
         template_name = 'custom_table_with_header.html'
-        fields = ('name', 'eb_order_id',)
-        sequence = ('state_image', 'name', 'eb_order_id', 'actions',)
+        fields = ('order.eb_order_id',)
+        sequence = ('state_image', 'full_name', 'order.eb_order_id', 'actions',)
         show_header = False
 
 

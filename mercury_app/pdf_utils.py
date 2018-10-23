@@ -39,7 +39,7 @@ def pdf_merchandise(order_id):
     p.drawString(30, 725, name_event)
 
     p.setFont('Roboto-Medium', 12)
-    p.drawString(30, 690, order.name)
+    p.drawString(30, 690, '{} {}'.format(order.first_name, order.last_name))
 
     p.drawString(30, 665, 'Order: ' + str(order.eb_order_id))
 

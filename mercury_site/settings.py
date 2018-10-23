@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import sys
 import dj_database_url
 from mercury_site.__init__ import get_env_variable
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -27,7 +28,6 @@ ALLOWED_HOSTS = [
     'ebmercury.herokuapp.com',
     'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
-    'a47d240a.ngrok.io',
 ]
 
 
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'sekizai',
     'sslserver',
     'django_inlinecss',
+    'redis_cache',
 ]
 
 MIDDLEWARE = [
@@ -184,3 +185,10 @@ DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
 DATABASES['default'].update(DB_FROM_ENV)
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL'),
+    },
+}

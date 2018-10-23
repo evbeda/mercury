@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 import os
+import sys
 from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
@@ -24,3 +25,7 @@ app.autodiscover_tasks()
 #     BROKER_URL=os.environ['REDIS_URL'],
 #     CELERY_RESULT_BACKEND=os.environ['REDIS_URL'],
 # )
+if 'test' in sys.argv or 'test_coverage' in sys.argv:
+    app.conf.update(
+        CELERY_TASK_ALWAYS_EAGER=True,
+    )

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum
+from django.core.cache import cache
 
 
 MERCH_STATUS = (
@@ -62,6 +62,10 @@ class Event(models.Model):
     def date_start_date_utc(self):
         return self.start_date_utc.strftime('%b. %e, %Y - %I %p')
 
+    @property
+    def is_processing(self):
+        return cache.get(self.eb_event_id)
+
 
 class Order(models.Model):
 
@@ -69,7 +73,8 @@ class Order(models.Model):
         Event,
         on_delete=models.CASCADE
     )
-    name = models.CharField(max_length=256)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
     eb_order_id = models.BigIntegerField(
         unique=True,
     )
@@ -84,7 +89,7 @@ class Order(models.Model):
     )
 
     def __string__(self):
-        return self.name
+        return '{} {}'.format(self.first_name, self.last_name)
 
     def date_created(self):
         return self.created.strftime('%b. %e, %Y - %I:%M %p')
@@ -142,3 +147,16 @@ class Transaction(models.Model):
         choices=OPERATION_TYPES,
         default='HA',
     )
+
+
+class Attendee(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+    )
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    eb_attendee_id = models.CharField(max_length=16)
+    barcode = models.CharField(max_length=30, unique=True)
+    barcode_url = models.CharField(max_length=120)
+    checked_in = models.BooleanField()
