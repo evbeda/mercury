@@ -50,6 +50,7 @@ from mercury_app.utils import (
     EventAccessMixin,
     OrderAccessMixin,
     send_email_alert,
+    pdf_merchandise,
 )
 import dateutil.parser
 
@@ -61,6 +62,12 @@ def accept_webhook(request):
     # do email sending inside get_data method
     return HttpResponse('OK', 200)
 
+def pdf(request, **kwargs):
+    order = kwargs['order_id']
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename=merchandise.pdf'
+    response.write(pdf_merchandise(order))
+    return response
 
 @method_decorator(login_required, name='dispatch')
 class TransactionListView(SingleTableView, LoginRequiredMixin, EventAccessMixin):
@@ -93,7 +100,8 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
         context['errormsg'] = self.request.session.get('qrerror')
         self.request.session['qrerror'] = None
         context['event_id'] = self.kwargs['event_id']
-        context['organization_id'] = get_object_or_404(Event, eb_event_id=self.kwargs['event_id']).organization.eb_organization_id
+        context['organization_id'] = get_object_or_404(
+            Event, eb_event_id=self.kwargs['event_id']).organization.eb_organization_id
         return context
 
     def post(self, request, *args, **kwargs):
@@ -111,7 +119,8 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                 kwargs={'order_id': order_id},
             ))
         except Exception as e:
-            self.request.session['qrerror'] = 'There was an error processing your QR Code ({}).'.format(e)
+            self.request.session['qrerror'] = 'There was an error processing your QR Code ({}).'.format(
+                e)
             return redirect(reverse(
                 'scanqr',
                 kwargs={'event_id': event_id},

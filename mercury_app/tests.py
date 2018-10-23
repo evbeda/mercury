@@ -61,8 +61,9 @@ from .utils import (
     create_order_webhook_from_view,
     delete_events,
     send_email_alert,
+    pdf_merchandise,
 )
-from mercury_app.views import Home, Summary, DeleteEvents
+from mercury_app.views import Home, Summary, DeleteEvents, pdf
 from django.utils import timezone
 from django.urls import resolve
 from datetime import datetime
@@ -657,6 +658,12 @@ class UtilsTest(TestCase):
         update_db_merch_status(order)
         result = Order.objects.get(id=order.id).merch_status
         self.assertEqual(result, 'CO')
+
+    def test_pdf_merchandise(self):
+        order = OrderFactory()
+        MerchandiseFactory(order=order)
+        pdf = pdf_merchandise(order.id)
+        self.assertEqual(type(pdf), bytes)
 
 
 class UtilsWebhook(TestBase):
@@ -1430,3 +1437,14 @@ class TransactionViewTest(TestBase):
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')
         self.assertContains(response, 'Refund')
+
+
+class PDFTest(TestCase):
+
+    def test_pdf(self):
+        request = MagicMock(
+            body='{}'
+        )
+        order = OrderFactory()
+        result = pdf(request, order_id=order.id)
+        self.assertEqual(result.status_code, 200)
