@@ -60,6 +60,7 @@ from .utils import (
     get_summary_types_handed,
     create_order_webhook_from_view,
     delete_events,
+    send_email_alert,
 )
 from mercury_app.views import Home, Summary, DeleteEvents
 from django.utils import timezone
@@ -254,7 +255,8 @@ class SelectEventsLoggedTest(TestBase):
         mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
             'organizations')
         fake_events = get_mock_api_event(1)
-        mock_get_events_for_organizations.return_value = fake_events['events'], fake_events['pagination']
+        mock_get_events_for_organizations.return_value = fake_events[
+            'events'], fake_events['pagination']
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -265,7 +267,8 @@ class SelectEventsLoggedTest(TestBase):
         mock_get_api_organization.return_value = MOCK_ORGANIZATION_API.get(
             'organizations')
         fake_events = get_mock_api_event(1)
-        mock_get_events_for_organizations.return_value = fake_events['events'], fake_events['pagination']
+        mock_get_events_for_organizations.return_value = fake_events[
+            'events'], fake_events['pagination']
         response = self.client.get('/select_events/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add')
@@ -364,6 +367,51 @@ class APICallsTest(TestCase):
 
 
 class UtilsTest(TestCase):
+
+    @patch('mercury_app.utils.send_mail', return_value=0)
+    def test_send_email_alert(self, mock_send_email):
+        expected = ("<h2 style='color:rgb(1 ,161 ,165);'>" +
+                    "Merchandise delivery:</h2><hr>" +
+                    "<p>Item: <strong>gorra</strong></p>" +
+                    "<p>Subtype: <strong>red</strong></p>" +
+                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
+                    "<p>Operation: <strong>Hand</strong></p><hr>" +
+                    "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>")
+        param = [["gorra",
+                  "red",
+                  "2018-10-23 13:49:30",
+                  "HA",
+                  ]]
+        result = send_email_alert(json.dumps(
+            param), "navarro_lautaro@hotmail.com")
+        self.assertEqual(expected, result)
+
+    @patch('mercury_app.utils.send_mail', return_value=0)
+    def test_send_email_alert_two(self, mock_send_email):
+        expected = ("<h2 style='color:rgb(1 ,161 ,165);'>" +
+                    "Merchandise delivery:</h2><hr>" +
+                    "<p>Item: <strong>gorra</strong></p>" +
+                    "<p>Subtype: <strong>red</strong></p>" +
+                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
+                    "<p>Operation: <strong>Hand</strong></p><hr>" +
+                    "<p>Item: <strong>gorra</strong></p>" +
+                    "<p>Subtype: <strong>blue</strong></p>" +
+                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
+                    "<p>Operation: <strong>Hand</strong></p><hr>" +
+                    "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>")
+        param = [["gorra",
+                  "red",
+                  "2018-10-23 13:49:30",
+                  "HA",
+                  ],
+                 ["gorra",
+                  "blue",
+                  "2018-10-23 13:49:30",
+                  "HA",
+                  ]]
+        result = send_email_alert(json.dumps(
+            param), "navarro_lautaro@hotmail.com")
+        self.assertEqual(expected, result)
 
     def test_get_db_event_by_id(self):
         event = EventFactory(eb_event_id=1234)
@@ -479,7 +527,7 @@ class UtilsTest(TestCase):
         fake_events = get_mock_api_event(2)
         mock_get_api_events_org.return_value = fake_events['events'], fake_events['pagination']
         org = OrganizationFactory(eb_organization_id=272770247903).__dict__
-        result = get_events_for_organizations([org], 'patched',1)
+        result = get_events_for_organizations([org], 'patched', 1)
         self.assertEqual(len(result), len(fake_events['events']))
         self.assertEqual(result[0][0]['org_name'], org['name'])
 
@@ -1085,7 +1133,7 @@ class SummaryTest(TestBase):
         response = self.client.get('/event/50781817783/summary/')
         self.assertEqual(404, response.status_code)
 
-
+@patch('mercury_app.views.send_email_alert', return_value=0)
 class ListItemMerchandisingTest(TestBase):
 
     def setUp(self):
@@ -1094,19 +1142,19 @@ class ListItemMerchandisingTest(TestBase):
         UserOrganizationFactory(user=self.user, organization=self.org)
         self.event = EventFactory(organization=self.org)
 
-    def test_merchandise_one_entry(self):
+    def test_merchandise_one_entry(self, mock_send_email):
         order = OrderFactory(event=self.event, id=5)
         MerchandiseFactory(name='Camiseta', order=order)
         response = self.client.get('/view_order/5/')
         self.assertContains(response, 'Camiseta')
 
-    def test_merchandise_status_code(self):
+    def test_merchandise_status_code(self, mock_send_email):
         order = OrderFactory(event=self.event, id=4)
         MerchandiseFactory(name='Camiseta', order=order)
         response = self.client.get('/view_order/4/')
         self.assertEqual(response.status_code, 200)
 
-    def test_merchandise_delivered(self):
+    def test_merchandise_delivered(self, mock_send_email):
         order = OrderFactory(event=self.event, id=5)
         merchandise = MerchandiseFactory(
             name='Gorra',
@@ -1120,7 +1168,7 @@ class ListItemMerchandisingTest(TestBase):
         response = self.client.get('/view_order/5/')
         self.assertContains(response, 'Yes')
 
-    def test_merchandise_403(self):
+    def test_merchandise_403(self, mock_send_email):
         user = UserFactory()
         org = OrganizationFactory()
         UserOrganizationFactory(user=user, organization=org)
@@ -1129,11 +1177,11 @@ class ListItemMerchandisingTest(TestBase):
         response = self.client.get('/view_order/5/')
         self.assertEqual(403, response.status_code)
 
-    def test_merchandise_404(self):
+    def test_merchandise_404(self, mock_send_email):
         response = self.client.get('/view_order/5/')
         self.assertEqual(404, response.status_code)
 
-    def test_merchandise_partial_delivery(self):
+    def test_merchandise_partial_delivery(self, mock_send_email):
         order = OrderFactory(event=self.event, id=5)
         merchandise = MerchandiseFactory(
             name='Gorra',
@@ -1147,7 +1195,7 @@ class ListItemMerchandisingTest(TestBase):
         response = self.client.get('/view_order/5/')
         self.assertContains(response, 'Partially')
 
-    def test_merchandise_delivered_two(self):
+    def test_merchandise_delivered_two(self, mock_send_email):
         order = OrderFactory(event=self.event, id=5)
         merchandise = MerchandiseFactory(
             name='Gorra',
@@ -1165,7 +1213,7 @@ class ListItemMerchandisingTest(TestBase):
         response = self.client.get('/view_order/5/')
         self.assertContains(response, 'Yes')
 
-    def test_merchandise_post_form(self):
+    def test_merchandise_post_form(self, mock_send_email):
         order = OrderFactory(event=self.event, id=7)
         merchandise = MerchandiseFactory(
             eb_merchandising_id=123,
@@ -1282,7 +1330,8 @@ class ScanQRViewTest(TestBase):
         self.event = EventFactory(organization=self.org)
 
     def test_camera_screen(self):
-        response = self.client.get('/event/{}/scanqr/'.format(self.event.eb_event_id))
+        response = self.client.get(
+            '/event/{}/scanqr/'.format(self.event.eb_event_id))
         self.assertContains(response, 'canvas')
 
     @patch('mercury_app.views.get_api_order_barcode')
@@ -1352,14 +1401,17 @@ class TransactionViewTest(TestBase):
 
     def test_one_transaction_in_view(self):
         order = OrderFactory(event=self.event, id=56)
-        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Cap',
+                           merchandise__order=order, operation_type='HA')
         response = self.client.get('/view_order/56/transactions/')
         self.assertContains(response, 'Cap')
 
     def test_two_transactions_in_view(self):
         order = OrderFactory(event=self.event, id=56)
-        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
-        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Cap',
+                           merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water',
+                           merchandise__order=order, operation_type='HA')
         response = self.client.get('/view_order/56/transactions/')
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')
@@ -1368,9 +1420,12 @@ class TransactionViewTest(TestBase):
 
     def test_two_transactions_in_view(self):
         order = OrderFactory(event=self.event, id=56)
-        TransactionFactory(merchandise__name='Cap', merchandise__order=order, operation_type='HA')
-        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='HA')
-        TransactionFactory(merchandise__name='Water', merchandise__order=order, operation_type='RE')
+        TransactionFactory(merchandise__name='Cap',
+                           merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water',
+                           merchandise__order=order, operation_type='HA')
+        TransactionFactory(merchandise__name='Water',
+                           merchandise__order=order, operation_type='RE')
         response = self.client.get('/view_order/56/transactions/')
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')

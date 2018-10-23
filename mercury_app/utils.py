@@ -4,6 +4,7 @@ from eventbrite import Eventbrite
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 import pytz
+from django.core.mail import send_mail
 from datetime import (
     timedelta,
 )
@@ -13,6 +14,8 @@ from random import (
     randint,
     uniform,
 )
+import json
+import os
 from django.http import Http404
 import re
 from .models import (
@@ -536,7 +539,7 @@ def get_mock_api_orders(amount, w_merchandise, event_id):
     return mocked_orders_array
 
 
-def get_json_donut(percentage,quantity, name, id_int):
+def get_json_donut(percentage, quantity, name, id_int):
     data_json = {'quantity': quantity, 'percentage': percentage,
                  'name': name, 'id': id_int}
     return data_json
@@ -572,7 +575,7 @@ def get_summary_types_handed(order_ids):
                               "total": total_mercha[i].get("name_count"),
                               "handed_percentage": handed_percentaje,
                               "not_handed_percentage": dont_handed_percentaje,
-                              "pending" : total_mercha[i].get("name_count") - handed_mercha[i].get("name_count")})
+                              "pending": total_mercha[i].get("name_count") - handed_mercha[i].get("name_count")})
     else:
         for i in range(len(total_mercha)):
             data_json.append({"name": total_mercha[i].get("name"),
@@ -580,7 +583,7 @@ def get_summary_types_handed(order_ids):
                               "total": total_mercha[i].get("name_count"),
                               "handed_percentage": 0,
                               "not_handed_percentage": 100,
-                              "pending" : 0})
+                              "pending": 0})
     return data_json
 
 
@@ -597,6 +600,7 @@ def get_percentage_handed(order_ids):
         else:
             handed_percentaje = 0
         return [handed_percentaje, total_sold, total_delivered]
+
 
 def get_summary_orders(event):
     orders_pending = Order.objects.filter(
@@ -616,9 +620,12 @@ def get_summary_orders(event):
         delivered_percentage = 0
         partially_percentage = 0
     data_json = [
-        get_json_donut(round(pending_percentage),orders_pending['quantity'], 'Pending', 1),
-        get_json_donut(round(delivered_percentage),orders_delivered['quantity'], 'Delivered', 2),
-        get_json_donut(round(partially_percentage),orders_partially['quantity'], 'Partial', 3),
+        get_json_donut(round(pending_percentage),
+                       orders_pending['quantity'], 'Pending', 1),
+        get_json_donut(round(delivered_percentage),
+                       orders_delivered['quantity'], 'Delivered', 2),
+        get_json_donut(round(partially_percentage),
+                       orders_partially['quantity'], 'Partial', 3),
     ]
     return data_json
 
@@ -722,3 +729,29 @@ class OrderAccessMixin():
         return Merchandise.objects.filter(
             order=order_id,
         )
+
+
+@app.task(ignore_result=True)
+def send_email_alert(transactions, email):
+    message = "<h2 style='color:rgb(1 ,161 ,165);'>Merchandise delivery:</h2><hr>"
+    transactions = json.loads(transactions)
+    if len(transactions):
+        for transaction in transactions:
+            message += "<p>Item: <strong>" + transaction[0] + "</strong></p>"
+            message += "<p>Subtype: <strong>" + \
+                transaction[1] + "</strong></p>"
+            message += "<p>Date: <strong>" + transaction[2] + "</strong></p>"
+            if transaction[3] == 'HA':
+                message += "<p>Operation: <strong>Hand</strong></p><hr>"
+            else:
+                message += "<p>Operation: <strong>Refund</strong></p><hr>"
+        message += "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>"
+        send_mail(
+            "Merchandise delivery",
+            message,
+            os.environ.get('EMAIL_HOST_USER'),
+            [email],
+            html_message=message,
+            fail_silently=False,
+        )
+        return message

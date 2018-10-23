@@ -49,6 +49,7 @@ from mercury_app.utils import (
     delete_events,
     EventAccessMixin,
     OrderAccessMixin,
+    send_email_alert,
 )
 import dateutil.parser
 
@@ -57,6 +58,7 @@ import dateutil.parser
 def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
+    # do email sending inside get_data method
     return HttpResponse('OK', 200)
 
 
@@ -156,17 +158,27 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
     def post(self, request, *args, **kwargs):
         data = self.request.POST
         keys = list(data)[:-2]
+        transactions = []
         for item in keys:
             for qty in range(int(data[item])):
-                create_transaction(
+                mercha = Merchandise.objects.get(
+                    eb_merchandising_id=item,
+                )
+                transaction = create_transaction(
                     self.request.user,
-                    Merchandise.objects.get(
-                        eb_merchandising_id=item,
-                    ),
+                    mercha,
                     data['comment'],
                     'unique',
                     'HA',
                 )
+                transactions.append([transaction.merchandise.name,
+                                     transaction.merchandise.item_type,
+                                     transaction.date.strftime(
+                                         "%Y-%m-%d %H:%M:%S"),
+                                     transaction.operation_type,
+                                     ])
+        email = mercha.order.email
+        send_email_alert.delay(json.dumps(transactions), email)
         event_id = Order.objects.get(
             id=self.kwargs['order_id']).event.eb_event_id
         return redirect(reverse(
@@ -236,11 +248,13 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             self.request.GET.get('page'),
         )
         for event in events:
-            event['start']['local'] = (dateutil.parser.parse(event['start']['local'])).strftime('%b. %e, %Y - %I %p')
+            event['start']['local'] = (dateutil.parser.parse(
+                event['start']['local'])).strftime('%b. %e, %Y - %I %p')
         context['events'] = events
         if pagination:
             context['has_next'] = pagination.get('has_more_items')
-            context['has_previous'] = True if pagination.get('page_number') > 1 else False
+            context['has_previous'] = True if pagination.get(
+                'page_number') > 1 else False
             context['number'] = pagination.get('page_number')
             context['num_pages'] = pagination.get('page_count')
             context['next_page_number'] = pagination.get('page_number') + 1
