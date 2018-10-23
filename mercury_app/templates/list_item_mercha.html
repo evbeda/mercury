@@ -16,15 +16,20 @@
       </div>
     </div>
   </div>
-  {% if message %}
+  {% if messages %}
   <div class="row">
     <div class="col-12">
       <div class="alert alert-warning">
-        <strong>{{ message }}</strong>
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
       </div>
     </div>
   </div>
   {% endif %}
+
   <div class="row">
     <div class="col-12">
       {% if order.merch_status == 'CO' %}
@@ -36,7 +41,7 @@
             {% endif %}
             <h5 class="card-header">Order details</h5>
             <div class="card-body">
-              <h5 class="font-weight-light"><strong> {{ order.name }} </strong>  </h5>
+              <h5 class="font-weight-light"><strong>Order Buyer {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
               <h6 class="font-weight-light"><small>Order Status</small>
                 {% if order.merch_status == 'CO' %}
                 Delivered
