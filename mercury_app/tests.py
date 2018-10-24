@@ -20,6 +20,7 @@ from .test_factories import (
     TransactionFactory,
     UserWebhookFactory,
 )
+from .pdf_utils import pdf_merchandise
 from .utils import (
     get_auth_token,
     get_api_organization,
@@ -61,7 +62,6 @@ from .utils import (
     create_order_webhook_from_view,
     delete_events,
     send_email_alert,
-    pdf_merchandise,
 )
 from mercury_app.views import Home, Summary, DeleteEvents, pdf
 from django.utils import timezone

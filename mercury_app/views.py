@@ -21,6 +21,7 @@ from mercury_app.models import (
 from mercury_app.tables import OrderTable, TransactionTable
 from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
+from mercury_app.pdf_utils import pdf_merchandise
 from mercury_app.utils import (
     get_auth_token,
     get_api_organization,
@@ -50,7 +51,6 @@ from mercury_app.utils import (
     EventAccessMixin,
     OrderAccessMixin,
     send_email_alert,
-    pdf_merchandise,
 )
 import dateutil.parser
 
@@ -62,12 +62,14 @@ def accept_webhook(request):
     # do email sending inside get_data method
     return HttpResponse('OK', 200)
 
+
 def pdf(request, **kwargs):
     order = kwargs['order_id']
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename=merchandise.pdf'
     response.write(pdf_merchandise(order))
     return response
+
 
 @method_decorator(login_required, name='dispatch')
 class TransactionListView(SingleTableView, LoginRequiredMixin, EventAccessMixin):
