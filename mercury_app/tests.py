@@ -21,8 +21,12 @@ from .test_factories import (
     UserWebhookFactory,
 )
 from .pdf_utils import pdf_merchandise
+from django.template import loader
 from .utils import (
     get_auth_token,
+    get_email_pdf_context,
+    get_merchas_for_email,
+    send_email_with_pdf,
     get_api_organization,
     get_summary_orders,
     get_api_events_org,
@@ -63,7 +67,7 @@ from .utils import (
     delete_events,
     send_email_alert,
 )
-from mercury_app.views import Home, Summary, DeleteEvents, pdf
+from mercury_app.views import Home, Summary
 from django.utils import timezone
 from django.urls import resolve
 from datetime import datetime
@@ -71,7 +75,6 @@ from unittest.mock import (
     patch,
     MagicMock,
 )
-from unittest import skip
 import json
 
 MOCK_ORGANIZATION_API = {
@@ -148,6 +151,29 @@ MOCK_EVENT_API = {
         'is_externally_ticketed': False,
         'logo': None
     }]}
+
+
+class TestMerchandise(TestCase):
+    def test_quantity_handed(self):
+        merchandise = MerchandiseFactory()
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        result = merchandise.quantity_handed
+        self.assertEqual(result, 1)
+
+    def test_quantity_handed_two(self):
+        merchandise = MerchandiseFactory()
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        result = merchandise.quantity_handed
+        self.assertEqual(result, 2)
+
+    def test_quantity_handed_three(self):
+        merchandise = MerchandiseFactory()
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        TransactionFactory(merchandise=merchandise, operation_type='HA')
+        result = merchandise.quantity_handed
+        self.assertEqual(result, 3)
 
 
 class TestBase(TestCase):
@@ -369,49 +395,39 @@ class APICallsTest(TestCase):
 
 class UtilsTest(TestCase):
 
-    @patch('mercury_app.utils.send_mail', return_value=0)
-    def test_send_email_alert(self, mock_send_email):
-        expected = ("<h2 style='color:rgb(1 ,161 ,165);'>" +
-                    "Merchandise delivery:</h2><hr>" +
-                    "<p>Item: <strong>gorra</strong></p>" +
-                    "<p>Subtype: <strong>red</strong></p>" +
-                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
-                    "<p>Operation: <strong>Hand</strong></p><hr>" +
-                    "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>")
-        param = [["gorra",
-                  "red",
-                  "2018-10-23 13:49:30",
-                  "HA",
-                  ]]
-        result = send_email_alert(json.dumps(
-            param), "navarro_lautaro@hotmail.com")
+    def test_get_merchas_for_email(self):
+        order = OrderFactory(id=20, email="algun@email.com")
+        merchandises = [MerchandiseFactory(
+            name="Gorra", item_type="Roja", order=order)]
+        result = get_merchas_for_email(merchandises)
+        expected = ([["Gorra", "Roja", 0]], 20, "algun@email.com")
         self.assertEqual(expected, result)
 
+    def test_get_merchas_for_email_two(self):
+        order = OrderFactory(id=20, email="algun@email.com")
+        merchandises = [MerchandiseFactory(
+            name="Gorra", item_type="Azul", order=order)]
+        TransactionFactory(merchandise=merchandises[0],
+                           operation_type='HA')
+        result = get_merchas_for_email(merchandises)
+        expected = ([["Gorra", "Azul", 1]], 20, "algun@email.com")
+        self.assertEqual(expected, result)
+
+    @patch('django.template.loader.get_template', return_value=loader.get_template('404.html'))
     @patch('mercury_app.utils.send_mail', return_value=0)
-    def test_send_email_alert_two(self, mock_send_email):
-        expected = ("<h2 style='color:rgb(1 ,161 ,165);'>" +
-                    "Merchandise delivery:</h2><hr>" +
-                    "<p>Item: <strong>gorra</strong></p>" +
-                    "<p>Subtype: <strong>red</strong></p>" +
-                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
-                    "<p>Operation: <strong>Hand</strong></p><hr>" +
-                    "<p>Item: <strong>gorra</strong></p>" +
-                    "<p>Subtype: <strong>blue</strong></p>" +
-                    "<p>Date: <strong>2018-10-23 13:49:30</strong></p>" +
-                    "<p>Operation: <strong>Hand</strong></p><hr>" +
-                    "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>")
-        param = [["gorra",
-                  "red",
-                  "2018-10-23 13:49:30",
-                  "HA",
-                  ],
-                 ["gorra",
-                  "blue",
-                  "2018-10-23 13:49:30",
-                  "HA",
+    def test_send_email_alert(self, mock_send_email, mock_template):
+        expected = {'transactions': [["gorra", "red"]],
+                    'date': '2018-10-23 13:49:30',
+                    'operation': 'HA',
+                    'order_id': 1}
+        param = [['gorra',
+                  'red',
                   ]]
-        result = send_email_alert(json.dumps(
-            param), "navarro_lautaro@hotmail.com")
+        result = send_email_alert(json.dumps(param),
+                                  'navarro_lautaro@hotmail.com',
+                                  '2018-10-23 13:49:30',
+                                  'HA',
+                                  1)
         self.assertEqual(expected, result)
 
     def test_get_db_event_by_id(self):
@@ -718,8 +734,9 @@ class UtilsWebhook(TestBase):
         result = webhook_order_available(user, order)
         self.assertEqual(result, None)
 
+    @patch('mercury_app.utils.send_email_with_pdf', return_value=True)
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
-    def test_get_data(self, mock_get_api_order):
+    def test_get_data(self, mock_get_api_order, mock_send_email_with_pdf):
         request = MagicMock(
             body='{"config": {"action": "order.placed", "user_id": 563480245671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
         )
@@ -732,6 +749,24 @@ class UtilsWebhook(TestBase):
         result = get_data(json.loads(request.body),
                           request.build_absolute_uri('/')[:-1])
         self.assertTrue(result['status'])
+        self.assertTrue(result['email'])
+
+    def test_get_email_pdf_context(self):
+        event = EventFactory(name="Event", id=1)
+        order = OrderFactory(event=event)
+        result = get_email_pdf_context(order.id)
+        expected = {'event_name': "Event",
+                    'event_id': 1}
+        self.assertEqual(result, expected)
+
+    @patch('django.core.mail.EmailMessage.send', return_value=True)
+    @patch('django.template.loader.get_template', return_value=loader.get_template('404.html'))
+    def test_send_email_with_pdf(self, mock_template, mock_send):
+        event = EventFactory(name="Event", id=1)
+        order = OrderFactory(event=event)
+        MerchandiseFactory(order=order)
+        result = send_email_with_pdf(order.id, "some@email.com")
+        self.assertTrue(result)
 
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, 1)[0])
     def test_get_data(self, mock_get_api_order):
@@ -1140,6 +1175,7 @@ class SummaryTest(TestBase):
         response = self.client.get('/event/50781817783/summary/')
         self.assertEqual(404, response.status_code)
 
+
 @patch('mercury_app.views.send_email_alert', return_value=0)
 class ListItemMerchandisingTest(TestBase):
 
@@ -1437,14 +1473,3 @@ class TransactionViewTest(TestBase):
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')
         self.assertContains(response, 'Refund')
-
-
-class PDFTest(TestCase):
-
-    def test_pdf(self):
-        request = MagicMock(
-            body='{}'
-        )
-        order = OrderFactory()
-        result = pdf(request, order_id=order.id)
-        self.assertEqual(result.status_code, 200)

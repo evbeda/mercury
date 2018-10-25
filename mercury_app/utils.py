@@ -4,7 +4,8 @@ from eventbrite import Eventbrite
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 import pytz
-from django.core.mail import send_mail
+from django.template import loader
+from django.core.mail import send_mail, EmailMessage
 from datetime import (
     timedelta,
 )
@@ -16,8 +17,6 @@ from random import (
 )
 import json
 import os
-from django.conf import settings
-from django.http import Http404
 import re
 from .models import (
     Order,
@@ -29,6 +28,7 @@ from .models import (
     Transaction,
     MERCH_STATUS,
 )
+from mercury_app.pdf_utils import pdf_merchandise
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
     URL_ENDPOINT,
@@ -278,6 +278,33 @@ def delete_webhook(token, webhook_id):
     return HttpResponseRedirect('/')
 
 
+def get_email_pdf_context(order_id):
+    order = Order.objects.filter(id=order_id)[0]
+    context = {'event_name': order.event.name,
+               'event_id': order.event.id}
+    return context
+
+
+@app.task(ignore_result=True)
+def send_email_with_pdf(order_id, email):
+    try:
+        pdf = pdf_merchandise(order_id)
+        context = get_email_pdf_context(order_id)
+        template_html = "emails_pdf.html"
+        html = loader.get_template(template_html)
+        html_content = html.render(context)
+        msg = EmailMessage("Your mechandise for {}".format(context['event_name']),
+                           html_content,
+                           os.environ.get('EMAIL_HOST_USER'),
+                           [email])
+        msg.attach('merchandise.pdf', pdf, 'application/pdf')
+        msg.content_subtype = "html"
+        msg.send()
+        return True
+    except Exception:
+        return False
+
+
 @app.task(ignore_result=True)
 def get_data(body, domain):
     config_data = body
@@ -292,12 +319,13 @@ def get_data(body, domain):
         )
         event = Event.objects.get(eb_event_id=order['event_id'])
         if webhook_order_available(social_user.user, order):
-            create_event_orders_from_api(event, [order])
-
-            return {'status': True}
+            orders = create_event_orders_from_api(event, [order])
+            email = send_email_with_pdf.delay(orders[0][0].id,
+                                              orders[0][0].email)
+            return {'status': True, 'email': email}
     else:
 
-        return {'status': False}
+        return {'status': False, 'email': False}
 
 
 def webhook_order_available(user, order):
@@ -733,26 +761,36 @@ class OrderAccessMixin():
 
 
 @app.task(ignore_result=True)
-def send_email_alert(transactions, email):
-    message = "<h2 style='color:rgb(1 ,161 ,165);'>Merchandise delivery:</h2><hr>"
+def send_email_alert(transactions, email, date, operation, order_id):
     transactions = json.loads(transactions)
     if len(transactions):
-        for transaction in transactions:
-            message += "<p>Item: <strong>" + transaction[0] + "</strong></p>"
-            message += "<p>Subtype: <strong>" + \
-                transaction[1] + "</strong></p>"
-            message += "<p>Date: <strong>" + transaction[2] + "</strong></p>"
-            if transaction[3] == 'HA':
-                message += "<p>Operation: <strong>Hand</strong></p><hr>"
-            else:
-                message += "<p>Operation: <strong>Refund</strong></p><hr>"
-        message += "<h3 style='color:rgb(1 ,161 ,165);'>Mercury team</h3>"
+        template_html = "email.html"
+        text_content = "Merchandise delivery"
+        html = loader.get_template(template_html)
+        context = {'transactions': transactions,
+                   'date': date,
+                   'operation': operation,
+                   'order_id': order_id}
+        html_content = html.render(context)
         send_mail(
             "Merchandise delivery",
-            message,
+            text_content,
             os.environ.get('EMAIL_HOST_USER'),
             [email],
-            html_message=message,
+            html_message=html_content,
             fail_silently=False,
         )
-        return message
+        return context
+
+
+def get_merchas_for_email(merchases):
+    merchandises = []
+    merchases_ids = []
+    for mercha in merchases:
+        if mercha.id not in merchases_ids:
+            merchandises.append([mercha.name,
+                                 mercha.item_type,
+                                 mercha.quantity_handed,
+                                 ])
+            merchases_ids.append(mercha.id)
+    return merchandises, mercha.order.id, mercha.order.email

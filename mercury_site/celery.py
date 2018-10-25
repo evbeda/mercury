@@ -20,12 +20,7 @@ app.autodiscover_tasks()
 #     BROKER_URL=os.environ['REDIS_URL'],
 #     CELERY_RESULT_BACKEND=os.environ['REDIS_URL'],
 # )
-app.conf.update(
-    BROKER_URL=os.environ['REDIS_URL'],
-    CELERY_RESULT_BACKEND=os.environ['REDIS_URL'],
-)
-
-
-@app.task(bind=True)
-def debug_task(self):
-    print('Reqiest: {0!r}'.format(self.request))
+# app.conf.update(
+#     BROKER_URL=os.environ['REDIS_URL'],
+#     CELERY_RESULT_BACKEND=os.environ['REDIS_URL'],
+# )

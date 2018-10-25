@@ -9,13 +9,11 @@ from mercury_app.views import (
     ScanQRView,
     DeleteEvents,
     TransactionListView,
-    pdf,
 )
 
 
 urlpatterns = [
     url(r'event/(?P<event_id>\d+)/summary/$', Summary.as_view(template_name='summary.html'), name='summary'),
-    url(r'^pdf/(?P<order_id>\d+)/$', pdf),
     url(r'event/(?P<event_id>\d+)/scanqr/$', ScanQRView.as_view(template_name='scanqr.html'), name='scanqr'),
     url(r'event/(?P<event_id>\d+)/delete/$', DeleteEvents.as_view(template_name='delete.html'), name='delete'),
 	url(r'^webhook-point/',accept_webhook,name='accept_webhook'),

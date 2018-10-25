@@ -1,0 +1,60 @@
+{% load inlinecss %}
+{% inlinecss "css/email.css" %}
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Merchandise Handed</title>
+  </head>
+  <body class="">
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body">
+      <tr>
+        <td>&nbsp;</td>
+        <td class="container">
+          <div class="content">
+            <span class="preheader">We have delivered some items that you bought</span>
+            <table role="presentation" class="main">
+              <tr>
+                <td class="wrapper">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <p>Hi there,</p>
+                        <p>You are receiving this email because we have delivered some items that you bought</p>
+                        <div>
+                          <h4>Date: {{date}}</h4>
+                          <h4>Operation type: {{operation}}</h4>
+                          <h4>Order id: {{order_id}}</h4>
+                        </div>
+                        {% for transaction in transactions %}
+                        <hr>
+                        <h3>Type: {{transaction.0}} ({{transaction.1}})</h3>
+                        <h3>Quantity: {{transaction.2}}</h3>
+                        {% endfor %}
+                        <hr>
+                        <p>Contact the organizer for any questions related to this purchase.</p>
+                        <p>This merchandise is not subject to Mercury Terms of Service, Privacy Policy, and Cookie Policy.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <div class="footer">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td class="content-block">
+                    <span class="apple-link">Mercury</span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+  </body>
+</html>
+{% endinlinecss %}
