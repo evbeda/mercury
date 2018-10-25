@@ -9,6 +9,8 @@ from django.http import HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
+from django.utils import timezone
+from datetime import datetime
 from mercury_app.models import (
     Organization,
     UserOrganization,
@@ -161,6 +163,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
         data = self.request.POST
         keys = list(data)[:-2]
         merchases = []
+        date = datetime.now(tz=timezone.utc)
         for item in keys:
             for qty in range(int(data[item])):
                 mercha = Merchandise.objects.get(
@@ -172,9 +175,10 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                     data['comment'],
                     'unique',
                     'HA',
+                    date,
                 )
                 merchases.append(mercha)
-        merchandises, order_id, email = get_merchas_for_email(merchases)
+        merchandises, order_id, email = get_merchas_for_email(merchases, transaction.date)
         date = transaction.date.strftime("%Y-%m-%d %H:%M:%S")
         operation = transaction.operation_type
         send_email_alert.delay(json.dumps(merchandises),
