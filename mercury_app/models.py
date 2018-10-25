@@ -102,6 +102,12 @@ class Merchandise(models.Model):
     quantity = models.IntegerField(default=0)
     value = models.CharField(max_length=16)
 
+    @property
+    def quantity_handed(self):
+        return Transaction.objects.filter(
+            merchandise__id=self.id,
+            operation_type='HA').count()
+
     def __string__(self):
         return self.name
 

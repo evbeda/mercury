@@ -21,7 +21,6 @@ from mercury_app.models import (
 from mercury_app.tables import OrderTable, TransactionTable
 from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
-from mercury_app.pdf_utils import pdf_merchandise
 from mercury_app.utils import (
     get_auth_token,
     get_api_organization,
@@ -51,6 +50,7 @@ from mercury_app.utils import (
     EventAccessMixin,
     OrderAccessMixin,
     send_email_alert,
+    get_merchas_for_email,
 )
 import dateutil.parser
 
@@ -59,16 +59,7 @@ import dateutil.parser
 def accept_webhook(request):
     get_data.delay(json.loads(request.body),
                    request.build_absolute_uri('/')[:-1])
-    # do email sending inside get_data method
     return HttpResponse('OK', 200)
-
-
-def pdf(request, **kwargs):
-    order = kwargs['order_id']
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename=merchandise.pdf'
-    response.write(pdf_merchandise(order))
-    return response
 
 
 @method_decorator(login_required, name='dispatch')
@@ -169,7 +160,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
     def post(self, request, *args, **kwargs):
         data = self.request.POST
         keys = list(data)[:-2]
-        transactions = []
+        merchases = []
         for item in keys:
             for qty in range(int(data[item])):
                 mercha = Merchandise.objects.get(
@@ -182,14 +173,15 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                     'unique',
                     'HA',
                 )
-                transactions.append([transaction.merchandise.name,
-                                     transaction.merchandise.item_type,
-                                     transaction.date.strftime(
-                                         "%Y-%m-%d %H:%M:%S"),
-                                     transaction.operation_type,
-                                     ])
-        email = mercha.order.email
-        send_email_alert.delay(json.dumps(transactions), email)
+                merchases.append(mercha)
+        merchandises, order_id, email = get_merchas_for_email(merchases)
+        date = transaction.date.strftime("%Y-%m-%d %H:%M:%S")
+        operation = transaction.operation_type
+        send_email_alert.delay(json.dumps(merchandises),
+                               email,
+                               date,
+                               operation,
+                               order_id)
         event_id = Order.objects.get(
             id=self.kwargs['order_id']).event.eb_event_id
         return redirect(reverse(

@@ -27,9 +27,8 @@ ALLOWED_HOSTS = [
     'ebmercury.herokuapp.com',
     'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
-    '957ac297.ngrok.io',
+    'a47d240a.ngrok.io',
 ]
-
 
 
 # Application definition
@@ -50,6 +49,7 @@ INSTALLED_APPS = [
     'fontawesome',
     'sekizai',
     'sslserver',
+    'django_inlinecss',
 ]
 
 MIDDLEWARE = [
