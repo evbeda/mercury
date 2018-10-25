@@ -156,23 +156,37 @@ MOCK_EVENT_API = {
 class TestMerchandise(TestCase):
     def test_quantity_handed(self):
         merchandise = MerchandiseFactory()
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        result = merchandise.quantity_handed
+        date = datetime.now(tz=timezone.utc)
+        TransactionFactory(
+            merchandise=merchandise, operation_type='HA', date=date)
+        result = merchandise.quantity_handed(date)
         self.assertEqual(result, 1)
 
     def test_quantity_handed_two(self):
         merchandise = MerchandiseFactory()
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        result = merchandise.quantity_handed
+        date = datetime.now(tz=timezone.utc)
+        TransactionFactory(merchandise=merchandise,
+                           operation_type='HA',
+                           date=date)
+        TransactionFactory(merchandise=merchandise,
+                           operation_type='HA',
+                           date=date)
+        result = merchandise.quantity_handed(date)
         self.assertEqual(result, 2)
 
     def test_quantity_handed_three(self):
         merchandise = MerchandiseFactory()
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        TransactionFactory(merchandise=merchandise, operation_type='HA')
-        result = merchandise.quantity_handed
+        date = datetime.now(tz=timezone.utc)
+        TransactionFactory(merchandise=merchandise,
+                           operation_type='HA',
+                           date=date)
+        TransactionFactory(merchandise=merchandise,
+                           operation_type='HA',
+                           date=date)
+        TransactionFactory(merchandise=merchandise,
+                           operation_type='HA',
+                           date=date)
+        result = merchandise.quantity_handed(date)
         self.assertEqual(result, 3)
 
 
@@ -399,7 +413,8 @@ class UtilsTest(TestCase):
         order = OrderFactory(id=20, email="algun@email.com")
         merchandises = [MerchandiseFactory(
             name="Gorra", item_type="Roja", order=order)]
-        result = get_merchas_for_email(merchandises)
+        date = datetime.now(tz=timezone.utc)
+        result = get_merchas_for_email(merchandises, date)
         expected = ([["Gorra", "Roja", 0]], 20, "algun@email.com")
         self.assertEqual(expected, result)
 
@@ -407,9 +422,11 @@ class UtilsTest(TestCase):
         order = OrderFactory(id=20, email="algun@email.com")
         merchandises = [MerchandiseFactory(
             name="Gorra", item_type="Azul", order=order)]
+        date = datetime.now(tz=timezone.utc)
         TransactionFactory(merchandise=merchandises[0],
-                           operation_type='HA')
-        result = get_merchas_for_email(merchandises)
+                           operation_type='HA',
+                           date=date)
+        result = get_merchas_for_email(merchandises, date)
         expected = ([["Gorra", "Azul", 1]], 20, "algun@email.com")
         self.assertEqual(expected, result)
 
@@ -612,8 +629,9 @@ class UtilsTest(TestCase):
         self.assertEqual(result[0], None)
 
     def test_create_transaction(self):
+        date = datetime.now(tz=timezone.utc)
         tx = create_transaction(
-            UserFactory(), MerchandiseFactory(), 'TEST NOTE', 'iPhone', 'HA')
+            UserFactory(), MerchandiseFactory(), 'TEST NOTE', 'iPhone', 'HA', date)
         self.assertTrue(isinstance(tx, Transaction))
         self.assertEqual(tx.notes, 'TEST NOTE')
 

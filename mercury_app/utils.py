@@ -659,7 +659,7 @@ def get_summary_orders(event):
     return data_json
 
 
-def create_transaction(user, merchandise, note, device, operation):
+def create_transaction(user, merchandise, note, device, operation, date):
     try:
         tx = Transaction.objects.create(
             merchandise=merchandise,
@@ -667,6 +667,7 @@ def create_transaction(user, merchandise, note, device, operation):
             notes=note,
             device_name=device,
             operation_type=operation,
+            date=date,
         )
         update_db_merch_status(tx.merchandise.order)
         return tx
@@ -783,14 +784,14 @@ def send_email_alert(transactions, email, date, operation, order_id):
         return context
 
 
-def get_merchas_for_email(merchases):
+def get_merchas_for_email(merchases, date):
     merchandises = []
     merchases_ids = []
     for mercha in merchases:
         if mercha.id not in merchases_ids:
             merchandises.append([mercha.name,
                                  mercha.item_type,
-                                 mercha.quantity_handed,
+                                 mercha.quantity_handed(date),
                                  ])
             merchases_ids.append(mercha.id)
     return merchandises, mercha.order.id, mercha.order.email

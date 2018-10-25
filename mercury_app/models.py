@@ -102,11 +102,11 @@ class Merchandise(models.Model):
     quantity = models.IntegerField(default=0)
     value = models.CharField(max_length=16)
 
-    @property
-    def quantity_handed(self):
+    def quantity_handed(self, date):
         return Transaction.objects.filter(
             merchandise__id=self.id,
-            operation_type='HA').count()
+            operation_type='HA',
+            date=date).count()
 
     def __string__(self):
         return self.name
@@ -126,7 +126,7 @@ class Transaction(models.Model):
         ('HA', 'Hand'),
         ('RE', 'Refund'),
     )
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=False)
     from_who = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
