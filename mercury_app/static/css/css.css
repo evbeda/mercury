@@ -85,3 +85,48 @@ i.icon-black {
 }
 input.qtyplus { width:25px; height:25px;}
 input.qtyminus { width:25px; height:25px;}
+
+.mercury-font {
+  font-family: 'Roboto-Light';
+  font-size: 30px;
+  color: white;
+  height: 40px;
+  letter-spacing: 1.5px;
+}
+
+.mercury-font:hover {
+  color: white;
+  text-decoration: none;
+}
+
+.title {
+  font-family: 'Roboto-Regular';
+  font-size: 35px;
+  color: black;
+}
+
+.subtitle{
+  font-family: 'Roboto-LightItalic';
+  font-size: 17px;
+  color: grey;
+  margin-left: 2px;
+}
+
+.jumbotron {
+  background-color: transparent; 
+}
+
+.alerts {
+  font-family: 'Roboto-Medium';
+  font-size: 30px;
+}
+
+.event {
+  font-family: 'Roboto-Regular';
+  font-size: 27px;
+  color: grey;
+}
+
+#mercury{
+  text-decoration: none;
+}

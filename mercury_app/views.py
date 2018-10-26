@@ -22,7 +22,7 @@ from mercury_app.models import (
     Transaction,
     Attendee,
 )
-from mercury_app.tables import OrderTable, TransactionTable
+from mercury_app.tables import OrderTable, TransactionTable, EventTable
 from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
 from mercury_app.utils import (
@@ -234,26 +234,25 @@ class Summary(TemplateView, LoginRequiredMixin, EventAccessMixin):
 
 
 @method_decorator(login_required, name='dispatch')
-class Home(TemplateView, LoginRequiredMixin):
+class Home(SingleTableView, LoginRequiredMixin, ):
     template_name = 'index.html'
+    table_class = EventTable
+    model = Event
+
+    def get_queryset(self):
+        return get_db_events_by_organization(self.request.user)
 
     def get_context_data(self, **kwargs):
-        context = super(Home, self).get_context_data(**kwargs)
+        context = super(SingleTableView, self).get_context_data(**kwargs)
         create_order_webhook_from_view(self.request.user)
-        events = {'events': get_db_events_by_organization(self.request.user)}
-        message = self.request.GET.get('message')
-        page = self.request.GET.get('page')
-        paginator = Paginator(tuple(events['events']), 10)
-        try:
-            pagination = paginator.page(page)
-        except PageNotAnInteger:
-            pagination = paginator.page(1)
-        except EmptyPage:
-            pagination = paginator.page(paginator.num_pages)
+        table = self.get_table(**self.get_table_kwargs())
+        table.paginate(page=self.request.GET.get('page', 1), per_page=10)
+        context[self.get_context_table_name(table)] = table
         context['message'] = self.request.session.get('message')
         self.request.session['message'] = None
-        context['pagination'] = pagination
+        context['event_count'] = self.get_queryset().count()
         return context
+
 
 
 @method_decorator(login_required, name='dispatch')

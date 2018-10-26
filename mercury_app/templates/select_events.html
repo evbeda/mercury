@@ -16,8 +16,8 @@
     <div class="row">
       <div class="col-12">
         <div class="jumbotron">
-          <h1>Add events</h1>
-          <p>Here you have a list of your events at Eventbrite. Please select an event to manage.</p>
+          <h1 class="title">Add events</h1>
+          <p class="subtitle">Here you have a list of your events at Eventbrite. Please select an event to manage.</p>
           <div class="col-12 text-right">
             <a class="btn btn-outline-primary" href="{% url 'index'%}" >My events</a>
           </div>
@@ -29,7 +29,7 @@
       <div class="col-12">
         {% if events%}
         <table class="table">
-          <thead class="thead-dark">
+          <thead class="thead">
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Start date</th>
@@ -37,7 +37,6 @@
             </tr>
           </thead>
           <tbody>
-
            {% for event in events %}
            <tr>
             <td>{{ event.name.text }}</td>
