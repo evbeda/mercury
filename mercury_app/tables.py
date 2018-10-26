@@ -1,9 +1,37 @@
 import django_tables2 as tables
-from mercury_app.models import Order, Transaction, Attendee
+from mercury_app.models import Order, Transaction, Attendee, Event
 from django.utils.html import format_html
 from fontawesome.fields import IconField
 from django.utils.safestring import mark_safe
 
+
+class EventTable(tables.Table):
+    name = tables.Column(verbose_name='Name')
+    pretty_date = tables.Column(
+        verbose_name='Start Date',
+        empty_values=(),
+    )
+    actions = tables.Column(
+        verbose_name='Actions',
+        orderable=False,
+        empty_values=(),
+    )
+
+    def render_actions(self, value, record):
+        if record.is_processing == True:
+            return format_html('<div class="row"><div class="col">Processing...</div><div class="col"><a href="/"><i class="material-icons md-18 icon-black">refresh</i></a></div>')
+        else:
+            return format_html('<div class="row"><div class="col"><a href="/event/{}/summary/"><i class="material-icons md-18 icon-black">search</i></a></div><div class="col"><a href="/event/{}/delete/"><i class="material-icons md-18 icon-gray">delete_outline</i></a></div>'.format(record.eb_event_id, record.eb_event_id))
+
+    def render_pretty_date(self, value, record):
+        return record.date_start_date_utc
+
+    class Meta:
+        model = Event
+        template_name = 'django_tables2/bootstrap-responsive.html'
+        fields = ('name', 'actions')
+        sequence = ('name', 'pretty_date', 'actions',)
+        show_header = True
 
 
 class OrderTable(tables.Table):
@@ -61,4 +89,3 @@ class TransactionTable(tables.Table):
         template_name = 'django_tables2/bootstrap-responsive.html'
         fields = ('date', 'from_who', 'notes', 'operation_type','merchandise')
         sequence = ('operation_type','merchandise', 'date', 'from_who', 'notes',)
-
