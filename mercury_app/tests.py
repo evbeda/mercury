@@ -50,6 +50,7 @@ from .utils import (
     get_db_or_create_organization_by_id,
     get_db_transaction_by_merchandise,
     get_db_items_left,
+    get_db_attendee_from_barcode,
     update_db_merch_status,
     create_userorganization_assoc,
     create_event_orders_from_api,
@@ -573,6 +574,16 @@ class UtilsTest(TestBase):
         result = get_db_or_create_organization_by_id(None, None)
         self.assertEqual(result, None)
 
+    def test_get_db_attendee_from_barcode(self):
+        event = EventFactory()
+        att = AttendeeFactory(order__event=event)
+        result = get_db_attendee_from_barcode(att.barcode, event.eb_event_id)
+        self.assertEqual(int(result.eb_attendee_id), att.eb_attendee_id)
+
+    def test_get_db_attendee_from_barcode_no_result(self):
+        result = get_db_attendee_from_barcode('322', '111')
+        self.assertEqual(result, None)
+
     def test_create_userorganization_assoc_create_case(self):
         org = OrganizationFactory()
         user = UserFactory()
@@ -602,6 +613,14 @@ class UtilsTest(TestBase):
         att = AttendeeFactory()
         update_attendee_checked_from_api(self.user, att.barcode)
         att_search = Attendee.objects.get(barcode=att.barcode)
+        self.assertEqual(att_search.checked_in, True)
+
+    @patch('mercury_app.utils.get_api_attendee_checked')
+    def test_update_attendee_checked_from_api(self, mock_get_api_attendee_checked):
+        mock_get_api_attendee_checked.return_value = {'checked_in': True}
+        att = AttendeeFactory()
+        update_attendee_checked_from_api(self.user, eb_attendee_id=att.eb_attendee_id)
+        att_search = Attendee.objects.get(eb_attendee_id=att.eb_attendee_id)
         self.assertEqual(att_search.checked_in, True)
 
     @patch('mercury_app.utils.get_api_events_org')
@@ -1244,7 +1263,7 @@ class SummaryTest(TestBase):
         response = self.client.get('/event/50781817783/summary/')
         self.assertEqual(404, response.status_code)
 
-
+@patch('mercury_app.views.update_attendee_checked_from_api', return_value=True)
 @patch('mercury_app.views.send_email_alert', return_value=0)
 class ListItemMerchandisingTest(TestBase):
 
@@ -1254,20 +1273,29 @@ class ListItemMerchandisingTest(TestBase):
         UserOrganizationFactory(user=self.user, organization=self.org)
         self.event = EventFactory(organization=self.org)
 
-    def test_merchandise_one_entry(self, mock_send_email):
-        order = OrderFactory(event=self.event, id=5)
+    def test_merchandise_one_entry_not_checked(self, mock_send_email, mock_attendee_checked):
+        mock_attendee_checked.return_value = False
+        order = OrderFactory(event=self.event)
+        att = AttendeeFactory(order=order, checked_in=False)
         MerchandiseFactory(name='Camiseta', order=order)
-        response = self.client.get('/view_order/5/')
+        url = '/view_order/{}/{}/'.format(order.id, att.eb_attendee_id)
+        response = self.client.get('/view_order/{}/{}/'.format(order.id, att.eb_attendee_id))
+        self.assertContains(response, 'This attendee has not checked in.')
+
+    def test_merchandise_one_entry(self, mock_send_email, mock_attendee_checked):
+        order = OrderFactory(event=self.event)
+        MerchandiseFactory(name='Camiseta', order=order)
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertContains(response, 'Camiseta')
 
-    def test_merchandise_status_code(self, mock_send_email):
-        order = OrderFactory(event=self.event, id=4)
+    def test_merchandise_status_code(self, mock_send_email, mock_attendee_checked):
+        order = OrderFactory(event=self.event)
         MerchandiseFactory(name='Camiseta', order=order)
-        response = self.client.get('/view_order/4/')
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertEqual(response.status_code, 200)
 
-    def test_merchandise_delivered(self, mock_send_email):
-        order = OrderFactory(event=self.event, id=5)
+    def test_merchandise_delivered(self, mock_send_email, mock_attendee_checked):
+        order = OrderFactory(event=self.event)
         merchandise = MerchandiseFactory(
             name='Gorra',
             quantity=1,
@@ -1277,24 +1305,24 @@ class ListItemMerchandisingTest(TestBase):
             merchandise=merchandise,
             operation_type='HA'
         )
-        response = self.client.get('/view_order/5/')
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertContains(response, 'Yes')
 
-    def test_merchandise_403(self, mock_send_email):
+    def test_merchandise_403(self, mock_send_email, mock_attendee_checked):
         user = UserFactory()
         org = OrganizationFactory()
         UserOrganizationFactory(user=user, organization=org)
         event = EventFactory(organization=org)
-        OrderFactory(event=event, id=5)
-        response = self.client.get('/view_order/5/')
+        order = OrderFactory()
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertEqual(403, response.status_code)
 
-    def test_merchandise_404(self, mock_send_email):
-        response = self.client.get('/view_order/5/')
+    def test_merchandise_404(self, mock_send_email, mock_attendee_checked):
+        response = self.client.get('/view_order/243284293427342398423/')
         self.assertEqual(404, response.status_code)
 
-    def test_merchandise_partial_delivery(self, mock_send_email):
-        order = OrderFactory(event=self.event, id=5)
+    def test_merchandise_partial_delivery(self, mock_send_email, mock_attendee_checked):
+        order = OrderFactory(event=self.event)
         merchandise = MerchandiseFactory(
             name='Gorra',
             quantity=2,
@@ -1304,11 +1332,11 @@ class ListItemMerchandisingTest(TestBase):
             merchandise=merchandise,
             operation_type='HA'
         )
-        response = self.client.get('/view_order/5/')
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertContains(response, 'Partially')
 
-    def test_merchandise_delivered_two(self, mock_send_email):
-        order = OrderFactory(event=self.event, id=5)
+    def test_merchandise_delivered_two(self, mock_send_email, mock_attendee_checked):
+        order = OrderFactory(event=self.event)
         merchandise = MerchandiseFactory(
             name='Gorra',
             quantity=2,
@@ -1322,10 +1350,10 @@ class ListItemMerchandisingTest(TestBase):
             merchandise=merchandise,
             operation_type='HA'
         )
-        response = self.client.get('/view_order/5/')
+        response = self.client.get('/view_order/{}/'.format(order.id))
         self.assertContains(response, 'Yes')
 
-    def test_merchandise_post_form(self, mock_send_email):
+    def test_merchandise_post_form(self, mock_send_email, mock_attendee_checked):
         order = OrderFactory(event=self.event, id=7)
         merchandise = MerchandiseFactory(
             eb_merchandising_id=123,
@@ -1334,7 +1362,9 @@ class ListItemMerchandisingTest(TestBase):
             order=order,
         )
         response = self.client.post(
-            '/view_order/7/', {'123': '1', 'comment': 'test', 'csrftoken': 'TEST'})
+            '/view_order/{}/'.format(order.id),
+            {'123': '1', 'comment': 'test', 'csrftoken': 'TEST'},
+        )
         self.assertEqual(response.status_code, 302)
         transaction_count = Transaction.objects.filter(
             merchandise=merchandise
@@ -1487,22 +1517,25 @@ class ScanQRViewTest(TestBase):
             '/event/{}/scanqr/'.format(self.event.eb_event_id))
         self.assertContains(response, 'canvas')
 
+    @patch('mercury_app.views.get_db_attendee_from_barcode')
     @patch('mercury_app.views.update_attendee_checked_from_api')
     @patch('mercury_app.views.get_api_order_barcode')
     def test_scan_post_success(
         self,
         mock_get_api_order_barcode,
         mock_update_attendee_checked_from_api,
+        mock_get_db_attendee_from_barcode,
     ):
-        order = OrderFactory(event=self.event, eb_order_id='1234')
+        order = OrderFactory(event=self.event)
         MerchandiseFactory(name='shirt', order=order)
-        mock_get_api_order_barcode.return_value = {'id': '1234'}
+        mock_get_api_order_barcode.return_value = {'id': order.eb_order_id}
+        mock_get_db_attendee_from_barcode.return_value = AttendeeFactory(order=order)
         response = self.client.post(
             '/event/{}/scanqr/'.format(self.event.eb_event_id),
             {
                 'code': '55555',
-                'org': '22222',
-                'event': '1111',
+                'org': self.org.eb_organization_id,
+                'event': self.event.eb_event_id,
             },
             follow=True
         )
