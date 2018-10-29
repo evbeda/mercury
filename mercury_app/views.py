@@ -270,7 +270,7 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         )
         for event in events:
             event['start']['local'] = (dateutil.parser.parse(
-                event['start']['local'])).strftime('%b. %e, %Y - %I %p')
+                event['start']['local'])).strftime('%b. %e, %Y - %-I:%M %p')
         context['events'] = events
         if pagination:
             context['has_next'] = pagination.get('has_more_items')

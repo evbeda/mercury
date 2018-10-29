@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 
 
 class EventTable(tables.Table):
-    name = tables.Column(verbose_name='Name')
+    name = tables.Column(verbose_name='Event name')
     pretty_date = tables.Column(
         verbose_name='Start Date',
         empty_values=(),
@@ -76,7 +76,7 @@ class OrderTable(tables.Table):
 
 class TransactionTable(tables.Table):
     date = tables.Column(verbose_name='Date')
-    from_who = tables.Column(verbose_name='Responsible')
+    from_who = tables.Column(verbose_name='Team member')
     notes = tables.Column(verbose_name='Comment')
     operation_type = tables.Column(verbose_name='Operation Type')
     merchandise = tables.Column(verbose_name='Item')

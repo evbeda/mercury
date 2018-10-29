@@ -41,8 +41,8 @@
             {% endif %}
             <h5 class="card-header">Order details</h5>
             <div class="card-body">
-              <h5 class="font-weight-light"><strong>Order Buyer {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
-              <h6 class="font-weight-light"><small>Order Status</small>
+              <h5 class="font-weight-light">Buyer<strong>  &nbsp {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
+              <h6 class="font-weight-light"><small>Status &nbsp</small>
                 {% if order.merch_status == 'CO' %}
                 Delivered
                 {% elif order.merch_status == 'PA' %}
@@ -51,8 +51,8 @@
                 Pending
                 {% endif %}
               </h6>
-              <h6 class="font-weight-light"><small>Order number </small> {{ order.eb_order_id }} </h6>
-              <h6 class="font-weight-light"><small>Order Date </small> {{ order.created }} </h6>
+              <h6 class="font-weight-light"><small> Number  &nbsp</small> {{ order.eb_order_id }} </h6>
+              <h6 class="font-weight-light"><small> Date  &nbsp</small> {{ order.created }} </h6>
             </div>
           </div>
         </div>
@@ -68,18 +68,18 @@
               <div class="row">
                 <div class="col">
                   <h6 class="font-weight-light">Subtype</h6>
-                  <h6 class="font-weight-light">Sold</h6>
-                  <h6 class="font-weight-light">Unit value</h6>
+                  <h6 class="font-weight-light">Quantity sold</h6>
+                  <h6 class="font-weight-light">Unit price</h6>
                   <h6 class="font-weight-light">Delivered</h6>
-                  <h6 class="font-weight-light">Items left</h6>
-                  <h6 class="font-weight-light">Amount to deliver</h6>
+                  <h6 class="font-weight-light">Quantity remaining</h6>
+                  <h6 class="font-weight-light">Quantity being fulfilled</h6>
 
 
                 </div>
                 <div class="col">
                   <h6 class="font-weight-light">{{ item.item_type }} </h6>
                   <h6 class="font-weight-light">{{ item.quantity }} </h6>
-                  <h6 class="font-weight-light">{{ item.value }} </h6>
+                  <h6 class="font-weight-light">$ &nbsp{{ item.value }} </h6>
                   <h6 class="font-weight-light">
                     {% if item.quantity == item.items_left %}
                     No
@@ -106,7 +106,7 @@
           {% endfor %}
           <div class="row">
             <div class="col text-right m-2">
-             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="(Optional) Add a comment to this delivery"></textarea>
+             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="(Optional) Add a comment to this transaction"></textarea>
              <br>
              <button  type="button" id="select-all" class="btn btn-outline-success" >Select All</button>
              <button  type="submit" id="deliver-btn" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button>
