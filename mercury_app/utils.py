@@ -326,6 +326,14 @@ def get_events_for_organizations(organizations, user, page_number):
     return event, pagination
 
 
+def get_db_attendee_from_barcode(barcode, event_id):
+    try:
+        att = Attendee.objects.get(barcode=barcode, order__event__eb_event_id=event_id)
+        return att
+    except Exception:
+        return None
+
+
 def create_order_webhook_from_view(user):
     if not UserWebhook.objects.filter(user=user).exists():
         token = get_auth_token(user)
@@ -337,17 +345,26 @@ def create_order_webhook_from_view(user):
             )
 
 
-def update_attendee_checked_from_api(user, barcode):
-    attendee = Attendee.objects.get(barcode=barcode)
+def update_attendee_checked_from_api(user, barcode=None, eb_attendee_id=None):
+    if barcode is not None:
+        attendee = Attendee.objects.get(barcode=barcode)
+    elif eb_attendee_id is not None:
+        attendee = Attendee.objects.get(eb_attendee_id=eb_attendee_id)
     result = get_api_attendee_checked(
         get_auth_token(user),
         attendee.eb_attendee_id,
         attendee.order.event.eb_event_id,
     )
-    Attendee.objects.filter(barcode=barcode).update(
-        checked_in=result.get('checked_in')
-    )
-    return result.get('checked_in')
+    if result is not None:
+        if barcode is not None:
+            Attendee.objects.filter(barcode=barcode).update(
+                checked_in=result.get('checked_in')
+            )
+        if eb_attendee_id is not None:
+            Attendee.objects.filter(eb_attendee_id=eb_attendee_id).update(
+                checked_in=result.get('checked_in')
+            )
+    return result.get('checked_in', 'Error')
 
 
 def create_webhook(token):

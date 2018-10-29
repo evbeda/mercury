@@ -63,7 +63,7 @@
       </div>
       <div class="row">
         <div class="col-12">
-          <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
+          <form id="delivery" action="{% url 'item_mercha' order_id=order_id attendee_id=attendee_id %}" method="POST">
            {% for item in merchandising %}
            <br>
            <div class="card">

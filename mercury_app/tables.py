@@ -64,7 +64,7 @@ class OrderTable(tables.Table):
         return '{} {}'.format(record.first_name, record.last_name)
 
     def render_actions(self, value, record):
-        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/"><i class="material-icons md-18 icon-gray">info</i></a></div></div>'.format(record.order.id))
+        return format_html('<div class="row text-center"><div class="col-12 text-center"><a id="hip_not_underline" href="/view_order/{}/{}/"><i class="material-icons md-18 icon-gray">info</i></a></div></div>'.format(record.order.id, record.eb_attendee_id))
 
     class Meta:
         model = Attendee

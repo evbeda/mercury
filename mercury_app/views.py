@@ -42,6 +42,7 @@ from mercury_app.utils import (
     get_db_events_by_organization,
     get_db_or_create_organization_by_id,
     get_db_items_left,
+    get_db_attendee_from_barcode,
     create_userorganization_assoc,
     create_event_orders_from_api,
     create_event_from_api,
@@ -116,27 +117,28 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
         org_id = data['org']
         event_id = data['event']
         token = get_auth_token(self.request.user)
-        order = get_api_order_barcode(token, org_id, qrcode)
         try:
+            order = get_api_order_barcode(token, org_id, qrcode)
             eb_order_id = order.get('id')
             order_id = Order.objects.get(eb_order_id=eb_order_id).id
-            checked_in = update_attendee_checked_from_api(
-                self.request.user,
-                qrcode,
-            )
-            if not checked_in:
-                messages.info(request, 'This attendee has not checked in.')
+            attendee_id = get_db_attendee_from_barcode(qrcode, event_id).eb_attendee_id
             return redirect(reverse(
                 'item_mercha',
-                kwargs={'order_id': order_id},
+                kwargs={
+                'order_id': order_id,
+                'attendee_id': attendee_id,
+                },
             ))
+        except TypeError:
+            self.request.session['qrerror'] = 'There was an error processing your QR Code (QR not valid).'
+
         except Exception as e:
             self.request.session['qrerror'] = 'There was an error processing your QR Code ({}).'.format(
                 e)
-            return redirect(reverse(
-                'scanqr',
-                kwargs={'event_id': event_id},
-            ))
+        return redirect(reverse(
+            'scanqr',
+            kwargs={'event_id': event_id},
+        ))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -176,6 +178,26 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
         context = super(ListItemMerchandising, self).get_context_data(**kwargs)
         order = get_db_order_by_id(self.kwargs['order_id'])
         merchandising_query_obj = self.get_merchandise()
+        attendee_id = self.kwargs.get('attendee_id')
+        if attendee_id is not (None or ''):
+            try:
+                attendee = Attendee.objects.get(eb_attendee_id=attendee_id)
+                checked_in = attendee.checked_in
+                if not checked_in:
+                    checked_in = update_attendee_checked_from_api(
+                        user=self.request.user,
+                        eb_attendee_id=attendee_id
+                    )
+                if not checked_in:
+                    messages.info(
+                        self.request,
+                        'This attendee has not checked in.',
+                    )
+            except Exception as e:
+                messages.info(
+                    self.request,
+                    e,
+                )
         context['merchandising'] = get_db_items_left(merchandising_query_obj)
         context['order'] = order
         return context
