@@ -60,7 +60,7 @@ class Event(models.Model):
         return self.name
 
     def date_start_date_utc(self):
-        return self.start_date_utc.strftime('%b. %e, %Y - %I %p')
+        return self.start_date_utc.strftime('%b. %e, %Y - %-I:%M %p')
 
     @property
     def is_processing(self):
@@ -128,8 +128,8 @@ class UserWebhook(models.Model):
 class Transaction(models.Model):
 
     OPERATION_TYPES = (
-        ('HA', 'Hand'),
-        ('RE', 'Refund'),
+        ('HA', 'Fulfillment'),
+        ('RE', 'Return'),
     )
     date = models.DateTimeField(auto_now_add=False)
     from_who = models.ForeignKey(

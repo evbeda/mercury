@@ -1573,8 +1573,8 @@ class TransactionViewTest(TestBase):
         response = self.client.get('/view_order/56/transactions/')
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')
-        self.assertContains(response, 'Hand')
-        self.assertNotContains(response, 'Refund')
+        self.assertContains(response, 'Fulfillment')
+        self.assertNotContains(response, 'Return')
 
     def test_two_transactions_in_view(self):
         order = OrderFactory(event=self.event, id=56)
@@ -1587,4 +1587,4 @@ class TransactionViewTest(TestBase):
         response = self.client.get('/view_order/56/transactions/')
         self.assertContains(response, 'Cap')
         self.assertContains(response, 'Water')
-        self.assertContains(response, 'Refund')
+        self.assertContains(response, 'Return')
