@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load i18n %}
 {% block import%}
 <link href="node_modules/britecharts/dist/css/common/common.css">
 <link href="node_modules/britecharts/dist/css/charts/line.css">
@@ -9,9 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/britecharts@2/dist/bundled/britecharts.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/britecharts/dist/css/britecharts.min.css" type="text/css" />
 {% endblock %}
-
 {% block content %}
-
 <div class="container pb-5">
   <div class="row">
     <div class="container">
@@ -19,16 +17,16 @@
       <div class="col-12">
         <div class="jumbotron">
           <div class="mb-5">
-              <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; Summary </p>
+              <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp;  {% trans "Summary" %}</p>
           </div>
           <div class="row">
             <div class="col col-md-9">
-              <h1 class="title">Summary</h1>
+              <h1 class="title">{% trans "Summary" %}</h1>
               <p class="event">{{ event.name }}</p>
             </div>
             <div class="col col-md-3 text-center text-md-right mt-4">
-                <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event.eb_event_id %}">Scan QR</a>
-                <a class="navbar-right btn btn-outline-info" href="{% url 'orders' event_id=event.eb_event_id %}">Event orders</a>
+                <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event.eb_event_id %}">{% trans "Scan QR" %}</a>
+                <a class="navbar-right btn btn-outline-info" href="{% url 'orders' event_id=event.eb_event_id %}">{% trans "Event orders" %}</a>
             </div>
           </div>
         </div>
@@ -46,8 +44,8 @@
     <div class="row">
       <div class="col-2"></div>
       <div class="col-8 text-center">
-            <h2>Items fulfilled</h2>
-            <h5>{{ data_handed_over_dont.2 }}/{{ data_handed_over_dont.1 }}</h5>
+        <h2>{% trans "Items fulfilled" %}</h2>
+        <h5>{{ data_handed_over_dont.2 }}/{{ data_handed_over_dont.1 }}</h5>
         <div class="row align-items-center justify-content-center text-center">
           <div class="col-9 col-sm-9 col-md-10 col-lg-11 col-xl-11">
             <div class="progress">
@@ -65,10 +63,10 @@
     <hr>
     <div class="row">
       <div class="col-12 text-center">
-        <h2>Orders fulfillment status</h2>
+        <h2>{% trans "Orders fulfillment status" %}</h2>
         <div class="js-donut-container embed-responsive text-center">
         </div>
-      <div class="js-legend-container embed-responsive text-center">
+        <div class="js-legend-container embed-responsive text-center">
         </div>
       </div>
     </div>
@@ -83,9 +81,9 @@
       <div class="card-body text-left">
         <div class="row">
           <div class="col-6">
-            <h5 class="font-weight-light">Fulfilled</h5>
-            <h5 class="font-weight-light">Pending</h5>
-            <h5 class="font-weight-light">Total</h5>
+            <h5 class="font-weight-light">{% trans "Fulfilled" %}</h5>
+            <h5 class="font-weight-light">{% trans "Pending" %}</h5>
+            <h5 class="font-weight-light">{% trans "Total" %}</h5>
           </div>
           <div class="col-6">
             <h5><strong>{{element.handed}}</strong><small> ({{element.handed_percentage}}%)</small></h5>
@@ -106,7 +104,6 @@
 </div>
 </div>
 </div>
-
 <script type="text/javascript">
   let data_orders = {{ data_orders |safe }};
   let colors = britecharts.colors.colorSchemas
@@ -127,5 +124,4 @@
   d3.select('.js-legend-container').datum(data_orders).call(legendChartOrders);
   d3.select('.js-donut-container').datum(data_orders).call(donutChartOrders);
 </script>
-
 {% endblock %}

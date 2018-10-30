@@ -3,6 +3,7 @@
 <head>
 {% load bootstrap4 %}
 {% load static %}
+{% load i18n %}
 {% load sekizai_tags %}
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %} {% endblock %}</title>
@@ -26,10 +27,10 @@
       <ul class="navbar-nav mr-auto">
       {% if user.is_authenticated %}
         <li class="nav-item">
-          <a class="nav-link" href="/">My events<span class="sr-only">(current)</span></a>
+          <a class="nav-link" href="/">{% trans "My events" %}<span class="sr-only">(current)</span></a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'select_events' %}">Add events</a>
+          <a class="nav-link" href="{% url 'select_events' %}">{% trans "Add events" %}</a>
         </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -38,7 +39,7 @@
             {{ user.username }}
           </a>
           <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-            <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+            <a class="dropdown-item" href="{% url 'logout' %}">{% trans "Logout" %}</a>
           </div>
         </li>
       </ul>
@@ -51,16 +52,28 @@
   {% block content %}
 </div>
 {% endblock %}
-<footer class="page-footer" style="background-color: #1E0A3C">
-  <div class="footer-copyright text-center py-3">© 2018 Copyright:
+<footer class="page-footer">
+  <div class="footer-copyright text-center py-3">© 2018 {% trans "Copyright" %}:
     <a href="#">Mercury.com</a>
+    <ul id="language-list" >
+      <a href="{% url 'activate_language' 'en' %}" class="text-white">
+        {% trans "English" %}
+            <img src="{% static 'img/en-flag.png'%}" name="en" style="height: 15px;">
+      </a>&nbsp;&nbsp;
+      <a href="{% url 'activate_language' 'de' %}" class="text-white">
+        {% trans "German" %}
+        <img src="{% static 'img/ge-flag.png'%}" name="es" style="height: 15px;">
+      </a>&nbsp;&nbsp;
+      <a href="{% url 'activate_language' 'nl' %}" class="text-white">
+        {% trans "Dutch" %}
+        <img src="{% static 'img/nl-flag.png'%}" name="de" style="height: 15px;">
+      </a>
+    </ul>
   </div>
 </footer>
 {% bootstrap_javascript jquery='full' %}
   {% block jsbottom %}
   {% endblock %}
-
 {% render_block "js" %}
-
 </body>
 </html>

@@ -10,10 +10,12 @@ from mercury_app.views import (
     ScanQRView,
     DeleteEvents,
     TransactionListView,
+    ActivateLanguageView,
 )
 
 
 urlpatterns = [
+    url(r'language/activate/(?P<language_code>[a-z]+)/', ActivateLanguageView.as_view(), name='activate_language'),
     url(r'event/(?P<event_id>\d+)/summary/$', Summary.as_view(template_name='summary.html'), name='summary'),
     url(r'event/(?P<event_id>\d+)/scanqr/$', ScanQRView.as_view(template_name='scanqr.html'), name='scanqr'),
     url(r'event/(?P<event_id>\d+)/delete/$', DeleteEvents.as_view(template_name='delete.html'), name='delete'),

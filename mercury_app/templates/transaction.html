@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load render_table from django_tables2 %}
+{% load i18n %}
 {% load bootstrap4 %}
 {% block content %}
 <div class="container">
@@ -8,17 +9,14 @@
     <div class="col-12">
       <div class="jumbotron">
         <div class="mb-5">
-          <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=event_id %}"> Event orders </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'orders' event_id=event_id %}"> Order Details</a>&nbsp;&nbsp;>&nbsp;&nbsp; Transaction Detail</p>
+          <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=event_id %}"> {% trans "Event orders" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'orders' event_id=event_id %}"> {% trans "Order Details" %}</a>&nbsp;&nbsp;>&nbsp;&nbsp; {% trans "Transaction Detail" %}</p>
         </div>
-        <h1 class="title">Transaction Detail</h1>
-        <p class="subtitle">for order #{{order_number}} from {{order_name}}</p>
-        <div class="row ">
-        </div>
+        <h1 class="title">{% trans "Transactions Detail" %}</h1>
+        <p class="subtitle">{% trans "Detailed transactions for order" %} #{{order_number}} {% trans "from" %} {{order_name}}</p>
       </div>
     </div>
+    {% render_table table %}
   </div>
-        {% render_table table %}
-      </div>
 </div>
 </div>
 {% endblock %}

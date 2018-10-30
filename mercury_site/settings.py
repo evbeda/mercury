@@ -14,6 +14,7 @@ import os
 import sys
 import dj_database_url
 from mercury_site.__init__ import get_env_variable
+from django.utils.translation import ugettext_lazy as _
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -156,9 +158,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGES = (
+    ('en', _('English')),
+    ('de', _('German')),
+    ('nl', _('Dutch')),
+)
 
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'en'
+
+TIME_ZONE = 'America/Argentina/Mendoza'
 
 USE_I18N = True
 
@@ -166,7 +174,7 @@ USE_L10N = True
 
 USE_TZ = True
 
-#email configuration
+# email configuration
 EMAIL_USE_TLS = True
 EMAIL_HOST = os.environ.get('EMAIL_HOST')
 EMAIL_PORT = os.environ.get('EMAIL_PORT')
@@ -179,6 +187,10 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+
+LOCALE_PATHS = (
+    os.path.join(BASE_DIR, 'locale'),
+)
 
 DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
 
