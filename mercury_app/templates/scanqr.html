@@ -39,44 +39,47 @@
 {% block content %}
 <div class="container pb-5">
 
-    <div class="row">
-        <div class="container">
-           <div class="row">
-              <div class="col-12">
-                <div class="jumbotron">
-                  <h1 class="title">QR Scan</h1>
-                  <p class="subtitle">Please scan the QR Code in the attendee's ticket</p>
-                  <div class="row ">
-                    <div class="col-12 text-right">
-                      <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">Orders</a>
-                      <a href="{% url 'summary' event_id=event_id %}" class="btn btn-outline-info">Summary</a>
-
-                  </div>
-              </div>
-          </div>
-              {% if errormsg %}
-    <div class="row">
+  <div class="row">
+    <div class="container">
+     <div class="row">
       <div class="col-12">
-        <div class="alert alert-warning">
-          <strong>{{ errormsg }}</strong>
+        <div class="jumbotron">
+          <div class="mb-5">
+            <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;QR Scan </p>
+          </div>
+          <div class="row">
+            <div class="col col-md-9">
+              <h1 class="title">QR Scan</h1>
+              <p class="subtitle">Please scan the QR Code in the attendee's ticket</p>
+            </div>
+            <div class="col col-md-3 text-center text-md-right mt-4 ">
+              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">Orders</a>
+            </div>
+          </div>
         </div>
+        {% if errormsg %}
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-warning">
+              <strong>{{ errormsg }}</strong>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
       </div>
+      <div class="col-sm">
+      </div>
+      <div class="col-sm">
+        <canvas></canvas>
+        <hr>
+        <select></select>
+      </div>
+      <div class="col-sm">
+      </div>
+
     </div>
-    {% endif %}
-
-      </div>
-      <div class="col-sm">
-      </div>
-      <div class="col-sm">
-          <canvas></canvas>
-          <hr>
-          <select></select>
-      </div>
-      <div class="col-sm">
-      </div>
-
   </div>
-</div>
-</div>
+ </div>
 </div>
 {% endblock %}
