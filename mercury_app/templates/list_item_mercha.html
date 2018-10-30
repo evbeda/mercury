@@ -5,14 +5,18 @@
   <div class="row">
     <div class="col-12">
       <div class="jumbotron">
-        <h1 class="title">Order Details</h1>
-        <p class="subtitle">Merchandise items that belong to this order.</p>
-        <div class="row ">
-          <div class="col-12 text-right">
-            <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=order.event.eb_event_id %}">Event orders</a>
-            <a class="navbar-right btn btn-outline-info" href="{% url 'transactions' order_id=order.id %}">Transactions</a>
-          </div>
+        <div class="mb-5">
+          <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=order.event.eb_event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=order.event.eb_event_id %}"> Event orders </a>&nbsp;&nbsp;>&nbsp;&nbsp; Order Details </p>
         </div>
+        <div class="row">
+            <div class="col col-md-9">
+              <h1 class="title">Order Details</h1>
+              <p class="subtitle">Merchandise items that belong to this order.</p>
+            </div>
+            <div class="col col-md-3 text-center text-md-right mt-4">
+               <a class="navbar-right btn btn-outline-info" href="{% url 'transactions' order_id=order.id %}">Transactions</a>
+            </div>
+          </div>
       </div>
     </div>
   </div>
