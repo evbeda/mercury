@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load sekizai_tags %}
 {% block content %}
+{% load i18n %}
 {% load static %}
 {% load render_table from django_tables2 %}
 {% load bootstrap4 %}
@@ -46,7 +47,6 @@
             $("#all-nav").addClass('active');
         }
     });
-
 </script>
 {% endaddtoblock %}
 <div class="container mb-5" >
@@ -55,25 +55,25 @@
       <div class="col-12">
         <div class="jumbotron">
             <div class="mb-5">
-                    <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_eb_event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;Event orders </p>
+                <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_eb_event_id %}"> {% trans "Summary" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp;{% trans "Event orders" %} </p>
             </div>
             <div class="row">
-            <div class="col col-md-9">
-              <h1 class="title">Event Orders</h1>
-              <p class="event">{{ event_name }}</p>
-            </div>
-            <div class="col col-md-3 text-center text-md-right mt-4">
-                 <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">Scan QR</a>
-            </div>
-          </div>
-    </div>
+                <div class="col col-md-9">
+                  <h1 class="title">{% trans "Event Orders" %}</h1>
+                  <p class="event">{{ event_name }}</p>
+              </div>
+              <div class="col col-md-3 text-center text-md-right mt-4">
+               <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">{% trans "Scan QR" %}</a>
+           </div>
+       </div>
+   </div>
 </div>
 </div>
 {% if order_count == 0 %}
 <div class="row">
   <div class="col-12">
     <div class="alert alert-warning">
-      <strong>Oops!</strong> It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again.
+      <strong>{% trans "Oops" %}!</strong> {% trans "It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again" %}.
   </div>
 </div>
 </div>
@@ -84,7 +84,7 @@
         <form action="" method="get" class="form-inline justify-content-center">
             {% bootstrap_form filter.form layout='inline' %}
             <div class="form-group is-valid">
-                <button class="btn btn-outline-secondary">Filter</button>
+                <button class="btn btn-outline-secondary">{% trans "Filter" %}</button>
             </div>
         </form>
         {% endif %}
@@ -96,7 +96,6 @@
     </div>
 </div>
 </div>
-
 {% endblock %}
 </div>
 {% endblock %}

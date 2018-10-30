@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% block jsbottom %}
 <script type="text/javascript" src="{% static 'js/qrcodelib.js' %}"></script>
@@ -35,25 +36,23 @@
     });
 </script>
 {% endblock %}
-
 {% block content %}
 <div class="container pb-5">
-
   <div class="row">
     <div class="container">
      <div class="row">
       <div class="col-12">
         <div class="jumbotron">
           <div class="mb-5">
-            <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;QR Scan </p>
+            <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp;{% trans "QR Scan" %} </p>
           </div>
           <div class="row">
             <div class="col col-md-9">
-              <h1 class="title">QR Scan</h1>
-              <p class="subtitle">Please scan the QR Code in the attendee's ticket</p>
+              <h1 class="title">{% trans "QR Scan" %}</h1>
+              <p class="subtitle">{% trans "Please scan the QR Code in the attendee's ticket" %}</p>
             </div>
             <div class="col col-md-3 text-center text-md-right mt-4 ">
-              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">Orders</a>
+              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">{% trans "Orders" %}</a>
             </div>
           </div>
         </div>
@@ -66,7 +65,8 @@
           </div>
         </div>
         {% endif %}
-
+      </div>
+    </div>
       </div>
       <div class="col-sm">
       </div>
@@ -77,8 +77,6 @@
       </div>
       <div class="col-sm">
       </div>
-
-    </div>
   </div>
  </div>
 </div>

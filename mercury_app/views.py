@@ -1,4 +1,4 @@
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView, View
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -6,39 +6,33 @@ from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.http import HttpResponse
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
 from django.utils import timezone
 from datetime import datetime
 from mercury_app.models import (
-    Organization,
-    UserOrganization,
     Event,
     Order,
     Merchandise,
-    UserWebhook,
     Transaction,
     Attendee,
 )
+from django.utils import translation
+from django.utils.translation import ugettext as _
 from mercury_app.tables import OrderTable, TransactionTable, EventTable
 from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
 from mercury_app.utils import (
     get_auth_token,
     get_api_organization,
-    get_api_events_org,
     get_summary_orders,
     get_api_events_id,
+    get_db_order_by_id,
     get_percentage_handed,
-    get_api_orders_of_event,
     get_api_order_barcode,
     get_events_for_organizations,
     get_db_event_by_id,
-    get_db_order_by_id,
-    get_db_merchandising_by_order_id,
-    get_db_orders_by_event,
     get_db_events_by_organization,
     get_db_or_create_organization_by_id,
     get_db_items_left,
@@ -50,7 +44,6 @@ from mercury_app.utils import (
     create_order_webhook_from_view,
     get_data,
     get_summary_types_handed,
-    get_db_transaction_by_merchandise,
     create_transaction,
     delete_events,
     EventAccessMixin,
@@ -91,7 +84,8 @@ class TransactionListView(SingleTableView, LoginRequiredMixin, EventAccessMixin)
         context[self.get_context_table_name(table)] = table
         table.paginate(page=self.request.GET.get('page', 1), per_page=10)
         order = Order.objects.get(id=self.kwargs['order_id'])
-        context['order_name'] = '{} {}'.format(order.first_name, order.last_name)
+        context['order_name'] = '{} {}'.format(
+            order.first_name, order.last_name)
         context['order_number'] = order.eb_order_id
         context['event_id'] = order.event.eb_event_id
         context['transaction_count'] = self.get_queryset().count()
@@ -221,7 +215,8 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
                     date,
                 )
                 merchases.append(mercha)
-        merchandises, order_id, email = get_merchas_for_email(merchases, transaction.date)
+        merchandises, order_id, email = get_merchas_for_email(
+            merchases, transaction.date)
         date = transaction.date.strftime("%Y-%m-%d %H:%M:%S")
         operation = transaction.operation_type
         send_email_alert.delay(json.dumps(merchandises),
@@ -274,7 +269,6 @@ class Home(SingleTableView, LoginRequiredMixin, ):
         self.request.session['message'] = None
         context['event_count'] = self.get_queryset().count()
         return context
-
 
 
 @method_decorator(login_required, name='dispatch')
@@ -348,3 +342,15 @@ class DeleteEvents(TemplateView, LoginRequiredMixin, EventAccessMixin):
             message_error = 'An error has occured while the event was being deleted'
             self.request.session['message'] = message_error
         return redirect(reverse('index'))
+
+
+class ActivateLanguageView(View):
+    language_code = ''
+    redirect_to = ''
+
+    def get(self, request, *args, **kwargs):
+        self.redirect_to = request.META.get('HTTP_REFERER')
+        self.language_code = kwargs.get('language_code')
+        translation.activate(self.language_code)
+        request.session[translation.LANGUAGE_SESSION_KEY] = self.language_code
+        return redirect(self.redirect_to)

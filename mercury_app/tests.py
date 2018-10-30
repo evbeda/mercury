@@ -226,6 +226,15 @@ class TestBase(TestCase):
         return login
 
 
+class TestActivateLanguageView(TestBase):
+
+    def setUp(self):
+        super(TestActivateLanguageView, self).setUp()
+
+    def test_status_code(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+
 @patch('mercury_app.views.create_order_webhook_from_view', return_value='')
 class HomeViewTest(TestBase):
 

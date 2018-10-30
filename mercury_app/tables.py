@@ -3,16 +3,19 @@ from mercury_app.models import Order, Transaction, Attendee, Event
 from django.utils.html import format_html
 from fontawesome.fields import IconField
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 
 class EventTable(tables.Table):
-    name = tables.Column(verbose_name='Event name')
+    name = tables.Column(verbose_name=_('Event name'), localize=True)
     pretty_date = tables.Column(
-        verbose_name='Start Date',
+        verbose_name=_('Start Date'),
+        localize=True,
         empty_values=(),
     )
     actions = tables.Column(
-        verbose_name='Actions',
+        verbose_name=_('Actions'),
+        localize=True,
         orderable=False,
         empty_values=(),
     )
@@ -42,12 +45,12 @@ class OrderTable(tables.Table):
         attrs={'td': {'width': '10px', 'padding-right': '5px', 'class': 'dot-padding'}},
     )
     actions = tables.Column(
-        verbose_name='Actions',
+        verbose_name=_('Actions'),
         orderable=False,
         empty_values=(),
     )
     full_name = tables.Column(
-        verbose_name='Full Name',
+        verbose_name=_('Full Name'),
         empty_values=(),
     )
 
@@ -75,11 +78,11 @@ class OrderTable(tables.Table):
 
 
 class TransactionTable(tables.Table):
-    date = tables.Column(verbose_name='Date')
-    from_who = tables.Column(verbose_name='Team member')
-    notes = tables.Column(verbose_name='Comment')
-    operation_type = tables.Column(verbose_name='Operation Type')
-    merchandise = tables.Column(verbose_name='Item')
+    date = tables.Column(verbose_name=_('Date'))
+    from_who = tables.Column(verbose_name=_('Team member'))
+    notes = tables.Column(verbose_name=_('Comment'))
+    operation_type = tables.Column(verbose_name=_('Operation Type'))
+    merchandise = tables.Column(verbose_name=_('Item'))
 
     def render_merchandise(self, value, record):
         return '{} - {}'.format(record.merchandise.name, record.merchandise.item_type)

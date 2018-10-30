@@ -1,0 +1,455 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-30 11:41-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: mercury_app/filters.py:9 mercury_app/tables.py:10
+#: mercury_app/templates/select_events.html:34
+msgid "Name"
+msgstr "Naam"
+
+#: mercury_app/filters.py:10
+msgid "Order ID"
+msgstr "Bestel ID"
+
+#: mercury_app/tables.py:12
+msgid "Start Date"
+msgstr "Startdatum"
+
+#: mercury_app/tables.py:17 mercury_app/tables.py:48
+msgid "Actions"
+msgstr "Acties"
+
+#: mercury_app/tables.py:53
+msgid "Full Name"
+msgstr "Volledige naam"
+
+#: mercury_app/templates/403.html:6
+msgid "You don't have access to this page, please redirect"
+msgstr "U hebt geen toegang tot deze pagina, gelieve door te sturen"
+
+#: mercury_app/templates/404.html:6
+msgid "Event not found"
+msgstr "Evenement niet gevonden"
+
+#: mercury_app/templates/base.html:30
+#: mercury_app/templates/select_events.html:23
+msgid "My events"
+msgstr "Mijn evenementen"
+
+#: mercury_app/templates/base.html:33 mercury_app/templates/index.html:47
+#: mercury_app/templates/select_events.html:20
+msgid "Add events"
+msgstr "Voeg evenementen toe"
+
+#: mercury_app/templates/base.html:42
+msgid "Logout"
+msgstr "Afmelden"
+
+#: mercury_app/templates/base.html:56
+msgid "Copyright"
+msgstr "Copyright"
+
+#: mercury_app/templates/custom_table_with_header.html:10
+msgid "All"
+msgstr "Alles"
+
+#: mercury_app/templates/custom_table_with_header.html:13
+#: mercury_app/templates/list_item_mercha.html:52
+#: mercury_app/templates/summary.html:80 mercury_app/utils.py:744
+msgid "Pending"
+msgstr "In behandeling"
+
+#: mercury_app/templates/custom_table_with_header.html:16
+#: mercury_app/templates/list_item_mercha.html:50 mercury_app/utils.py:748
+msgid "Partial"
+msgstr "Gedeeltelijk"
+
+#: mercury_app/templates/custom_table_with_header.html:19
+#: mercury_app/templates/list_item_mercha.html:48
+#: mercury_app/templates/list_item_mercha.html:74 mercury_app/utils.py:746
+msgid "Delivered"
+msgstr "Geleverd"
+
+#: mercury_app/templates/custom_table_with_header.html:82
+msgid "previous"
+msgstr "vorige"
+
+#: mercury_app/templates/custom_table_with_header.html:102
+msgid "next"
+msgstr "volgende"
+
+#: mercury_app/templates/delete.html:10
+msgid "Delete event"
+msgstr "Afspraak verwijderen"
+
+#: mercury_app/templates/delete.html:17
+msgid "You are about to delete the event"
+msgstr "U staat op het punt de gebeurtenis te verwijderen"
+
+#: mercury_app/templates/delete.html:21
+msgid "Delete"
+msgstr "Verwijderen"
+
+#: mercury_app/templates/email.html:9
+msgid "Merchandise Handed"
+msgstr "Merchandise Handed"
+
+#: mercury_app/templates/email.html:17
+msgid "We have delivered some items that you bought"
+msgstr "We hebben enkele artikelen afgeleverd die u hebt gekocht"
+
+#: mercury_app/templates/email.html:24
+msgid "Hi there,"
+msgstr "Hallo daar,"
+
+#: mercury_app/templates/email.html:25
+msgid "You are receiving this email because we have delivered some items that you bought"
+msgstr "U ontvangt deze e-mail omdat we een aantal artikelen hebben geleverd die u hebt gekocht"
+
+#: mercury_app/templates/email.html:27
+msgid "Date"
+msgstr "Datum"
+
+#: mercury_app/templates/email.html:28
+msgid "Operation type"
+msgstr "Type bewerking"
+
+#: mercury_app/templates/email.html:29
+msgid "Order id"
+msgstr "Bestellings-ID"
+
+#: mercury_app/templates/email.html:33
+msgid "Type"
+msgstr "Type"
+
+#: mercury_app/templates/email.html:34
+msgid "Quantity"
+msgstr "Hoeveelheid"
+
+#: mercury_app/templates/email.html:37
+msgid "Contact the organizer for any questions related to this purchase"
+msgstr "Neem contact op met de organisator voor vragen over deze aankoop"
+
+#: mercury_app/templates/email.html:38
+msgid ""
+"This merchandise is not subject to Mercury Terms of Service, Privacy Policy, "
+"and Cookie Policy"
+msgstr ""
+"Deze goederen zijn niet onderworpen aan de Servicevoorwaarden van Mercury, "
+"het Privacybeleid en het Cookiebeleid"
+
+#: mercury_app/templates/index.html:14
+msgid "Managed Events"
+msgstr "Managed Events"
+
+#: mercury_app/templates/index.html:15
+msgid "Here you have a list of events you have chosen to manage"
+msgstr ""
+"Hier heb je een lijst van evenementen die je hebt gekozen om te beheren"
+
+#: mercury_app/templates/index.html:32
+#: mercury_app/templates/orderfilter.html:72
+msgid "Oops"
+msgstr "Oeps"
+
+#: mercury_app/templates/index.html:32
+msgid "It looks like you have not added any events. Please add an event"
+msgstr ""
+"Het lijkt erop dat je geen evenementen hebt toegevoegd. Voeg een evenement "
+"toe"
+
+#: mercury_app/templates/list_item_mercha.html:9
+msgid "Order Details"
+msgstr "Besteldetails"
+
+#: mercury_app/templates/list_item_mercha.html:10
+msgid "Merchandise items that belong to this order"
+msgstr "Merchandise items die bij deze order horen"
+
+#: mercury_app/templates/list_item_mercha.html:13
+#: mercury_app/templates/summary.html:24
+msgid "Event orders"
+msgstr "Gebeurtenisorders"
+
+#: mercury_app/templates/list_item_mercha.html:14
+#: mercury_app/templates/transaction.html:11
+msgid "Transactions"
+msgstr "Transacties"
+
+#: mercury_app/templates/list_item_mercha.html:43
+msgid "Order details"
+msgstr "Bestel details"
+
+#: mercury_app/templates/list_item_mercha.html:45
+msgid "Order Buyer"
+msgstr "Bestelling koper"
+
+#: mercury_app/templates/list_item_mercha.html:46
+msgid "Order Status"
+msgstr "Bestellingsstatus"
+
+#: mercury_app/templates/list_item_mercha.html:55
+msgid "Order number"
+msgstr "Bestelnummer"
+
+#: mercury_app/templates/list_item_mercha.html:56
+msgid "Order Date"
+msgstr "Besteldatum"
+
+#: mercury_app/templates/list_item_mercha.html:71
+msgid "Subtype"
+msgstr "Subtype"
+
+#: mercury_app/templates/list_item_mercha.html:72
+msgid "Sold"
+msgstr "Verkocht"
+
+#: mercury_app/templates/list_item_mercha.html:73
+msgid "Unit value"
+msgstr "Eenheidswaarde"
+
+#: mercury_app/templates/list_item_mercha.html:75
+msgid "Items left"
+msgstr "Items over"
+
+#: mercury_app/templates/list_item_mercha.html:76
+msgid "Amount to deliver"
+msgstr "Te leveren hoeveelheid"
+
+#: mercury_app/templates/list_item_mercha.html:86
+msgid "No"
+msgstr "Nee"
+
+#: mercury_app/templates/list_item_mercha.html:88
+msgid "Yes"
+msgstr "Ja"
+
+#: mercury_app/templates/list_item_mercha.html:90
+msgid "Partially"
+msgstr "Gedeeltelijk"
+
+#: mercury_app/templates/list_item_mercha.html:110
+msgid "Optional"
+msgstr "Optioneel"
+
+#: mercury_app/templates/list_item_mercha.html:110
+msgid "Add a comment to this delivery"
+msgstr "Voeg een opmerking toe aan deze levering"
+
+#: mercury_app/templates/list_item_mercha.html:112
+msgid "Select All"
+msgstr "Selecteer alles"
+
+#: mercury_app/templates/list_item_mercha.html:113
+msgid "Mark as delivered"
+msgstr "Markeer als afgeleverd"
+
+#: mercury_app/templates/notes.html:12
+msgid "Commentary"
+msgstr "Commentaar"
+
+#: mercury_app/templates/notes.html:13
+msgid "Do you want to add a comment?"
+msgstr "Wilt u een opmerking toevoegen?"
+
+#: mercury_app/templates/notes.html:22 mercury_app/templates/orders.html:47
+#: mercury_app/templates/select_events.html:62
+msgid "Page"
+msgstr "Pagina"
+
+#: mercury_app/templates/notes.html:22 mercury_app/templates/orders.html:47
+#: mercury_app/templates/select_events.html:62
+msgid "of"
+msgstr "van"
+
+#: mercury_app/templates/orderfilter.html:57
+#: mercury_app/templates/scanqr.html:50
+#: mercury_app/templates/transaction.html:15
+msgid "Orders"
+msgstr "Bestellingen"
+
+#: mercury_app/templates/orderfilter.html:61
+#: mercury_app/templates/summary.html:23
+msgid "Scan QR"
+msgstr "Scan QR"
+
+#: mercury_app/templates/orderfilter.html:62
+#: mercury_app/templates/scanqr.html:51 mercury_app/templates/summary.html:19
+msgid "Summary"
+msgstr "Samenvatting"
+
+#: mercury_app/templates/orderfilter.html:72
+msgid ""
+"It looks like there are no orders with merchandise yet. If you think this is "
+"a mistake, we can check your orders again"
+msgstr ""
+"Het lijkt erop dat er nog geen bestellingen zijn met goederen. Als je denkt "
+"dat dit een vergissing is, kunnen we je bestellingen nogmaals controleren"
+
+#: mercury_app/templates/orderfilter.html:83
+msgid "Filter"
+msgstr "Filter"
+
+#: mercury_app/templates/orders.html:13
+msgid "Orders with merchandising"
+msgstr "Orders met merchandising"
+
+#: mercury_app/templates/orders.html:16
+msgid "Name owner"
+msgstr "Naam eigenaar"
+
+
+#: mercury_app/templates/orders.html:19
+msgid "Details"
+msgstr "Details"
+
+#: mercury_app/templates/scanqr.html:46
+msgid "QR Scan"
+msgstr "QR Scan"
+
+#: mercury_app/templates/scanqr.html:47
+msgid "Please scan the QR Code in the attendee's ticket"
+msgstr "Scan de QR-code op het kaartje van de deelnemer"
+
+#: mercury_app/templates/select_events.html:21
+msgid ""
+"Here you have a list of your events at Eventbrite. Please select an event to "
+"manage"
+msgstr ""
+"Hier heb je een lijst met je evenementen bij Eventbrite. Selecteer een "
+"evenement om te beheren"
+
+#: mercury_app/templates/select_events.html:35
+msgid "Start date"
+msgstr "Startdatum"
+
+#: mercury_app/templates/select_events.html:36
+msgid "Action"
+msgstr "Actie"
+
+#: mercury_app/templates/select_events.html:72
+msgid "You have not events on this pagination"
+msgstr "U hebt geen evenementen op deze paginering"
+
+#: mercury_app/templates/summary.html:42
+msgid "Items delivered"
+msgstr "Items afgeleverd"
+
+#: mercury_app/templates/summary.html:61
+msgid "Orders fulfillment"
+msgstr "Aflevering van bestellingen"
+
+#: mercury_app/templates/summary.html:79
+msgid "Handed"
+msgstr "Overhandigd"
+
+#: mercury_app/templates/summary.html:81
+msgid "Total"
+msgstr "Totaal"
+
+#: mercury_app/templates/transaction.html:12
+msgid "Detailed transactions for order"
+msgstr "uit"
+
+#: mercury_app/templates/transaction.html:12
+msgid "from"
+msgstr "uit"
+
+#: mercury_site/settings.py:162
+msgid "English"
+msgstr "Engels"
+
+#: mercury_site/settings.py:163
+msgid "German"
+msgstr "Duits"
+
+#: mercury_site/settings.py:164
+msgid "Dutch"
+msgstr "Nederlands"
+
+msgid "actions"
+msgstr "acties"
+
+msgid "Operation Type"
+msgstr "Type bewerking"
+
+msgid "Item"
+msgstr "Item"
+
+msgid "Responsible"
+msgstr "Verantwoordelijk"
+
+msgid "Comment"
+msgstr "Commentaar"
+
+msgid "Cancel"
+msgstr "annuleren"
+
+
+
+msgid "Transactions Detail"
+msgstr "Transactiedetail"
+
+msgid "Items fulfilled"
+msgstr "Items zijn vervuld"
+
+msgid "Orders fulfillment status"
+msgstr "De status van de vervulling van de bestellingen"
+
+msgid "Fulfilled"
+msgstr "Vervuld"
+
+msgid "Home"
+msgstr "Huis"
+
+msgid "Here is a list of your events at Eventbrite"
+msgstr "Hier is een lijst met uw evenementen op Eventbrite"
+
+msgid "Event name"
+msgstr "Naam evenement"
+
+msgid "Buyer"
+msgstr "Koper"
+
+msgid "Status"
+msgstr "staat"
+
+msgid "Number"
+msgstr "Nummer"
+
+msgid "Quantity sold"
+msgstr "Hoeveelheid verkocht"
+
+msgid "Unit price"
+msgstr "Eenheid prijs"
+
+msgid "Quantity remaining"
+msgstr "Resterende hoeveelheid"
+
+msgid "Quantity being fulfilled"
+msgstr "De hoeveelheid die wordt voldaan"
+
+msgid "Here is a list of events you have chosen to manage"
+msgstr "Hier is een lijst met evenementen die u hebt gekozen om te beheren"
+
+msgid "You are receiving this email because some items of your order have been delivered"
+msgstr "U ontvangt deze e-mail omdat sommige artikelen van uw bestelling zijn afgeleverd"
+
+msgid "Team member"
+msgstr "Teamlid"

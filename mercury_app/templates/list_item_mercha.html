@@ -1,25 +1,26 @@
 {% extends 'base.html' %}
 {% load sekizai_tags %}
+{% load i18n %}
 {% block content %}
 <div class="container mb-5">
   <div class="row">
     <div class="col-12">
       <div class="jumbotron">
         <div class="mb-5">
-          <p><a href="{% url 'index' %}"> Home </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=order.event.eb_event_id %}"> Summary </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=order.event.eb_event_id %}"> Event orders </a>&nbsp;&nbsp;>&nbsp;&nbsp; Order Details </p>
+          <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=order.event.eb_event_id %}">{% trans "Summary" %}  </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=order.event.eb_event_id %}">{% trans "Event orders" %}  </a>&nbsp;&nbsp;>&nbsp;&nbsp; {% trans "Order Details" %} </p>
         </div>
         <div class="row">
             <div class="col col-md-9">
-              <h1 class="title">Order Details</h1>
-              <p class="subtitle">Merchandise items that belong to this order.</p>
+              <h1 class="title">{% trans "Order Details" %}</h1>
+              <p class="subtitle">{% trans "Merchandise items that belong to this order" %}.</p>
             </div>
             <div class="col col-md-3 text-center text-md-right mt-4">
-               <a class="navbar-right btn btn-outline-info" href="{% url 'transactions' order_id=order.id %}">Transactions</a>
+               <a class="navbar-right btn btn-outline-info" href="{% url 'transactions' order_id=order.id %}">{% trans "Transactions" %}</a>
             </div>
           </div>
+        </div>
       </div>
     </div>
-  </div>
   {% if messages %}
   <div class="row">
     <div class="col-12">
@@ -43,20 +44,20 @@
           {% else %}
           <div class="card bg-danger text-white">
             {% endif %}
-            <h5 class="card-header">Order details</h5>
+            <h5 class="card-header">{% trans "Order details" %}</h5>
             <div class="card-body">
-              <h5 class="font-weight-light">Buyer<strong>  &nbsp {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
-              <h6 class="font-weight-light"><small>Status &nbsp</small>
+              <h5 class="font-weight-light"><strong>{% trans "Buyer" %} {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
+              <h6 class="font-weight-light"><small>{% trans "Status" %}</small>
                 {% if order.merch_status == 'CO' %}
-                Delivered
+                {% trans "Delivered" %}
                 {% elif order.merch_status == 'PA' %}
-                Partial
+                {% trans "Partial" %}
                 {% else %}
-                Pending
+                {% trans "Pending" %}
                 {% endif %}
               </h6>
-              <h6 class="font-weight-light"><small> Number  &nbsp</small> {{ order.eb_order_id }} </h6>
-              <h6 class="font-weight-light"><small> Date  &nbsp</small> {{ order.created }} </h6>
+              <h6 class="font-weight-light"><small>{% trans "Number" %} </small> {{ order.eb_order_id }} </h6>
+              <h6 class="font-weight-light"><small>{% trans "Date" %} </small> {{ order.created }} </h6>
             </div>
           </div>
         </div>
@@ -71,14 +72,12 @@
             <div class="card-body">
               <div class="row">
                 <div class="col">
-                  <h6 class="font-weight-light">Subtype</h6>
-                  <h6 class="font-weight-light">Quantity sold</h6>
-                  <h6 class="font-weight-light">Unit price</h6>
-                  <h6 class="font-weight-light">Delivered</h6>
-                  <h6 class="font-weight-light">Quantity remaining</h6>
-                  <h6 class="font-weight-light">Quantity being fulfilled</h6>
-
-
+                  <h6 class="font-weight-light">{% trans "Subtype" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity sold" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Unit price" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Delivered" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity remaining" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity being fulfilled" %}</h6>
                 </div>
                 <div class="col">
                   <h6 class="font-weight-light">{{ item.item_type }} </h6>
@@ -86,11 +85,11 @@
                   <h6 class="font-weight-light">$ &nbsp{{ item.value }} </h6>
                   <h6 class="font-weight-light">
                     {% if item.quantity == item.items_left %}
-                    No
+                    {% trans "No" %}
                     {% elif item.items_left == 0%}
-                    Yes
+                    {% trans "Yes" %}
                     {% else %}
-                    Partially
+                    {% trans "Partially" %}
                     {% endif %}
                   </h6>
                   <h6 class="font-weight-light"> {{ item.items_left }} </h6>
@@ -110,10 +109,10 @@
           {% endfor %}
           <div class="row">
             <div class="col text-right m-2">
-             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="(Optional) Add a comment to this transaction"></textarea>
+             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="({% trans 'Optional' %}) {% trans 'Add a comment to this delivery' %}"></textarea>
              <br>
-             <button  type="button" id="select-all" class="btn btn-outline-success" >Select All</button>
-             <button  type="submit" id="deliver-btn" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button>
+             <button  type="button" id="select-all" class="btn btn-outline-success" >{% trans "Select All" %}</button>
+             <button  type="submit" id="deliver-btn" form="delivery" class="btn btn-success" value="Submit">{% trans "Mark as delivered" %}</button>
            </div>
          </div>
          {% csrf_token %}

@@ -7,16 +7,16 @@
     {% block table %}
 <ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link" id="all-nav" href="?name=&eb_order_id=&merch_status=">All</a>
+    <a class="nav-link" id="all-nav" href="?name=&eb_order_id=&merch_status=">{% trans "All" %}</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="pe-nav" href="?name=&eb_order_id=&merch_status=PE">Pending</a>
+    <a class="nav-link" id="pe-nav" href="?name=&eb_order_id=&merch_status=PE">{% trans "Pending" %}</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="pa-nav" href="?name=&eb_order_id=&merch_status=PA">Partial</a>
+    <a class="nav-link" id="pa-nav" href="?name=&eb_order_id=&merch_status=PA">{% trans "Partial" %}</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="co-nav" href="?name=&eb_order_id=&merch_status=CO">Delivered</a>
+    <a class="nav-link" id="co-nav" href="?name=&eb_order_id=&merch_status=CO">{% trans "Delivered" %}</a>
   </li>
 </ul>
         <table {% render_attrs table.attrs class="table" %}>

@@ -11,6 +11,7 @@ from django.core.mail import send_mail, EmailMessage
 from datetime import (
     timedelta,
 )
+from django.utils.translation import ugettext as _
 from django.db.models import Sum, Count
 from faker import Faker
 from random import (
@@ -757,11 +758,11 @@ def get_summary_orders(event):
         partially_percentage = 0
     data_json = [
         get_json_donut(round(pending_percentage),
-                       orders_pending['quantity'], 'Pending', 1),
+                       orders_pending['quantity'], _('Pending'), 1),
         get_json_donut(round(delivered_percentage),
-                       orders_delivered['quantity'], 'Delivered', 2),
+                       orders_delivered['quantity'], _('Delivered'), 2),
         get_json_donut(round(partially_percentage),
-                       orders_partially['quantity'], 'Partial', 3),
+                       orders_partially['quantity'], _('Partial'), 3),
     ]
     return data_json
 
