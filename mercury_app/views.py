@@ -4,8 +4,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
-from django.shortcuts import redirect, get_object_or_404
-from django.http import HttpResponse
+from django.shortcuts import redirect, get_object_or_404, render
+from django.http import (
+    HttpResponse,
+    HttpResponseForbidden,
+    HttpResponseServerError,
+)
 from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
@@ -55,18 +59,30 @@ import dateutil.parser
 from django.core.cache import cache
 
 
-@csrf_exempt
-def accept_webhook(request):
-    get_data.delay(json.loads(request.body),
-                   request.build_absolute_uri('/')[:-1])
-    return HttpResponse('OK', 200)
+class Webhook(View):
 
+    def get(self, request, *args, **kwargs):
+        return HttpResponseForbidden()
 
-@csrf_exempt
-def checkin_webhook(request):
-        # get_data.delay(json.loads(request.body),
-        #                request.build_absolute_uri('/')[:-1])
-    return HttpResponse('OK', 200)
+    def post(self, request, *args, **kwargs):
+        context = {}
+        try:
+            json_info = json.loads(request.body)
+            get_data.delay(
+                json_info,
+                request.build_absolute_uri('/')[:-1],
+            )
+            context['success'] = True
+        except Exception:
+            context['success'] = False
+            return HttpResponseServerError()
+
+        return render(
+            request,
+            'webhook.html',
+            context=context,
+            status=200,
+        )
 
 
 @method_decorator(login_required, name='dispatch')
@@ -219,6 +235,7 @@ class ListItemMerchandising(TemplateView, LoginRequiredMixin, OrderAccessMixin):
             merchases, transaction.date)
         date = transaction.date.strftime("%Y-%m-%d %H:%M:%S")
         operation = transaction.operation_type
+
         send_email_alert.delay(json.dumps(merchandises),
                                email,
                                date,
