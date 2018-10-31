@@ -16,8 +16,6 @@
 }
 footer{
 	background-color: #1E0A3C;
-	padding-bottom: 3vh;
-	padding-top: 3vh;
 	color:white;
 }
 footer a{
@@ -129,4 +127,14 @@ input.qtyminus { width:25px; height:25px;}
 
 #mercury{
   text-decoration: none;
+}
+
+.navigation {
+  color: grey;
+  text-decoration: none;
+  font-family: 'Roboto-Light'
+}
+
+.navigation:hover{
+  text-decoration: none;  
 }

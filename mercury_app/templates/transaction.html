@@ -3,20 +3,20 @@
 {% load i18n %}
 {% load bootstrap4 %}
 {% block content %}
-<div class="container">
-<div class="container mb-5">
-  <div class="row">
-    <div class="col-12">
-      <div class="jumbotron">
-        <div class="mb-5">
-          <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=event_id %}"> {% trans "Event orders" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'orders' event_id=event_id %}"> {% trans "Order Details" %}</a>&nbsp;&nbsp;>&nbsp;&nbsp; {% trans "Transaction Detail" %}</p>
+<div id="fondo_sin_imagen">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <div class="mb-5">
+            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Home" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Event orders" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Order Details" %}&nbsp;&nbsp;>&nbsp;&nbsp;</a> <strong> {% trans "Transaction Detail" %} </strong></p>
+          </div>
+          <h1 class="title">{% trans "Transactions Detail" %}</h1>
+          <p class="subtitle">{% trans "Detailed transactions for order" %} #{{order_number}} {% trans "from" %} {{order_name}}</p>
         </div>
-        <h1 class="title">{% trans "Transactions Detail" %}</h1>
-        <p class="subtitle">{% trans "Detailed transactions for order" %} #{{order_number}} {% trans "from" %} {{order_name}}</p>
+        {% render_table table %}  
       </div>
     </div>
-    {% render_table table %}
   </div>
-</div>
 </div>
 {% endblock %}
