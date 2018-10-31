@@ -1,5 +1,6 @@
 from django.test import TestCase
 from social_django.models import UserSocialAuth
+from factory import fuzzy
 from django.contrib.auth import get_user_model
 from .models import (
     Event,
@@ -28,7 +29,6 @@ from .utils import (
     get_auth_token,
     get_email_pdf_context,
     get_merchas_for_email,
-    send_email_with_pdf,
     get_api_organization,
     get_summary_orders,
     get_api_events_org,
@@ -211,27 +211,27 @@ class TestBase(TestCase):
         )
         self.user.set_password('the_best_password_of_ever_2')
         self.user.save()
-        from factory import fuzzy
-        self.social_auth_user_id = fuzzy.FuzzyInteger(50000000000, 60000000000)
+        self.social_auth_user_id_fuzzy = fuzzy.FuzzyInteger(50000000000, 60000000000)
         self.auth = UserSocialAuth.objects.create(
             user=self.user,
             provider='eventbrite',
-            uid=self.social_auth_user_id,
+            uid=self.social_auth_user_id_fuzzy,
             extra_data={'access_token': 'AAAAAAAAAABBBBBBBBB'},
         )
+        self.social_auth_user_id = UserSocialAuth.objects.get(user=self.user).uid
         login = self.client.login(
             username='mercury_user',
             password='the_best_password_of_ever_2'
         )
         return login
 
-
+@patch('mercury_app.views.create_order_webhook_from_view', return_value='')
 class TestActivateLanguageView(TestBase):
 
     def setUp(self):
         super(TestActivateLanguageView, self).setUp()
 
-    def test_status_code(self):
+    def test_status_code(self, mock_create_order_webhook_from_view):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
@@ -438,12 +438,12 @@ class APICallsTest(TestCase):
     @patch('mercury_app.utils.Eventbrite.post', return_value={'id': '1'})
     def test_create_webhook(self, mock_api_post_call, mock_api_get_call):
         result = create_webhook('TEST')
-        mock_api_post_call.assert_called_once()
+        mock_api_post_call.assert_called()
         self.assertEquals(
             mock_api_post_call.call_args_list[0][0][0],
             '/webhooks/',
         )
-        self.assertEquals(result, '1')
+        self.assertEquals(result, ('1', '1'))
 
     @patch('mercury_app.utils.Eventbrite.delete', return_value={'id': '1'})
     def test_delete_webhook(self, mock_api_delete_call, mock_api_get_call):
@@ -618,7 +618,7 @@ class UtilsTest(TestBase):
 
     @patch('mercury_app.utils.get_api_attendee_checked')
     def test_update_attendee_checked_from_api(self, mock_get_api_attendee_checked):
-        mock_get_api_attendee_checked.return_value = {'checked_in': True}
+        mock_get_api_attendee_checked.return_value = {'barcodes': [{'status': 'used'}]}
         att = AttendeeFactory()
         update_attendee_checked_from_api(self.user, att.barcode)
         att_search = Attendee.objects.get(barcode=att.barcode)
@@ -626,7 +626,7 @@ class UtilsTest(TestBase):
 
     @patch('mercury_app.utils.get_api_attendee_checked')
     def test_update_attendee_checked_from_api(self, mock_get_api_attendee_checked):
-        mock_get_api_attendee_checked.return_value = {'checked_in': True}
+        mock_get_api_attendee_checked.return_value = {'barcodes': [{'status': 'used'}]}
         att = AttendeeFactory()
         update_attendee_checked_from_api(self.user, eb_attendee_id=att.eb_attendee_id)
         att_search = Attendee.objects.get(eb_attendee_id=att.eb_attendee_id)
@@ -828,8 +828,10 @@ class UtilsWebhook(TestBase):
         self.assertTrue(webhook_available_to_process(user_id))
 
     def test_webhook_not_available_to_process(self):
-        user_id = '5630245671'
-        self.assertFalse(webhook_available_to_process(user_id))
+        user_id = 324234234
+        with self.assertRaises(Exception) as context:
+            webhook_available_to_process(user_id)
+        self.assertTrue('USER ID: {} WAS NOT FOUND.'.format(user_id) in str(context.exception))
 
     def test_social_user_exists(self):
         user_id = self.social_auth_user_id
@@ -864,58 +866,206 @@ class UtilsWebhook(TestBase):
         result = webhook_order_available(user, order)
         self.assertEqual(result, None)
 
-    @patch('mercury_app.utils.send_email_with_pdf', return_value=True)
-    @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, '1')[0])
-    def test_get_data(self, mock_get_api_order, mock_send_email_with_pdf):
+    @patch('mercury_app.utils.create_event_orders_from_api')
+    @patch('mercury_app.utils.get_api_order')
+    def test_get_data_success(self, mock_get_api_order, mock_create_event_orders_from_api):
+        social_auth_uid = UserSocialAuth.objects.get(user=self.user).uid
         request = MagicMock(
-            body='{"config": {"action": "order.placed", "user_id": self.social_auth_user_id, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
+            body=json.dumps({
+                "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/",
+                "config": {
+                    "action": "order.placed",
+                    "user_id": social_auth_uid,
+                    "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/",
+                    "webhook_id": 799325,
+                }
+            })
         )
-        org = OrganizationFactory(eb_organization_id=1)
+        org = OrganizationFactory()
         UserOrganizationFactory(
-            user=get_user_model().objects.get(username='mercury_user'),
-            organization=org
+            user=self.user,
+            organization=org,
         )
-        EventFactory(eb_event_id=1, organization=org)
-        result = get_data(json.loads(request.body),
-                          request.build_absolute_uri('/')[:-1])
+        event = EventFactory(organization=org)
+        mock_get_api_order.return_value = get_mock_api_orders(1, 1, event.eb_event_id)[0]
+        result = get_data(
+            json.loads(request.body),
+            request.build_absolute_uri('/')[:-1],
+        )
         self.assertTrue(result['status'])
-        self.assertTrue(result['email'])
+
+    @patch('mercury_app.utils.get_api_attendee_checked')
+    def test_get_data_success_checkin_one(self, mock_get_api_attendee_checked):
+        social_auth_uid = UserSocialAuth.objects.get(user=self.user).uid
+        org = OrganizationFactory()
+        UserOrganizationFactory(
+            user=self.user,
+            organization=org,
+        )
+        event = EventFactory(organization=org)
+        att = AttendeeFactory(order__event=event)
+        # ('barcodes')[0].get('status'
+        mock_get_api_attendee_checked.return_value = {
+            'barcodes': [
+                {
+                    'status': 'used',
+                    'changed': '2018-10-31T13:13:43Z'
+                },
+            ]
+        }
+        request = MagicMock(
+            body=json.dumps({
+                "api_url": "https://www.eventbriteapi.com/v3/events/{}/attendees/{}/".format(
+                    event.eb_event_id,
+                    att.eb_attendee_id,
+                ),
+                "config": {
+                    "action": "barcode.checked_in",
+                    "user_id": social_auth_uid,
+                    "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/",
+                    "webhook_id": 799325,
+                }
+            })
+        )
+        result = get_data(
+            json.loads(request.body),
+            request.build_absolute_uri('/')[:-1],
+        )
+        self.assertTrue(result['status'])
+
+
+    @patch('mercury_app.utils.get_api_order_attendees')
+    def test_get_data_success_checkin_more_than_one(self, mock_get_api_order_attendees):
+        social_auth_uid = UserSocialAuth.objects.get(user=self.user).uid
+        org = OrganizationFactory()
+        UserOrganizationFactory(
+            user=self.user,
+            organization=org,
+        )
+        event = EventFactory(organization=org)
+        order = OrderFactory(event=event)
+        att = AttendeeFactory(order=order)
+        att2 = AttendeeFactory(
+            first_name=att.first_name,
+            last_name=att.last_name,
+            order=order,
+            eb_attendee_id='{}-1'.format(
+                att.eb_attendee_id),
+        )
+        att3 = AttendeeFactory(
+            first_name=att.first_name,
+            last_name=att.last_name,
+            order=order,
+            eb_attendee_id='{}-2'.format(
+                att.eb_attendee_id),
+        )
+        mock_get_api_order_attendees.return_value = [
+            {
+                'barcodes': [
+                    {
+                        'status': 'used',
+                        'changed': '2018-10-31T13:13:43Z',
+                        'barcode': '{}'.format(att.barcode),
+                    },
+                ]
+            },
+            {
+                'barcodes': [
+                    {
+                        'status': 'unused',
+                        'changed': '2018-10-31T13:13:43Z',
+                        'barcode': '{}'.format(att2.barcode),
+                    },
+                ]
+            },
+            {
+                'barcodes': [
+                    {
+                        'status': 'used',
+                        'changed': '2018-10-31T13:13:43Z',
+                        'barcode': '{}'.format(att3.barcode),
+                    },
+                ]
+            },
+
+        ]
+        request = MagicMock(
+            body=json.dumps({
+                "api_url": "https://www.eventbriteapi.com/v3/events/{}/attendees/{}/".format(
+                    event.eb_event_id,
+                    att.eb_attendee_id,
+                ),
+                "config": {
+                    "action": "barcode.checked_in",
+                    "user_id": social_auth_uid,
+                    "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/",
+                    "webhook_id": 799325,
+                }
+            })
+        )
+        result = get_data(
+            json.loads(request.body),
+            request.build_absolute_uri('/')[:-1],
+        )
+        result2 = Attendee.objects.filter(checked_in=True).count()
+        self.assertTrue(result['status'])
+        self.assertEqual(result2, 2)
 
     def test_get_email_pdf_context(self):
         event = EventFactory(name="Event", id=1)
         order = OrderFactory(event=event)
         result = get_email_pdf_context(order.id)
-        expected = {'event_name': "Event",
-                    'event_id': 1}
+        expected = {
+            'event_name': "Event",
+            'event_id': 1,
+        }
         self.assertEqual(result, expected)
 
-    @patch('django.core.mail.EmailMessage.send', return_value=True)
-    @patch('django.template.loader.get_template', return_value=loader.get_template('404.html'))
-    def test_send_email_with_pdf(self, mock_template, mock_send):
-        event = EventFactory(name="Event", id=1)
-        order = OrderFactory(event=event)
-        MerchandiseFactory(order=order)
-        result = send_email_with_pdf(order.id, "some@email.com")
-        self.assertTrue(result)
-
     @patch('mercury_app.utils.get_api_order', return_value=get_mock_api_orders(1, 1, 1)[0])
-    def test_get_data(self, mock_get_api_order):
+    def test_get_data_failure(self, mock_get_api_order):
+        social_auth_uid = UserSocialAuth.objects.get(user=self.user).uid
         request = MagicMock(
-            body='{"config": {"action": "order.placed", "user_id": 45671, "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/", "webhook_id": 799325}, "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/"}'
+            body=json.dumps({
+                "api_url": "https://www.eventbriteapi.com/v3/orders/834225363/",
+                "config": {
+                    "action": "order.placed",
+                    "user_id": social_auth_uid,
+                    "endpoint_url": "https://ebmercury.herokuapp.com/webhook-point/",
+                    "webhook_id": 799325,
+                }
+            })
         )
         result = get_data(json.loads(request.body),
                           request.build_absolute_uri('/')[:-1])
         self.assertFalse(result['status'])
 
-    @patch('mercury_app.utils.create_webhook', return_value=1231241)
+    @patch('mercury_app.utils.create_webhook', return_value=(1231241, 2342342))
     def test_create_order_webhook_from_view(self, mock_create_webhook):
         user = UserFactory()
         result = UserWebhook.objects.all().count()
         self.assertEqual(result, 0)
-        create_order_webhook_from_view(user)
+        result2 = create_order_webhook_from_view(user)
+        self.assertTrue(result2['created'])
+        self.assertFalse(result2['existed'])
+
+    @patch('mercury_app.utils.create_webhook', return_value=(None, None))
+    def test_create_order_webhook_from_view_fail_from_api(self, mock_create_webhook):
+        user = UserFactory()
+        result = UserWebhook.objects.all().count()
+        self.assertEqual(result, 0)
+        result2 = create_order_webhook_from_view(user)
+        self.assertFalse(result2['created'])
+        self.assertFalse(result2['existed'])
+
+    @patch('mercury_app.utils.create_webhook', return_value=(None, None))
+    def test_create_order_webhook_from_view_fail_wh_existed(self, mock_create_webhook):
+        user = UserFactory()
+        UserWebhookFactory(user=user)
         result = UserWebhook.objects.all().count()
         self.assertEqual(result, 1)
-
+        result2 = create_order_webhook_from_view(user)
+        self.assertFalse(result2['created'])
+        self.assertTrue(result2['existed'])
 
 class SelectEventsNotLoggedRedirectTest(TestCase):
 

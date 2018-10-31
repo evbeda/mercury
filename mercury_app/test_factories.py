@@ -132,8 +132,9 @@ class UserWebhookFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = UserWebhook
 
-    webhook_id = str(factory.fuzzy.FuzzyInteger(1, 10000))
+    webhook_id = factory.fuzzy.FuzzyInteger(1, 10000)
     user = factory.SubFactory(UserFactory)
+    wh_type = factory.fuzzy.FuzzyChoice(['OR', 'CH', ])
 
 
 class AttendeeFactory(factory.django.DjangoModelFactory):
@@ -147,3 +148,4 @@ class AttendeeFactory(factory.django.DjangoModelFactory):
     barcode = factory.fuzzy.FuzzyInteger(300000000000, 400000000000)
     barcode_url = 'https://www.eventbriteapi.com/qrcode/{}/?sig=dwefwefwefwefw'.format(barcode)
     checked_in = False
+    checked_in_time = datetime.now(tz=pytz.utc)

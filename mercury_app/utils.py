@@ -36,9 +36,12 @@ from mercury_app.pdf_utils import pdf_merchandise
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
-    URL_ENDPOINT,
-    WH_ACTIONS,
+    URL_ENDPOINT_ORDER,
+    URL_ENDPOINT_CHECK_IN,
+    WH_ORDER_ACTION,
+    WH_CHECK_IN_ACTION,
     REGEX_ORDER,
+    REGEX_CHECK_IN,
 )
 
 
@@ -217,7 +220,7 @@ def create_attendee_from_order(userid, order):
         eb_attendee_id = attendee.get('id')
         barcode = attendee.get('barcodes')[0].get('barcode')
         barcode_url = attendee.get('barcodes')[0].get('qr_code_url')
-        checked_in = attendee.get('checked_in')
+        checked_in = True if attendee.get('barcodes')[0].get('status') == 'used' else False
         att = Attendee.objects.create(
             order=order,
             first_name=first_name,
@@ -337,13 +340,28 @@ def get_db_attendee_from_barcode(barcode, event_id):
 
 def create_order_webhook_from_view(user):
     if not UserWebhook.objects.filter(user=user).exists():
-        token = get_auth_token(user)
-        webhook_id = create_webhook(token)
-        if webhook_id is not None:
-            UserWebhook.objects.create(
-                user=user,
-                webhook_id=webhook_id,
-            )
+        try:
+            token = get_auth_token(user)
+            webhook_ids = create_webhook(token)
+            if webhook_ids[0] is not None and webhook_ids[1] is not None:
+                with transaction.atomic():
+                    UserWebhook.objects.create(
+                        user=user,
+                        webhook_id=webhook_ids[0],
+                        wh_type='OR'
+                    )
+                    UserWebhook.objects.create(
+                        user=user,
+                        webhook_id=webhook_ids[1],
+                        wh_type='CH'
+                    )
+                    return {'created': True, 'existed': False}
+            else:
+                return {'created': False, 'existed': False}
+        except Exception:
+            return {'created': False, 'existed': False}
+    else:
+        return {'created': False, 'existed': True}
 
 
 def update_attendee_checked_from_api(user, barcode=None, eb_attendee_id=None):
@@ -359,22 +377,29 @@ def update_attendee_checked_from_api(user, barcode=None, eb_attendee_id=None):
     if result is not None:
         if barcode is not None:
             Attendee.objects.filter(barcode=barcode).update(
-                checked_in=result.get('checked_in')
+                checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
+                checked_in_time=result.get('barcodes')[0].get('changed'),
             )
         if eb_attendee_id is not None:
             Attendee.objects.filter(eb_attendee_id=eb_attendee_id).update(
-                checked_in=result.get('checked_in')
+                checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
+                checked_in_time=result.get('barcodes')[0].get('changed'),
             )
-    return result.get('checked_in', 'Error')
+    return True if result.get('barcodes')[0].get('status') == 'used' else False
 
 
 def create_webhook(token):
-    data = {
-        'endpoint_url': URL_ENDPOINT,
-        'actions': WH_ACTIONS,
+    data_order = {
+        'endpoint_url': URL_ENDPOINT_ORDER,
+        'actions': WH_ORDER_ACTION,
     }
-    response = Eventbrite(token).post('/webhooks/', data)
-    return (response.get('id', None))
+    data_check_in = {
+        'endpoint_url': URL_ENDPOINT_CHECK_IN,
+        'actions': WH_CHECK_IN_ACTION,
+    }
+    response_order = Eventbrite(token).post('/webhooks/', data_order)
+    response_check_in = Eventbrite(token).post('/webhooks/', data_check_in)
+    return (response_order.get('id', None), response_check_in.get('id', None))
 
 
 def delete_webhook(token, webhook_id):
@@ -392,48 +417,79 @@ def get_email_pdf_context(order_id):
 
 
 @app.task(ignore_result=True)
-def send_email_with_pdf(order_id, email):
-    try:
-        pdf = pdf_merchandise(order_id)
-        context = get_email_pdf_context(order_id)
-        template_html = "emails_pdf.html"
-        html = loader.get_template(template_html)
-        html_content = html.render(context)
-        msg = EmailMessage("Your mechandise for {}".format(context['event_name']),
-                           html_content,
-                           os.environ.get('EMAIL_HOST_USER'),
-                           [email])
-        msg.attach('merchandise.pdf', pdf, 'application/pdf')
-        msg.content_subtype = "html"
-        msg.send()
-        return True
-    except Exception:
-        return False
-
-
-@app.task(ignore_result=True)
 def get_data(body, domain):
-    config_data = body
-    user_id = config_data['config']['user_id']
-    if webhook_available_to_process(user_id):
-        social_user = get_social_user(user_id)
-        access_token = social_user.access_token
-        order_id = re.search(REGEX_ORDER, config_data['api_url'])[5]
-        order = get_api_order(
-            token=access_token,
-            order_id=order_id
+    try:
+        config_data = body
+        user_id = config_data['config']['user_id']
+        if webhook_available_to_process(user_id):
+            social_user = get_social_user(user_id)
+            if config_data['config']['action'] == WH_ORDER_ACTION:
+                return webhook_order_action(config_data, social_user)
+            elif config_data['config']['action'] == WH_CHECK_IN_ACTION:
+                return webhook_checkin_action(config_data, social_user)
+    except Exception:
+        return {'status': False}
+
+
+def webhook_order_action(config_data, social_user):
+    access_token = social_user.access_token
+    order_id = re.search(
+        REGEX_ORDER,
+        config_data['api_url'],
+    )[5]
+    order = get_api_order(
+        token=access_token,
+        order_id=order_id,
+    )
+    event = Event.objects.get(
+        eb_event_id=order['event_id'],
+    )
+    if webhook_order_available(social_user.user, order):
+        create_event_orders_from_api(
+            social_user.user.id,
+            event.id,
+            [order],
         )
-        event = Event.objects.get(eb_event_id=order['event_id'])
-        if webhook_order_available(social_user.user, order):
-            orders = create_event_orders_from_api(social_user.user.id, event.id, [order])
-            email = send_email_with_pdf.delay(orders[0][0].id,
-                                              orders[0][0].email)
-
-            return {'status': True, 'email': email}
-
+        return {'status': True}
     else:
+        return {'status': False}
 
-        return {'status': False, 'email': False}
+
+def webhook_checkin_action(config_data, social_user):
+    access_token = social_user.access_token
+    eb_attendee_id = re.search(
+        REGEX_CHECK_IN,
+        config_data['api_url'],
+    )[8]
+    attendee_count = Attendee.objects.filter(
+        eb_attendee_id__contains=eb_attendee_id,
+    ).count()
+    user_from_social_user = get_user_model().\
+        objects.get(id=social_user.user_id)
+    if attendee_count == 1:
+        update_attendee_checked_from_api(
+            user_from_social_user,
+            eb_attendee_id=eb_attendee_id,
+        )
+        return {'status': True}
+    elif attendee_count > 1:
+        eb_order_id = Attendee.objects.get(
+            eb_attendee_id=eb_attendee_id,
+        ).order.eb_order_id
+        attendees_for_order = get_api_order_attendees(
+            token=access_token,
+            order_id=eb_order_id,
+        )
+        with transaction.atomic():
+            for att in attendees_for_order:
+                barcode = att.get('barcodes')[0].get('barcode')
+                Attendee.objects.filter(barcode=barcode).update(
+                    checked_in=True if att.get('barcodes')[0].get('status') == 'used' else False,
+                    checked_in_time=att.get('barcodes')[0].get('changed'),
+                )
+        return {'status': True}
+    else:
+        return {'status': False}
 
 
 def webhook_order_available(user, order):
@@ -446,6 +502,8 @@ def webhook_available_to_process(user_id):
     if UserSocialAuth.objects.exists():
         if social_user_exists(user_id):
             return True
+        else:
+            raise Exception('USER ID: {} WAS NOT FOUND.'.format(user_id))
 
 
 def social_user_exists(user_id):

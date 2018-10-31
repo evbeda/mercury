@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.core.cache import cache
-
+from mercury_app.app_settings import WH_TYPE
 
 MERCH_STATUS = (
     ('CO', 'Delivered'),
@@ -118,10 +118,14 @@ class Merchandise(models.Model):
 
 
 class UserWebhook(models.Model):
-    webhook_id = models.CharField(max_length=255)
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+    )
+    webhook_id = models.CharField(max_length=16, unique=True)
+    wh_type = models.CharField(
+        max_length=2,
+        choices=WH_TYPE,
     )
 
 
@@ -160,3 +164,7 @@ class Attendee(models.Model):
     barcode = models.CharField(max_length=30, unique=True)
     barcode_url = models.CharField(max_length=120)
     checked_in = models.BooleanField()
+    checked_in_time = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
