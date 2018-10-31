@@ -7,7 +7,7 @@
     <div class="col-12">
       <div class="jumbotron">
         <div class="mb-5">
-          <p><a href="{% url 'index' %}"> {% trans "Home" %} </a>&nbsp;&nbsp;>&nbsp;&nbsp; <a href="{% url 'summary' event_id=order.event.eb_event_id %}">{% trans "Summary" %}  </a>&nbsp;&nbsp;>&nbsp;&nbsp;<a href="{% url 'orders' event_id=order.event.eb_event_id %}">{% trans "Event orders" %}  </a>&nbsp;&nbsp;>&nbsp;&nbsp; {% trans "Order Details" %} </p>
+          <p><a class="navigation" href="{% url 'index' %}"> {% trans "Home" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=order.event.eb_event_id %}">{% trans "Summary" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a><a class="navigation" href="{% url 'orders' event_id=order.event.eb_event_id %}">{% trans "Event orders" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a> <strong> {% trans "Order Details" %} </strong> </p>
         </div>
         <div class="row">
             <div class="col col-md-9">
