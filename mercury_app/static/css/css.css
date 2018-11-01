@@ -1,4 +1,3 @@
-
 #fondo{
 	background-image: url("../img/fondo_mercury.jpg");
 	background-size: cover;
@@ -7,12 +6,13 @@
 }
 #fondo_sin_imagen{
 	background-size: cover;
-	min-height: 80vh;
+	min-height: 84vh;
 	background-attachment: fixed;
 }
+
 .dark-overlay{
-	background-color: rgba(0,0,0,0.4);
-	min-height: 100vh;
+  background:#EBDCE6;
+	min-height: 84vh;
 }
 footer{
 	background-color: #1E0A3C;
@@ -23,7 +23,7 @@ footer a{
 }
 
 .content--fullheight {
-	min-height: 90vh;
+	min-height: 84vh;
 }
  #first_form{
 	font-family: 'Raleway';
@@ -137,4 +137,16 @@ input.qtyminus { width:25px; height:25px;}
 
 .navigation:hover{
   text-decoration: none;  
+}
+
+.titleLogin{
+  font-family: 'Roboto-Italic';
+  font-size: 18px;
+  color: #1E0A3C;
+}
+
+.loginEB {
+  font-family: 'Roboto-LightItalic';
+  font-size: 17px;
+  color: white;
 }
