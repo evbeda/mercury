@@ -44,14 +44,14 @@
       <div class="col-12">
         <div class="jumbotron">
           <div class="mb-5">
-            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Home" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a> <a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong>{% trans "QR Scan" %} </strong> </p>
+            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a> <a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong>{% trans "QR Scan" %} </strong> </p>
           </div>
           <div class="row">
-            <div class="col col-md-9">
+            <div class="col-md-9">
               <h1 class="title">{% trans "QR Scan" %}</h1>
               <p class="subtitle">{% trans "Please scan the QR Code in the attendee's ticket" %}</p>
             </div>
-            <div class="col col-md-3 text-center text-md-right mt-4 ">
+            <div class="col-md-3 text-center text-md-right mt-4 ">
               <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">{% trans "Orders" %}</a>
             </div>
           </div>

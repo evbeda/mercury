@@ -17,14 +17,14 @@
       <div class="col-12">
         <div class="jumbotron">
           <div class="mb-5">
-              <p><a class="navigation" href="{% url 'index' %}"> {% trans "Home" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a> <strong> {% trans "Summary" %} </strong> </p>
+              <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a> <strong> {% trans "Event summary" %} </strong> </p>
           </div>
           <div class="row">
-            <div class="col col-md-9">
-              <h1 class="title">{% trans "Summary" %}</h1>
+            <div class="col-md-9">
+              <h1 class="title">{% trans "Event summary" %}</h1>
               <p class="event">{{ event.name }}</p>
             </div>
-            <div class="col col-md-3 text-center text-md-right mt-4">
+            <div class="col-md-3 text-center text-md-right mt-4">
                 <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event.eb_event_id %}">{% trans "Scan QR" %}</a>
                 <a class="navbar-right btn btn-outline-info" href="{% url 'orders' event_id=event.eb_event_id %}">{% trans "Event orders" %}</a>
             </div>
@@ -44,7 +44,7 @@
     <div class="row">
       <div class="col-2"></div>
       <div class="col-8 text-center">
-        <h2>{% trans "Items fulfilled" %}</h2>
+        <h2>{% trans "Items Fulfilled" %}</h2>
         <h5>{{ data_handed_over_dont.2 }}/{{ data_handed_over_dont.1 }}</h5>
         <div class="row align-items-center justify-content-center text-center">
           <div class="col-9 col-sm-9 col-md-10 col-lg-11 col-xl-11">

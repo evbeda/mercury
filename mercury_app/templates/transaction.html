@@ -9,7 +9,7 @@
       <div class="col-12">
         <div class="jumbotron">
           <div class="mb-5">
-            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Home" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Event orders" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Order Details" %}&nbsp;&nbsp;>&nbsp;&nbsp;</a> <strong> {% trans "Transaction Detail" %} </strong></p>
+            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Event orders" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'orders' event_id=event_id %}"> {% trans "Order Details" %}&nbsp;&nbsp;>&nbsp;&nbsp;</a> <strong> {% trans "Transaction Detail" %} </strong></p>
           </div>
           <h1 class="title">{% trans "Transactions Detail" %}</h1>
           <p class="subtitle">{% trans "Detailed transactions for order" %} #{{order_number}} {% trans "from" %} {{order_name}}</p>
