@@ -1,57 +1,82 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% block content %}
+{% autoescape on %}
 
 <div id="fondo_sin_imagen" >
   <div class="container">
-   <div class="row">
     {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{{ message }}</strong>
+        </div>
+      </div>
+    </div>
     {% endif %}
-    <table class="table">
-      <h1>Select events</h1>
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Date</th>
-          <th scope="col">View</th>
-        </tr>
-      </thead>
-      <tbody>
-       {% for event in pagination %}
-       <tr>
-        <td>{{ event.name.text }}</td>
-        <td>{{ event.start.local }}</td>
-        <td>
-          <form action="{% url 'select_events' %}" method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="id_event" value="{{ event.id }}">
-            <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
-            <input type="hidden" name="organization_name" value="{{ event.org_name }}">
-            <input type="submit" name="" value="Add" class="btn btn-success">
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-      <tr>
-        <td></td>
-        <td></td>
-        <td><input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);"></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class = "row text-center">
-    <div class="col-3"> </div>
-    <div class="col-6">
-      {% if pagination.has_previous %}
-      <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-      {% endif %}
-      <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-      {% if pagination.has_next %}
-      <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
+    <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <div class="mb-5">
+            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong> {% trans "Add events" %} </strong></p>
+          </div>
+          <h1 class="title">{% trans "Add events" %}</h1>
+          <p class="subtitle">{% trans "Here is a list of your events at Eventbrite" %}. </p>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        {% if events%}
+        <table class="table">
+          <thead class="thead">
+            <tr>
+              <th scope="col">{% trans "Event name" %}</th>
+              <th scope="col">{% trans "Start date" %}</th>
+              <th scope="col">{% trans "Action" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+           {% for event in events %}
+           <tr>
+            <td>{{ event.name.text }}</td>
+            <td>{{ event.start.local }}</td>
+            <td>
+              <form action="{% url 'select_events' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="id_event" value="{{ event.id }}">
+                <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
+                <input type="hidden" name="organization_name" value="{{ event.org_name }}">
+                <input type="submit" name="" value="Manage" class="btn btn-outline-success">
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="row mb-4">
+        <div class="col-12 text-center">
+          {% if has_previous %}
+          <a href="?page={{ previous_page_number }}" class="btn btn-info"><</a>
+          {% endif %}
+          <span class="text-info">{% trans "Page" %} {{ number }} {% trans "of" %} {{ num_pages }}.</span>
+          {% if has_next %}
+          <a href="?page={{ next_page_number }}" class="btn btn-info" >></a>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{% trans "You have not events on this pagination" %}</strong>
+        </div>
+      </div>
+    </div>
       {% endif %}
     </div>
   </div>
 </div>
 </div>
-</div>
+{% endautoescape %}
 {% endblock %}

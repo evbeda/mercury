@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+{% block jsbottom %}
+<script type="text/javascript" src="{% static 'js/qrcodelib.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/webcodecamjs.js' %}"></script>
+<script type="text/javascript">
+    beepSound = new Audio("{% static 'audio/beep.ogg' %}");
+    function beep() {
+        if (beepSound) {
+            beepSound.play();
+        }
+    }
+    var arg = {
+        resultFunction: function(result) {
+            decoder.pause();
+            beep();
+            var url = '/event/'+{{event_id}}+'/scanqr/';
+            var form = $('<form action="' + url + '" method="post">' +
+              '<input type="text" name="code" value="' + result.code + '" />' +
+              '<input type="text" name="org" value="' + {{organization_id}} + '" />' +
+              '<input type="text" name="event" value="' + {{event_id}} + '" />' +
+              "{% csrf_token %}" +
+              '</form>');
+            $('body').append(form);
+            form.submit();
+
+        }
+    };
+    var decoder = new WebCodeCamJS("canvas").buildSelectMenu('select', 'environment|back').init(arg).play();
+    if (navigator.userAgent.match(/iPhone/i)) {
+        decoder.options.video.facingMode = "back";
+    }
+    document.querySelector('select').addEventListener('change', function(){
+        decoder.stop().play();
+    });
+</script>
+{% endblock %}
+{% block content %}
+<div class="container pb-5">
+  <div class="row">
+    <div class="container">
+     <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <div class="mb-5">
+            <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a> <a class="navigation" href="{% url 'summary' event_id=event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong>{% trans "QR Scan" %} </strong> </p>
+          </div>
+          <div class="row">
+            <div class="col-md-9">
+              <h1 class="title">{% trans "QR Scan" %}</h1>
+              <p class="subtitle">{% trans "Please scan the QR Code in the attendee's ticket" %}</p>
+            </div>
+            <div class="col-md-3 text-center text-md-right mt-4 ">
+              <a class="navbar-right btn btn-info" href="{% url 'orders' event_id=event_id %}">{% trans "Orders" %}</a>
+            </div>
+          </div>
+        </div>
+        {% if errormsg %}
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-warning">
+              <strong>{{ errormsg }}</strong>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+      </div>
+      <div class="col-sm">
+      </div>
+      <div class="col-sm">
+        <canvas></canvas>
+        <hr>
+        <select></select>
+      </div>
+      <div class="col-sm">
+      </div>
+  </div>
+ </div>
+</div>
+{% endblock %}

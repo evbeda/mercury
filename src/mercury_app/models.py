@@ -1,5 +1,13 @@
 from django.conf import settings
 from django.db import models
+from django.core.cache import cache
+from mercury_app.app_settings import WH_TYPE
+
+MERCH_STATUS = (
+    ('CO', 'Delivered'),
+    ('PA', 'Partially delivered'),
+    ('PE', 'Pending delivery'),
+)
 
 
 class Organization(models.Model):
@@ -51,24 +59,27 @@ class Event(models.Model):
     def __string__(self):
         return self.name
 
+    def date_start_date_utc(self):
+        return self.start_date_utc.strftime('%b. %e, %Y - %-I:%M %p')
+
+    @property
+    def is_processing(self):
+        return cache.get(self.eb_event_id)
+
 
 class Order(models.Model):
 
-    MERCH_STATUS = (
-        ('CO', 'Completed'),
-        ('PA', 'Partial'),
-        ('PE', 'Pending'),
-    )
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE
     )
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
     eb_order_id = models.BigIntegerField(
         unique=True,
     )
     changed = models.DateTimeField()
     created = models.DateTimeField()
-    name = models.CharField(max_length=256)
     status = models.CharField(max_length=32)
     email = models.EmailField(max_length=256)
     merch_status = models.CharField(
@@ -78,7 +89,10 @@ class Order(models.Model):
     )
 
     def __string__(self):
-        return self.name
+        return '{} {}'.format(self.first_name, self.last_name)
+
+    def date_created(self):
+        return self.created.strftime('%b. %e, %Y - %I:%M %p')
 
 
 class Merchandise(models.Model):
@@ -93,25 +107,35 @@ class Merchandise(models.Model):
     quantity = models.IntegerField(default=0)
     value = models.CharField(max_length=16)
 
+    def quantity_handed(self, date):
+        return Transaction.objects.filter(
+            merchandise__id=self.id,
+            operation_type='HA',
+            date=date).count()
+
     def __string__(self):
         return self.name
 
 
 class UserWebhook(models.Model):
-    webhook_id = models.CharField(max_length=255)
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+    )
+    webhook_id = models.CharField(max_length=16, unique=True)
+    wh_type = models.CharField(
+        max_length=2,
+        choices=WH_TYPE,
     )
 
 
 class Transaction(models.Model):
 
     OPERATION_TYPES = (
-        ('HA', 'Hand'),
-        ('RE', 'Refund'),
+        ('HA', 'Fulfillment'),
+        ('RE', 'Return'),
     )
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=False)
     from_who = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -126,4 +150,21 @@ class Transaction(models.Model):
         max_length=2,
         choices=OPERATION_TYPES,
         default='HA',
+    )
+
+
+class Attendee(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+    )
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    eb_attendee_id = models.CharField(max_length=16)
+    barcode = models.CharField(max_length=30, unique=True)
+    barcode_url = models.CharField(max_length=120)
+    checked_in = models.BooleanField()
+    checked_in_time = models.DateTimeField(
+        blank=True,
+        null=True,
     )

@@ -1,21 +1,26 @@
 {% extends '../base.html' %}
 {% load staticfiles %}
+{% load i18n %}
 {% block content %}
-<div id="fondo" >
+<div>
     <div class="dark-overlay" >
-      <div class="container text-center">
-            <div class="row pt-3 pb-1" id="first_form">
-                <div> 
-                    <p>Welcome! </p>
+      <div class="container text-center " id="first_form">
+            <div class="row pt-3 pb-1">
+                <div class="col-12">
+                    <h1 class="text-white title">{% trans "Welcome to the Mercury App" %}!</h1>
                 </div>
-                <p>Login with your Eventbrite account</p>
-                <form role="form">
+            </div>
+            <br />
+            <div class="row mt-2">
+                <div class="col-12">
+                    <form role="form">
                     <div class="col-lg-12 text-center">
-                    <a class="btn btn-info" href="{% url "social:begin" "eventbrite" %}"> Login with Eventbrite </a>
+                    <a class="btn btn-info loginEB" href="{% url "social:begin" "eventbrite" %}">{% trans "Login with Eventbrite" %}</a>
                     </div>
-                </form>	
+                </form> 
+                </div>
             </div>
         </div>
     </div>
-</div>
+</div>                
 {% endblock %}

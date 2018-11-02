@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block content %}
+<div class="container">
+  <div class="row text-center">
+    <div class="alert alert-warning">{% trans "You don't have access to this page, please redirect" %}</div>
+    <a href="{% url 'index' %}" class="btn btn-success">{% trans "Back to Home" %}</a>
+  </div>
+</div>
+</div>
+{% endblock %}

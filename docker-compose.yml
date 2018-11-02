@@ -20,15 +20,15 @@ services:
       - "6379:6379"
 
   # Django
-  web:
+  django:
     build:
       context: .
       dockerfile: Dockerfile
-    hostname: web
+    hostname: django
     # From documentation:
-    # However, Compose does not wait until a container is “ready”
-    # (whatever that means for your particular application) - only until it’s
-    # running. There’s a good reason for this.
+    # However, Compose does not wait until a container is "ready"
+    # (whatever that means for your particular application) - only until it's
+    # running. There's a good reason for this.
     command: ["./wait-for-postgres.sh", "db", "./entrypoint.sh"]
     volumes:
       # Mount src to app
@@ -37,22 +37,37 @@ services:
       - ./entrypoint.sh:/app/entrypoint.sh
       # Mount wait-for-postgres.sh to run in container
       - ./wait-for-postgres.sh:/app/wait-for-postgres.sh
-    expose:
-      - "8000"
-    ports:
-      - "8000:8000"
     depends_on:
       - db
     restart: always
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+
 
   # Celery
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A mercury_app worker --beat
+    command: celery -A mercury_app worker
     volumes:
       - ./src:/app
     depends_on:
-      - web
+      - django
       - redis
+
+  # Nginx
+  web-nginx:
+    image: nginx:1.15.5
+    hostname: nginx
+    restart: always
+    ports:
+      - "443:443"
+    volumes:
+      - ./src:/app
+      - ./src/conf/nginx:/etc/nginx
+      - ./src/cert:/etc/nginx/ssl
+    depends_on:
+      - django

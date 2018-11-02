@@ -108,3 +108,6 @@ venv.bak/
 
 #Redis files
 *.rdb
+
+#SSL Certs
+src/cert/

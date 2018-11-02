@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load sekizai_tags %}
+{% block content %}
+{% load i18n %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load bootstrap4 %}
+{% addtoblock "js" %}
+<script>
+    function getParams() {
+        var vars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+            vars[key] = value;
+        });
+        return vars;
+    }
+    $(function() {
+        var name;
+        var eb_order_id;
+        if (getParams()['name'] == null) {
+            name = '';
+        }else{
+            name = getParams()['name'];
+        }
+        if (getParams()['eb_order_id'] == null) {
+            eb_order_id = '';
+        }else{
+            eb_order_id = getParams()['eb_order_id'];
+        }
+        $("#id_merch_status").hide();
+        $("#co-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=CO");
+        $("#pa-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=PA");
+        $("#pe-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=PE");
+        $("#all-nav").attr("href", "?name="+name+"&eb_order_id="+eb_order_id+"&merch_status=");
+
+        switch(getParams()['merch_status']) {
+            case 'CO':
+            $("#co-nav").addClass('active');
+            break;
+            case 'PA':
+            $("#pa-nav").addClass('active');
+            break;
+            case 'PE':
+            $("#pe-nav").addClass('active');
+            break;
+            default:
+            $("#all-nav").addClass('active');
+        }
+    });
+</script>
+{% endaddtoblock %}
+<div class="container" >
+    {% block body %}
+    <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+            <div class="mb-5">
+                <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_eb_event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong> {% trans "Event orders" %} </strong> </p>
+            </div>
+            <div class="row">
+                <div class="col-md-9">
+                  <h1 class="title">{% trans "Event Orders" %}</h1>
+                  <p class="event">{{ event_name }}</p>
+              </div>
+              <div class="col-md-3 text-center text-md-right mt-4">
+               <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">{% trans "Scan QR" %}</a>
+           </div>
+       </div>
+   </div>
+</div>
+</div>
+{% if order_count == 0 %}
+<div class="row">
+  <div class="col-12">
+    <div class="alert alert-warning">
+      <strong>{% trans "Oops" %}!</strong> {% trans "It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again" %}.
+  </div>
+</div>
+</div>
+{% endif %}
+<div class="row">
+    <div class="col-12 text-center ">
+        {% if filter %}
+        <form action="" method="get" class="form-inline justify-content-center">
+            {% bootstrap_form filter.form layout='inline' %}
+            <div class="form-group is-valid">
+                <button class="btn btn-outline-secondary">{% trans "Filter" %}</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-12 text-center table-responsive">
+        {% render_table table %}
+    </div>
+</div>
+</div>
+{% endblock %}
+</div>
+{% endblock %}
+
+<div class="row text-center">
+    <div class="col-12 text-center">
+        <div class="eds-g-cell eds-text--center eds-l-mar-bot-2 eds-g-cell-mw-2-12 eds-g-cell-mn-3-12 eds-g-cell-sw-4-12 eds-g-cell-6-12">
+            <a id="hip_not_underline" href="/view_order/{}/{}/">
+                <i class="eds-vector-image eds-icon--small" data-spec="icon" aria-hidden="true">
+                    <svg id="eds-icon--eye_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path id="eds-icon--eye_base" fill-rule="evenodd" clip-rule="evenodd" fill="#231F20" d="M11.9 6.5C6.4 6.5 2 12.7 2 12.7s4.4 6.2 9.9 6.2 9.9-6.2 9.9-6.2-4.4-6.2-9.9-6.2zm0 11.3c-3.9 0-7.4-3.6-8.6-5.1 1.2-1.5 4.7-5.1 8.6-5.1 3.9 0 7.4 3.6 8.6 5.1-1.2 1.5-4.7 5.1-8.6 5.1"/>
+                        <path id="eds-icon--eye_circle" fill-rule="evenodd" clip-rule="evenodd" fill="#231F20" d="M11.9 9.1c-1.9 0-3.5 1.6-3.5 3.6s1.5 3.6 3.5 3.6 3.5-1.6 3.5-3.6-1.6-3.6-3.5-3.6zm0 6.1c-1.4 0-2.5-1.1-2.5-2.6 0-1.4 1.1-2.6 2.5-2.6s2.5 1.1 2.5 2.6-1.1 2.6-2.5 2.6z"/>
+                    </svg>
+                </i>
+            </a>
+        </div>
+    </div>
+</div>
+

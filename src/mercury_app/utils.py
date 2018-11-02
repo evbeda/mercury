@@ -1,16 +1,25 @@
 from mercury_site.celery import app
 from social_django.models import UserSocialAuth
 from eventbrite import Eventbrite
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import PermissionDenied
+from django.core.cache import cache
 import pytz
+from django.template import loader
+from django.core.mail import send_mail, EmailMessage
 from datetime import (
     timedelta,
 )
-from django.db.models import Sum
+from django.utils.translation import ugettext as _
+from django.db.models import Sum, Count
 from faker import Faker
 from random import (
     randint,
     uniform,
 )
+import json
+import os
 import re
 from .models import (
     Order,
@@ -20,12 +29,19 @@ from .models import (
     UserOrganization,
     UserWebhook,
     Transaction,
+    MERCH_STATUS,
+    Attendee,
 )
+from mercury_app.pdf_utils import pdf_merchandise
+from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
-    URL_ENDPOINT,
-    WH_ACTIONS,
+    URL_ENDPOINT_ORDER,
+    URL_ENDPOINT_CHECK_IN,
+    WH_ORDER_ACTION,
+    WH_CHECK_IN_ACTION,
     REGEX_ORDER,
+    REGEX_CHECK_IN,
 )
 
 
@@ -52,16 +68,27 @@ def get_api_orders_of_event(token, event_id):
     Get organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    url = '/events/{}/orders/'.format(event_id)
-    return eventbrite.get(url, expand=('merchandise',))['orders']
+    result = []
+    page = 1
+    continuation = True
+    while (continuation):
+        url = '/events/{}/orders/?page={}'.format(event_id, page)
+        call = eventbrite.get(url, expand=('merchandise',))
+        result.extend(call.get('orders'))
+        page += 1
+        continuation = has_continuation(call)
+    return result
 
-
-def get_api_events_org(token, organization):
+def get_api_events_org(token, organization, page_number=None):
     """
     Get events of one organization from the user of the token from the api
     """
     eventbrite = Eventbrite(token)
-    return eventbrite.get('/organizations/{}/events/'.format(organization['id'])).get('events')
+    if page_number == None:
+        page_number = 1
+    api_query = eventbrite.get(
+        '/organizations/{}/events/?page={}'.format(organization['id'], page_number))
+    return api_query.get('events'), api_query.get('pagination')
 
 
 def get_api_events_id(token, event_id):
@@ -78,6 +105,36 @@ def get_api_order(token, order_id):
     return eventbrite.get(url, expand=('merchandise',))
 
 
+def get_api_order_barcode(token, org_id, barcode):
+    eventbrite = Eventbrite(token)
+    url = '/organizations/{}/orders/search?barcodes={}'.format(org_id, barcode)
+    return eventbrite.get(url).get('orders')[0]
+
+
+def get_api_order_attendees(token, order_id):
+    eventbrite = Eventbrite(token)
+    result = []
+    page = 1
+    continuation = True
+    while (continuation):
+        url = '/orders/{}/attendees/?page={}'.format(order_id, page)
+        call = eventbrite.get(url, expand=('merchandise',))
+        result.extend(call.get('attendees'))
+        page += 1
+        continuation = has_continuation(call)
+    return result
+
+
+def get_api_attendee_checked(token, attendee_id, event_id):
+    eventbrite = Eventbrite(token)
+    url = '/events/{}/attendees/{}/'.format(event_id, attendee_id)
+    return eventbrite.get(url)
+
+
+def has_continuation(request):
+    return request.get('pagination').get('has_more_items')
+
+
 def get_db_event_by_id(event_id):
     try:
         return Event.objects.get(eb_event_id=event_id)
@@ -85,30 +142,53 @@ def get_db_event_by_id(event_id):
         return None
 
 
-def create_event_orders_from_api(event, orders):
+def get_db_order_by_id(order_id):
+    try:
+        return Order.objects.get(id=order_id)
+    except Exception as e:
+        return None
+
+
+@app.task(ignore_result=True)
+def create_event_orders_from_api(userid, eventid, orders=None):
     created_orders = []
+    event = Event.objects.get(id=eventid)
+    token = get_auth_token(get_user_model().objects.get(id=userid))
+    if orders is None:
+        orders = get_api_orders_of_event(token, event.eb_event_id)
     try:
         for order in orders:
-            if order.get('merchandise'):
-                order_creation = Order.objects.get_or_create(
-                    event=event,
-                    eb_order_id=order['id'],
-                    created=order['created'],
-                    changed=order['changed'],
-                    name=order['name'],
-                    status=order['status'],
-                    email=order['email'],
-                )
-                for item in order['merchandise']:
-                    create_merchandise_from_order(item, order_creation[0])
-                created_orders.append(order_creation)
+            if (order is not None and len(order.get('merchandise')) > 0):
+                order_transactions = create_order_atomic.delay(userid, eventid, order)
+                created_orders.append(order_transactions)
     except Exception:
         created_orders.append(None)
         if len(created_orders) < len(orders):
             remaining_orders = orders[len(created_orders):]
-            more_orders = create_event_orders_from_api(event, remaining_orders)
+            more_orders = create_event_orders_from_api.delay(userid, eventid, remaining_orders)
             created_orders.extend(more_orders)
+    cache.delete(event.eb_event_id)
     return created_orders
+
+
+@app.task(ignore_result=True)
+def create_order_atomic(userid, eventid, order):
+    with transaction.atomic():
+        event = Event.objects.get(id=eventid)
+        order_creation, _ = Order.objects.get_or_create(
+            event=event,
+            eb_order_id=order['id'],
+            created=order['created'],
+            changed=order['changed'],
+            first_name=order['first_name'],
+            last_name=order['last_name'],
+            status=order['status'],
+            email=order['email'],
+        )
+        create_attendee_from_order(userid, order_creation)
+        for item in order['merchandise']:
+            create_merchandise_from_order(item, order_creation)
+        return order_creation
 
 
 def create_merchandise_from_order(item, order):
@@ -128,6 +208,30 @@ def create_merchandise_from_order(item, order):
         return merchandise
     except Exception:
         return None
+
+
+def create_attendee_from_order(userid, order):
+    token = get_auth_token(get_user_model().objects.get(id=userid))
+    attendees = get_api_order_attendees(token, order.eb_order_id)
+    created_attendees = []
+    for attendee in attendees:
+        first_name = attendee.get('profile').get('first_name')
+        last_name = attendee.get('profile').get('last_name')
+        eb_attendee_id = attendee.get('id')
+        barcode = attendee.get('barcodes')[0].get('barcode')
+        barcode_url = attendee.get('barcodes')[0].get('qr_code_url')
+        checked_in = True if attendee.get('barcodes')[0].get('status') == 'used' else False
+        att = Attendee.objects.create(
+            order=order,
+            first_name=first_name,
+            last_name=last_name,
+            eb_attendee_id=eb_attendee_id,
+            barcode=barcode,
+            barcode_url=barcode_url,
+            checked_in=checked_in,
+        )
+        created_attendees.append(att)
+    return created_attendees
 
 
 def get_db_merchandising_by_order_id(order_id):
@@ -214,31 +318,88 @@ def create_event_from_api(organization, event):
         return None
 
 
-def get_events_for_organizations(organizations, user):
+def get_events_for_organizations(organizations, user, page_number):
     for organization in organizations:
-        event = get_api_events_org(get_auth_token(user), organization)
-        for e in event:
-            e['org_name'] = organization['name']
-    return event
+        event, pagination = get_api_events_org(
+            get_auth_token(user), organization, page_number)
+        if event:
+            for e in event:
+                e['org_name'] = organization['name']
+        else:
+            event = None
+    return event, pagination
+
+
+def get_db_attendee_from_barcode(barcode, event_id):
+    try:
+        att = Attendee.objects.get(barcode=barcode, order__event__eb_event_id=event_id)
+        return att
+    except Exception:
+        return None
 
 
 def create_order_webhook_from_view(user):
     if not UserWebhook.objects.filter(user=user).exists():
-        token = get_auth_token(user)
-        webhook_id = create_webhook(token)
-        UserWebhook.objects.create(
-            user=user,
-            webhook_id=webhook_id,
-        )
+        try:
+            token = get_auth_token(user)
+            webhook_ids = create_webhook(token)
+            if webhook_ids[0] is not None and webhook_ids[1] is not None:
+                with transaction.atomic():
+                    UserWebhook.objects.create(
+                        user=user,
+                        webhook_id=webhook_ids[0],
+                        wh_type='OR'
+                    )
+                    UserWebhook.objects.create(
+                        user=user,
+                        webhook_id=webhook_ids[1],
+                        wh_type='CH'
+                    )
+                    return {'created': True, 'existed': False}
+            else:
+                return {'created': False, 'existed': False}
+        except Exception:
+            return {'created': False, 'existed': False}
+    else:
+        return {'created': False, 'existed': True}
+
+
+def update_attendee_checked_from_api(user, barcode=None, eb_attendee_id=None):
+    if barcode is not None:
+        attendee = Attendee.objects.get(barcode=barcode)
+    elif eb_attendee_id is not None:
+        attendee = Attendee.objects.get(eb_attendee_id=eb_attendee_id)
+    result = get_api_attendee_checked(
+        get_auth_token(user),
+        attendee.eb_attendee_id,
+        attendee.order.event.eb_event_id,
+    )
+    if result is not None:
+        if barcode is not None:
+            Attendee.objects.filter(barcode=barcode).update(
+                checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
+                checked_in_time=result.get('barcodes')[0].get('changed'),
+            )
+        if eb_attendee_id is not None:
+            Attendee.objects.filter(eb_attendee_id=eb_attendee_id).update(
+                checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
+                checked_in_time=result.get('barcodes')[0].get('changed'),
+            )
+    return True if result.get('barcodes')[0].get('status') == 'used' else False
 
 
 def create_webhook(token):
-    data = {
-        'endpoint_url': URL_ENDPOINT,
-        'actions': WH_ACTIONS,
+    data_order = {
+        'endpoint_url': URL_ENDPOINT_ORDER,
+        'actions': WH_ORDER_ACTION,
     }
-    response = Eventbrite(token).post('/webhooks/', data)
-    return (response['id'])
+    data_check_in = {
+        'endpoint_url': URL_ENDPOINT_CHECK_IN,
+        'actions': WH_CHECK_IN_ACTION,
+    }
+    response_order = Eventbrite(token).post('/webhooks/', data_order)
+    response_check_in = Eventbrite(token).post('/webhooks/', data_check_in)
+    return (response_order.get('id', None), response_check_in.get('id', None))
 
 
 def delete_webhook(token, webhook_id):
@@ -248,25 +409,82 @@ def delete_webhook(token, webhook_id):
     return HttpResponseRedirect('/')
 
 
+def get_email_pdf_context(order_id):
+    order = Order.objects.filter(id=order_id)[0]
+    context = {'event_name': order.event.name,
+               'event_id': order.event.id}
+    return context
+
+
 @app.task(ignore_result=True)
 def get_data(body, domain):
-    config_data = body
-    user_id = config_data['config']['user_id']
-    if webhook_available_to_process(user_id):
-        social_user = get_social_user(user_id)
-        access_token = social_user.access_token
-        order_id = re.search(REGEX_ORDER, config_data['api_url'])[5]
-        order = get_api_order(
-            token=access_token,
-            order_id=order_id
+    try:
+        config_data = body
+        user_id = config_data['config']['user_id']
+        if webhook_available_to_process(user_id):
+            social_user = get_social_user(user_id)
+            if config_data['config']['action'] == WH_ORDER_ACTION:
+                return webhook_order_action(config_data, social_user)
+            elif config_data['config']['action'] == WH_CHECK_IN_ACTION:
+                return webhook_checkin_action(config_data, social_user)
+    except Exception:
+        return {'status': False}
+
+
+def webhook_order_action(config_data, social_user):
+    access_token = social_user.access_token
+    order_id = re.search(
+        REGEX_ORDER,
+        config_data['api_url'],
+    )[5]
+    order = get_api_order(
+        token=access_token,
+        order_id=order_id,
+    )
+    event = Event.objects.get(
+        eb_event_id=order['event_id'],
+    )
+    if webhook_order_available(social_user.user, order):
+        create_event_orders_from_api(
+            social_user.user.id,
+            event.id,
+            [order],
         )
-        event = Event.objects.get(eb_event_id=order['event_id'])
-        if webhook_order_available(social_user.user, order):
-            create_event_orders_from_api(event, [order])
-
-            return {'status': True}
+        return {'status': True}
     else:
+        return {'status': False}
 
+
+def webhook_checkin_action(config_data, social_user):
+    access_token = social_user.access_token
+    eb_attendee_id = re.search(
+        REGEX_CHECK_IN,
+        config_data['api_url'],
+    )[8]
+    attendee_count = Attendee.objects.filter(
+        eb_attendee_id__contains=eb_attendee_id,
+    ).count()
+    if attendee_count == 1:
+        update_attendee_checked_from_api(
+            social_user,
+            eb_attendee_id=eb_attendee_id,
+        )
+    elif attendee_count > 1:
+        eb_order_id = Attendee.objects.get(
+            eb_attendee_id=eb_attendee_id,
+        ).order.eb_order_id
+        attendees_for_order = get_api_order_attendees(
+            token=access_token,
+            order_id=eb_order_id,
+        )
+        with transaction.atomic():
+            for att in attendees_for_order:
+                barcode = att.get('barcodes')[0].get('barcode')
+                Attendee.objects.filter(barcode=barcode).update(
+                    checked_in=True if att.get('barcodes')[0].get('status') == 'used' else False,
+                    checked_in_time=att.get('barcodes')[0].get('changed'),
+                )
+    else:
         return {'status': False}
 
 
@@ -280,6 +498,8 @@ def webhook_available_to_process(user_id):
     if UserSocialAuth.objects.exists():
         if social_user_exists(user_id):
             return True
+        else:
+            raise Exception('USER ID: {} WAS NOT FOUND.'.format(user_id))
 
 
 def social_user_exists(user_id):
@@ -509,8 +729,9 @@ def get_mock_api_orders(amount, w_merchandise, event_id):
         w_merchandise -= 1
     return mocked_orders_array
 
-def get_json_donut(percentage, name, id_int):
-    data_json = {'quantity': percentage, 'percentage': percentage,
+
+def get_json_donut(percentage, quantity, name, id_int):
+    data_json = {'quantity': quantity, 'percentage': percentage,
                  'name': name, 'id': id_int}
     return data_json
 
@@ -540,51 +761,67 @@ def get_summary_types_handed(order_ids):
             else:
                 handed_percentaje = 0
             dont_handed_percentaje = 100 - handed_percentaje
-            data_json.append([get_json_donut(
-                handed_percentaje,
-                '{} handed'.format(total_mercha[i]['name']),
-                1),
-                get_json_donut(
-                dont_handed_percentaje,
-                '{} don\'t handed'.format(total_mercha[i]['name']),
-                2)])
+            data_json.append({"name": total_mercha[i].get("name"),
+                              "handed": handed_mercha[i].get("name_count"),
+                              "total": total_mercha[i].get("name_count"),
+                              "handed_percentage": handed_percentaje,
+                              "not_handed_percentage": dont_handed_percentaje,
+                              "pending": total_mercha[i].get("name_count") - handed_mercha[i].get("name_count")})
     else:
         for i in range(len(total_mercha)):
-            data_json.append([get_json_donut(
-                0,
-                '{} handed'.format(total_mercha[i]['name']),
-                1),
-                get_json_donut(
-                100,
-                '{} don\'t handed'.format(total_mercha[i]['name']),
-                2)])
+            data_json.append({"name": total_mercha[i].get("name"),
+                              "handed": 0,
+                              "total": total_mercha[i].get("name_count"),
+                              "handed_percentage": 0,
+                              "not_handed_percentage": 100,
+                              "pending": 0})
     return data_json
 
 
-def get_summary_handed_over_dont_json(order_ids):
+def get_percentage_handed(order_ids):
     total_sold = Merchandise.objects.filter(
         order_id__in=order_ids).aggregate(Sum('quantity'))['quantity__sum']
     total_delivered = Transaction.objects.filter(
         merchandise__order__id__in=order_ids, operation_type='HA').count()
-    if total_sold != 0:
-        handed_percentaje = round(
-            ((total_delivered *
-              100) / total_sold), 1)
+    if total_sold is not None:
+        if total_sold != 0:
+            handed_percentaje = round(
+                ((total_delivered *
+                  100) / total_sold), 1)
+        else:
+            handed_percentaje = 0
+        return [handed_percentaje, total_sold, total_delivered]
+
+
+def get_summary_orders(event):
+    orders_pending = Order.objects.filter(
+        merch_status='PE', event=event).aggregate(quantity=Count('id'))
+    orders_delivered = Order.objects.filter(
+        merch_status='CO', event=event).aggregate(quantity=Count('id'))
+    orders_partially = Order.objects.filter(
+        merch_status='PA', event=event).aggregate(quantity=Count('id'))
+    total = orders_pending['quantity'] + \
+        orders_delivered['quantity'] + orders_partially['quantity']
+    if total != 0:
+        pending_percentage = (orders_pending['quantity'] * 100) / total
+        delivered_percentage = (orders_delivered['quantity'] * 100) / total
+        partially_percentage = (orders_partially['quantity'] * 100) / total
     else:
-        handed_percentaje = 0
-    dont_handed_percentaje = 100 - handed_percentaje
-    data_json = ([get_json_donut(
-        handed_percentaje,
-        'Orders Handed',
-        1),
-        get_json_donut(
-        dont_handed_percentaje,
-        'Orders don\'t handed',
-        2)])
+        pending_percentage = 0
+        delivered_percentage = 0
+        partially_percentage = 0
+    data_json = [
+        get_json_donut(round(pending_percentage),
+                       orders_pending['quantity'], _('Pending'), 1),
+        get_json_donut(round(delivered_percentage),
+                       orders_delivered['quantity'], _('Delivered'), 2),
+        get_json_donut(round(partially_percentage),
+                       orders_partially['quantity'], _('Partial'), 3),
+    ]
     return data_json
 
 
-def create_transaction(user, merchandise, note, device, operation):
+def create_transaction(user, merchandise, note, device, operation, date):
     try:
         tx = Transaction.objects.create(
             merchandise=merchandise,
@@ -592,7 +829,9 @@ def create_transaction(user, merchandise, note, device, operation):
             notes=note,
             device_name=device,
             operation_type=operation,
+            date=date,
         )
+        update_db_merch_status(tx.merchandise.order)
         return tx
     except Exception:
         return None
@@ -612,7 +851,8 @@ def get_db_items_left(merchandising_query_obj):
                 transaction_count += 1
             else:
                 pass
-        items_left = merchandising_query[index].get('quantity') + transaction_count
+        items_left = merchandising_query[index].get(
+            'quantity') + transaction_count
         merchandising_query[index]['items_left'] = items_left
     return merchandising_query
 
@@ -625,3 +865,94 @@ def get_db_transaction_by_merchandise(merchandise):
         return transaction_query
     except Exception:
         return None
+
+
+def update_db_merch_status(order):
+    total_mercha = Merchandise.objects.filter(
+        order=order).aggregate(Sum('quantity'))
+    handed_mercha = Transaction.objects.filter(
+        merchandise__in=Merchandise.objects.filter(
+            order=order).values('id').order_by('id'),
+        operation_type='HA').count()
+    if total_mercha['quantity__sum'] == handed_mercha:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[0][0]
+        )
+        return MERCH_STATUS[0][0]
+    elif handed_mercha == 0:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[2][0]
+        )
+        return MERCH_STATUS[2][0]
+    else:
+        Order.objects.filter(id=order.id).update(
+            merch_status=MERCH_STATUS[1][0]
+        )
+        return MERCH_STATUS[1][0]
+
+
+def delete_events(event_id):
+    Event.objects.filter(eb_event_id=event_id).delete()
+
+class EventAccessMixin():
+    def get_event(self):
+        event = get_object_or_404(
+            Event,
+            eb_event_id=self.kwargs['event_id'],
+        )
+        org_id = UserOrganization.objects.filter(
+            user=self.request.user).values_list('organization', flat=True)
+        if event.organization.id not in org_id:
+            raise PermissionDenied("You don't have access to this event")
+        return event
+
+
+class OrderAccessMixin():
+    def get_merchandise(self):
+        order_id = int(self.kwargs['order_id'])
+        order = get_object_or_404(Order, id=order_id)
+        org_id = UserOrganization.objects.filter(
+            user=self.request.user).values_list('organization', flat=True)
+        orders_ids = Order.objects.filter(
+            event__organization__in=org_id).values_list('id', flat=True)
+        if int(order_id) not in orders_ids:
+            raise PermissionDenied("You don't have access to this event")
+        return Merchandise.objects.filter(
+            order=order_id,
+        )
+
+
+@app.task(ignore_result=True)
+def send_email_alert(transactions, email, date, operation, order_id):
+    transactions = json.loads(transactions)
+    if len(transactions):
+        template_html = "email.html"
+        text_content = "Merchandise delivery"
+        html = loader.get_template(template_html)
+        context = {'transactions': transactions,
+                   'date': date,
+                   'operation': operation,
+                   'order_id': order_id}
+        html_content = html.render(context)
+        send_mail(
+            "Merchandise delivery",
+            text_content,
+            os.environ.get('EMAIL_HOST_USER'),
+            [email],
+            html_message=html_content,
+            fail_silently=False,
+        )
+        return context
+
+
+def get_merchas_for_email(merchases, date):
+    merchandises = []
+    merchases_ids = []
+    for mercha in merchases:
+        if mercha.id not in merchases_ids:
+            merchandises.append([mercha.name,
+                                 mercha.item_type,
+                                 mercha.quantity_handed(date),
+                                 ])
+            merchases_ids.append(mercha.id)
+    return merchandises, mercha.order.id, mercha.order.email

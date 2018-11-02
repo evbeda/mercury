@@ -1,105 +1,131 @@
 {% extends 'base.html' %}
+{% load sekizai_tags %}
+{% load i18n %}
 {% block content %}
-<div class="container">
-	<div class="row">
-    {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
-    {% endif %}
-    <div id="fondo_sin_imagen" >
-      <div class="container">
-       <div class="row">
-                  <form id="delivery" action="{% url 'item_mercha' order_id=order_id %}" method="POST">
-
-        <table class="table">
-          <h1>Merchandise</h1>
-          <thead class="thead-dark">
-            <tr>
-              <th scope="col">Item name</th>
-              <th scope="col">Subtype</th>
-              <th scope="col">Sold Quantity</th>
-              <th scope="col">Unit value</th>
-              <th scope="col">Delivered</th>
-              <th scope="col">Amount left</th>
-              <th scope="col">Amount to deliver</th>
-            </tr>
-          </thead>
-          <tbody>
-           {% for item in merchandising %}
-           <tr>
-            <td>{{ item.name }}</td>
-            <td>{{ item.item_type }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.value }}</td>
-            <p hidden="True">{{ item.items_value }}</p>
-            {% if item.quantity == item.items_left %}
-            <td>No</td>
-            {% elif item.items_left == 0%}
-            <td>Yes</td>
-            {% else %}
-            <td>Partially</td>
-            {% endif %}
-            <td>{{ item.items_left }}</td>
-            <td>
-              <script type="text/javascript">
-                var max_value = "{{ item.items_left }}";
-              </script>
-
-<!--                 <input type='button' value='-' class='qtyminus' field='quantity' />
-                <input type='number' name='quantity' value='0' class='qty' />
-                <input type='button' value='+' class='qtyplus' field='quantity' />
-
- -->
-
-<input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-<input readonly="readonly" type=text form="delivery" size=10 id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' value='0'>
-<input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
-
-            </td>
-            <!--<td><a href="{% url 'transaction' item_id=item.id %}" class="btn btn-info">Historial</a></td>-->
-          </tr>
-          {% endfor %}
-          <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td><button type="submit" form="delivery" class="btn btn-success" value="Submit">Mark as delivered</button></td>
-          </tr>
-          {% csrf_token %}
-          <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td><input type=button class="btn btn-primary" value="Go Back" onClick="javascript:history.go(-1);"></td>
-          </tr>
-
-        </tbody>
-      </table>
-                </form>
-      <div class = "row text-center">
-        <div class="col-3"> </div>
-        <div class="col-6">
-          {% if pagination.has_previous %}
-          <a href="?page={{ pagination.previous_page_number }}" class="btn btn-info"><</a>
-          {% endif %}
-          <span class="text-info">Page {{ pagination.number }} of {{ pagination.paginator.num_pages }}.</span>
-          {% if pagination.has_next %}
-          <a href="?page={{ pagination.next_page_number }}" class="btn btn-info" >></a>
-          {% endif %}
+<div class="container mb-5">
+  <div class="row">
+    <div class="col-12">
+      <div class="jumbotron">
+        <div class="mb-5">
+          <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=order.event.eb_event_id %}">{% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a><a class="navigation" href="{% url 'orders' event_id=order.event.eb_event_id %}">{% trans "Event orders" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a> <strong> {% trans "Order Details" %} </strong> </p>
+        </div>
+        <div class="row">
+            <div class="col-md-9">
+              <h1 class="title">{% trans "Order Details" %}</h1>
+              <p class="subtitle">{% trans "Merchandise items that belong to this order" %}.</p>
+            </div>
+            <div class="col-md-3 text-center text-md-right mt-4">
+               <a class="navbar-right btn btn-outline-info" href="{% url 'transactions' order_id=order.id %}">{% trans "Transactions" %}</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  {% if messages %}
+  <div class="row">
+    <div class="col-12">
+      <div class="alert alert-warning">
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+      </div>
+    </div>
   </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col-12">
+      {% if order.merch_status == 'CO' %}
+      <div class="card bg-success text-white">
+        {% elif order.merch_status == 'PA' %}
+        <div class="card bg-warning text-white">
+          {% else %}
+          <div class="card bg-danger text-white">
+            {% endif %}
+            <h5 class="card-header">{% trans "Order details" %}</h5>
+            <div class="card-body">
+              <h5 class="font-weight-light"><strong>{% trans "Buyer" %} {{ order.first_name }} {{ order.last_name }}</strong>  </h5>
+              <h6 class="font-weight-light"><small>{% trans "Status" %}</small>
+                {% if order.merch_status == 'CO' %}
+                {% trans "Delivered" %}
+                {% elif order.merch_status == 'PA' %}
+                {% trans "Partial" %}
+                {% else %}
+                {% trans "Pending" %}
+                {% endif %}
+              </h6>
+              <h6 class="font-weight-light"><small>{% trans "Number" %} </small> {{ order.eb_order_id }} </h6>
+              <h6 class="font-weight-light"><small>{% trans "Date" %} </small> {{ order.created }} </h6>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <form id="delivery" action="{% url 'item_mercha' order_id=order_id attendee_id=attendee_id %}" method="POST">
+           {% for item in merchandising %}
+           <br>
+           <div class="card">
+            <h5 class="card-header">{{ item.name }}</h5>
+            <div class="card-body">
+              <div class="row">
+                <div class="col">
+                  <h6 class="font-weight-light">{% trans "Subtype" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity sold" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Unit price" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Delivered" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity remaining" %}</h6>
+                  <h6 class="font-weight-light">{% trans "Quantity being fulfilled" %}</h6>
+                </div>
+                <div class="col">
+                  <h6 class="font-weight-light">{{ item.item_type }} </h6>
+                  <h6 class="font-weight-light">{{ item.quantity }} </h6>
+                  <h6 class="font-weight-light">$ &nbsp{{ item.value }} </h6>
+                  <h6 class="font-weight-light">
+                    {% if item.quantity == item.items_left %}
+                    {% trans "No" %}
+                    {% elif item.items_left == 0%}
+                    {% trans "Yes" %}
+                    {% else %}
+                    {% trans "Partially" %}
+                    {% endif %}
+                  </h6>
+                  <h6 class="font-weight-light"> {{ item.items_left }} </h6>
+                  <h6 class="font-weight-light">
+                    <script type="text/javascript">
+                      var max_value = "{{ item.items_left }}";
+                    </script>
+                    <input type=button value='-' class="btn btn-info btn-sm" id="minus{{ item.eb_merchandising_id }}"onclick='javascript:process(-1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+                    <input readonly="readonly" type=text form="delivery" size="2" id='{{ item.eb_merchandising_id }}' name='{{ item.eb_merchandising_id }}' min="0" max="{{ item.items_left }}" value='0'>
+                    <input type=button value='+' class="btn btn-info btn-sm" id="plus{{ item.eb_merchandising_id }}" onclick='javascript:process(1, "{{ item.eb_merchandising_id }}", {{ item.items_left }})'>
+                  </h6>
+
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="row">
+            <div class="col text-right m-2">
+             <textarea form="delivery" class="form-control" rows="2" id="comment" name="comment"  maxlength="255" placeholder="({% trans 'Optional' %}) {% trans 'Add a comment to this delivery' %}"></textarea>
+             <br>
+             <button  type="button" id="select-all" class="btn btn-outline-success" >{% trans "Select All" %}</button>
+             <button  type="submit" id="deliver-btn" form="delivery" class="btn btn-success" value="Submit">{% trans "Mark as delivered" %}</button>
+           </div>
+         </div>
+         {% csrf_token %}
+       </form>
+     </div>
+   </div>
+ </div>
 </div>
 </div>
 </div>
-<script language=javascript>
-function process(v, target, max){
+{% addtoblock "js" %}
+<script>
+  function process(v, target, max){
     var value = parseInt(document.getElementById(target).value);
     if (max == 0){
       value = 0;
@@ -107,63 +133,44 @@ function process(v, target, max){
       if (v==1){
         value +=v;
       }else{
-          value = value;
+        value = value;
       }
     }else if (value == max && max != 0) {
       if (v==-1){
         value +=v;
       }else{
-
       }
     }else if (value < max) {
-    value+=v;
-  } else if (max == 0) {
-    value = 0
-}
+      value+=v;
+    } else if (max == 0) {
+      value = 0
+    }
     document.getElementById(target).value = value;
   }
-</script>
 
-<script type="text/javascript">
+  $(function(){
+    var enableButtons = false
+    $(":input[type=text][readonly='readonly']").each(function() {
+      if ($(this).attr('max') == 0) {
+        var minus = '#minus'+$(this).attr('id');
+        var plus = '#plus'+$(this).attr('id');
+        $(minus).attr('disabled', true);
+        $(plus).attr('disabled', true);
+      }else{
+        enableButtons = true
+      }
+    });
+    $('#select-all').attr('disabled', !enableButtons);
+    $('#deliver-btn').attr('disabled', !enableButtons);
+    $('#comment').attr('disabled', !enableButtons);
 
-  jQuery(document).ready(function(){
-    // This button will increment the value
-    $('.qtyplus').click(function(e){
-        // Stop acting like a button
-        e.preventDefault();
-        // Get the field name
-        fieldName = $(this).attr('field');
-        // Get its current value
-        var currentVal = parseInt($('input[name='+fieldName+']').val());
-        // If is not undefined
-        if (!isNaN(currentVal)) {
-            // Increment
-            if (currentVal < max_value) {
-            $('input[name='+fieldName+']').val(currentVal + 1);
-          }
-          } else {
-            // Otherwise put a 0 there
-            $('input[name='+fieldName+']').val(0);
-          }
-        });
-    // This button will decrement the value till 0
-    $(".qtyminus").click(function(e) {
-        // Stop acting like a button
-        e.preventDefault();
-        // Get the field name
-        fieldName = $(this).attr('field');
-        // Get its current value
-        var currentVal = parseInt($('input[name='+fieldName+']').val());
-        // If it isn't undefined or its greater than 0
-        if (!isNaN(currentVal) && currentVal > 0) {
-            // Decrement one
-            $('input[name='+fieldName+']').val(currentVal - 1);
-          } else {
-            // Otherwise put a 0 there
-            $('input[name='+fieldName+']').val(0);
-          }
-        });
+    $('#select-all').click(function() {
+      $(":input[type=text][readonly='readonly']").each(function() {
+        $(this).val($(this).attr('max'));
+      });
+    });
   });
-</script>
 
+</script>
+{% endaddtoblock %}
 {% endblock %}

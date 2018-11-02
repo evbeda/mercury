@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import sys
 import dj_database_url
 from mercury_site.__init__ import get_env_variable
+from django.utils.translation import ugettext_lazy as _
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,9 +29,7 @@ ALLOWED_HOSTS = [
     'ebmercury.herokuapp.com',
     'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
-    'ngrok.io',
 ]
-
 
 
 # Application definition
@@ -45,11 +45,19 @@ INSTALLED_APPS = [
     'social_django',
     'bootstrap4',
     'mercury_app',
+    'django_tables2',
+    'django_filters',
+    'fontawesome',
+    'sekizai',
+    'sslserver',
+    'django_inlinecss',
+    'redis_cache',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -75,6 +83,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
+                'django.template.context_processors.request',
+                'sekizai.context_processors.sekizai',
             ],
         },
     },
@@ -148,15 +158,28 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGES = (
+    ('en', _('English')),
+    ('de', _('German')),
+    ('nl', _('Dutch')),
+)
 
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'en'
+
+TIME_ZONE = 'America/Argentina/Mendoza'
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+# email configuration
+EMAIL_USE_TLS = True
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
 
 # Static files (CSS, JavaScript, Images)
@@ -165,8 +188,19 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
+LOCALE_PATHS = (
+    os.path.join(BASE_DIR, 'locale'),
+)
+
 DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
 
 DATABASES['default'].update(DB_FROM_ENV)
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL'),
+    },
+}
