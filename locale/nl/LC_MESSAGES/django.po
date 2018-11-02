@@ -453,3 +453,12 @@ msgstr "U ontvangt deze e-mail omdat sommige artikelen van uw bestelling zijn af
 
 msgid "Team member"
 msgstr "Teamlid"
+
+msgid "Welcome to the Mercury App"
+msgstr "Welkom bij de Mercury-app"
+
+msgid "Login with Eventbrite"
+msgstr "Log in met Eventbrite"
+
+msgid "It seems like the access was denied. Please, try again"
+msgstr "Het lijkt erop dat de toegang werd geweigerd. Probeer het alstublieft nog een keer"
