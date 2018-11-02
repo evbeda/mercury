@@ -45,6 +45,53 @@ from mercury_app.app_settings import (
 )
 
 
+def create_event_complete(user,
+                          token,
+                          id_event,
+                          org_id,
+                          org_name,
+                          badge,
+                          merchandise):
+    events = {'events': []}
+    events['events'] = get_api_events_id(
+        token,
+        id_event,
+    )
+    org = get_db_or_create_organization_by_id(org_id, org_name)
+    create_userorganization_assoc(org[0], user)
+    event = create_event_from_api(
+        org[0], events['events'], badge, merchandise)[0]
+    if isinstance(event, Event):
+        cache.set(event.eb_event_id, True, 600)
+        create_event_orders_from_api.delay(
+            user.id, event.id)
+        return 'The event was successfully added!'
+    else:
+        return 'An error has occured while adding the event'
+
+
+def get_events_mercha_and_badges(post):
+    params = {}
+    events_badges = []
+    events_mercha = []
+    for form_key, form_value in post:
+        if re.search(r'badges_\d*', form_key):
+            events_badges.append(form_key[7:])
+        if re.search(r'merchandise_\d*', form_key):
+            events_mercha.append(form_key[12:])
+        else:
+            params[form_key] = form_value
+    events = {}
+    for event in events_mercha:
+        events[event] = {"merchandise": True, "badges": False}
+    for event in events_badges:
+        if event in events:
+            events[event]["badges"] = True
+        else:
+            events[event] = {"merchandise": False, "badges": True}
+    return events
+
+
 def get_auth_token(user):
     try:
         token = user.social_auth.get(
@@ -78,6 +125,7 @@ def get_api_orders_of_event(token, event_id):
         page += 1
         continuation = has_continuation(call)
     return result
+
 
 def get_api_events_org(token, organization, page_number=None):
     """
@@ -159,13 +207,15 @@ def create_event_orders_from_api(userid, eventid, orders=None):
     try:
         for order in orders:
             if (order is not None and len(order.get('merchandise')) > 0):
-                order_transactions = create_order_atomic.delay(userid, eventid, order)
+                order_transactions = create_order_atomic.delay(
+                    userid, eventid, order)
                 created_orders.append(order_transactions)
     except Exception:
         created_orders.append(None)
         if len(created_orders) < len(orders):
             remaining_orders = orders[len(created_orders):]
-            more_orders = create_event_orders_from_api.delay(userid, eventid, remaining_orders)
+            more_orders = create_event_orders_from_api.delay(
+                userid, eventid, remaining_orders)
             created_orders.extend(more_orders)
     cache.delete(event.eb_event_id)
     return created_orders
@@ -298,20 +348,25 @@ def create_userorganization_assoc(organization, user):
         return None
 
 
-def create_event_from_api(organization, event):
+def create_event_from_api(organization, event, badge=False, merchandise=False):
     try:
-        event = Event.objects.create(
-            organization=organization,
-            name=event['name']['text'],
-            description=event['description']['text'],
+        event = Event.objects.update_or_create(
             eb_event_id=event['id'],
-            url=event['url'],
-            date_tz=event['start']['timezone'],
-            start_date_utc=event['start']['utc'],
-            end_date_utc=event['end']['utc'],
-            created=event['created'],
-            changed=event['changed'],
-            status=event['status'],
+            defaults={
+                'organization': organization,
+                'name': event['name']['text'],
+                'description': event['description']['text'],
+                'eb_event_id': event['id'],
+                'url': event['url'],
+                'date_tz': event['start']['timezone'],
+                'start_date_utc': event['start']['utc'],
+                'end_date_utc': event['end']['utc'],
+                'created': event['created'],
+                'changed': event['changed'],
+                'status': event['status'],
+                'badges_tool': badge,
+                'merchandise_tool': merchandise,
+            }
         )
         return event
     except Exception as e:
@@ -332,7 +387,8 @@ def get_events_for_organizations(organizations, user, page_number):
 
 def get_db_attendee_from_barcode(barcode, event_id):
     try:
-        att = Attendee.objects.get(barcode=barcode, order__event__eb_event_id=event_id)
+        att = Attendee.objects.get(
+            barcode=barcode, order__event__eb_event_id=event_id)
         return att
     except Exception:
         return None
@@ -897,6 +953,7 @@ def update_db_merch_status(order):
 
 def delete_events(event_id):
     Event.objects.filter(eb_event_id=event_id).delete()
+
 
 class EventAccessMixin():
     def get_event(self):

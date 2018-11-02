@@ -55,6 +55,8 @@ class Event(models.Model):
     created = models.DateTimeField()
     changed = models.DateTimeField()
     status = models.CharField(max_length=16)
+    badges_tool = models.BooleanField(default=False)
+    merchandise_tool = models.BooleanField(default=True)
 
     def __string__(self):
         return self.name

@@ -2,7 +2,6 @@
 {% load i18n %}
 {% block content %}
 {% autoescape on %}
-
 <div id="fondo_sin_imagen" >
   <div class="container">
     {% if message %}
@@ -28,34 +27,38 @@
     <div class="row">
       <div class="col-12">
         {% if events%}
-        <table class="table">
+        <table class="table text-left">
           <thead class="thead">
             <tr>
               <th scope="col">{% trans "Event name" %}</th>
               <th scope="col">{% trans "Start date" %}</th>
-              <th scope="col">{% trans "Action" %}</th>
+              <th scope="col">{% trans "Badges" %}</th>
+              <th scope="col">{% trans "Merchandise" %}</th>
             </tr>
           </thead>
           <tbody>
-           {% for event in events %}
+          <form action="{% url 'select_events' %}" method="POST" id="form">
+          {% csrf_token %}
+          {% for event in events %}
+          <input type="hidden" name="org_id_{{ event.id }}" id="org_id_{{ event.id }}" value="{{ event.organization_id }}">
+          <input type="hidden" name="org_name_{{ event.id }}" id="org_name_{{ event.id }}" value="{{ event.org_name }}">
            <tr>
             <td>{{ event.name.text }}</td>
             <td>{{ event.start.local }}</td>
             <td>
-              <form action="{% url 'select_events' %}" method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="id_event" value="{{ event.id }}">
-                <input type="hidden" name="organization_id" value="{{ event.organization_id }}">
-                <input type="hidden" name="organization_name" value="{{ event.org_name }}">
-                <input type="submit" name="" value="Manage" class="btn btn-outline-success">
-              </form>
+                <input type="checkbox" id="badges_{{ event.id }}" name="badges_{{ event.id }}" {% if event.badges_tool %} checked {% endif %}>
+            </td>
+            <td>
+                <input type="checkbox" id="merchandise_{{ event.id }}" name="merchandise_{{ event.id }}" {% if event.merchandise_tool %} checked {% endif %}>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      <button type="button" onclick="send_form_custom()" class="btn btn-success">send</button>
+      </form>
       <div class="row mb-4">
-        <div class="col-12 text-center">
+        <div class="col-12 text-left">
           {% if has_previous %}
           <a href="?page={{ previous_page_number }}" class="btn btn-info"><</a>
           {% endif %}
@@ -78,5 +81,25 @@
   </div>
 </div>
 </div>
+<script type="text/javascript">
+
+  function send_form_custom() {
+      var events_id = []
+      {% for event in events %}
+      events_id.push({{ event.id }})
+      {% endfor %}
+      events_id.forEach(function(event_id) {
+        if ($('#badges_' + event_id).is(":checked") || $('#merchandise_' + event_id).is(":checked")){
+          $('#org_id_'+ event_id).prop('disabled', false);
+          $('#org_name_'+ event_id).prop('disabled', false);
+        }else{
+          $('#org_id_'+ event_id).prop('disabled', true);
+          $('#org_name_'+ event_id).prop('disabled', true);
+        }
+      });
+      document.getElementById("form").submit();
+  }
+  
+</script>
 {% endautoescape %}
 {% endblock %}

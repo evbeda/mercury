@@ -27,8 +27,10 @@ from .pdf_utils import pdf_merchandise
 from django.template import loader
 from .utils import (
     get_auth_token,
+    get_events_mercha_and_badges,
     get_email_pdf_context,
     get_merchas_for_email,
+    create_event_complete,
     get_api_organization,
     get_summary_orders,
     get_api_events_org,
@@ -347,10 +349,11 @@ class SelectEventsLoggedTest(TestBase):
 
     @patch('mercury_app.views.cache')
     @patch('mercury_app.views.create_event_orders_from_api')
-    @patch('mercury_app.views.get_api_events_id', return_value=get_mock_api_event(1, 1000).get('events')[0])
+    @patch('mercury_app.utils.get_api_events_id', return_value=get_mock_api_event(1, 1000).get('events')[0])
     def test_add_event(self, mock_get_api_events_id, mock_create_event_orders_from_api, mock_cache):
-        response = self.client.post(
-            '/select_events/', {'organization_id': '272770247903', 'organization_name': 'Mercury Team'})
+        with self.settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}}):
+            response = self.client.post(
+                '/select_events/', data={'org_id_51960795137': '279503785013', 'org_name_51960795137': 'Mercury Mercury', "badges_51960795137" : 'on', "merchandise_51960795137" : 'on'})
         event = Event.objects.get(
             eb_event_id=1000
         )
@@ -662,7 +665,7 @@ class UtilsTest(TestBase):
     def test_create_event_from_api(self):
         org = OrganizationFactory(eb_organization_id=272770247903)
         result = create_event_from_api(org, get_mock_api_event(1)['events'][0])
-        self.assertTrue(isinstance(result, Event))
+        self.assertTrue(isinstance(result[0], Event))
 
     def test_create_event_from_api_failed(self):
         org = OrganizationFactory(eb_organization_id=272770247903)
@@ -680,6 +683,78 @@ class UtilsTest(TestBase):
         result = create_event_orders_from_api(userid, event.id)
         self.assertEqual(len(result), 3)
         self.assertTrue(isinstance(result[0], Order))
+
+    @patch('mercury_app.utils.get_api_events_id')
+    @patch('mercury_app.utils.create_event_from_api')
+    def test_create_event_complete(self,
+                                   mock_create_event_from_api,
+                                   mock_get_api_events_id):
+        mock_get_api_events_id.return_value.return_value = get_mock_api_event(1, 1000).get('events')[0]
+        mock_create_event_from_api.return_value =  (Event(eb_event_id=1231241), True)
+        with self.settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}}):
+            result = create_event_complete(self.user,
+                              1242341,
+                              1231241,
+                              1231231,
+                              "Organization name",
+                              True,
+                              False)
+        expected = 'The event was successfully added!'
+        self.assertEqual(result, expected)
+
+    @patch('mercury_app.utils.get_api_events_id')
+    @patch('mercury_app.utils.create_event_from_api')
+    def test_create_event_complete_two(self,
+                                   mock_create_event_from_api,
+                                   mock_get_api_events_id):
+        mock_get_api_events_id.return_value.return_value = get_mock_api_event(1, 1000).get('events')[0]
+        mock_create_event_from_api.return_value =  (None, False)
+        result = create_event_complete(self.user,
+                          1242341,
+                          1231241,
+                          1231231,
+                          "Organization name",
+                          True,
+                          False)
+        expected = 'An error has occured while adding the event'
+        self.assertEqual(result, expected)
+
+    def test_get_events_mercha_and_badges(self):
+        data = {'org_id_51960795137': ['279503785013'],
+                'org_name_51960795137': ['Mercury Mercury'],
+                'badges_51960795137': ['on'], 
+                'merchandise_51960795137':['on']}.items()
+        result = get_events_mercha_and_badges(data)
+        expected = {'51960795137': {'merchandise': True, 'badges': True}}
+        self.assertEqual(result, expected)
+
+    def test_get_events_mercha_and_badges_two(self):
+        data = {'org_id_51960795137': ['279503785013'],
+                'org_name_51960795137': ['Mercury Mercury'],
+                'merchandise_51960795137':['on']}.items()
+        result = get_events_mercha_and_badges(data)
+        expected = {'51960795137': {'merchandise': True, 'badges': False}}
+        self.assertEqual(result, expected)
+
+    def test_get_events_mercha_and_badges_three(self):
+        data = {'org_id_51960795137': ['279503785013'],
+                'org_name_51960795137': ['Mercury Mercury']}.items()
+        result = get_events_mercha_and_badges(data)
+        expected = {}
+        self.assertEqual(result, expected)
+
+    def test_get_events_mercha_and_badges_four(self):
+        data = {'org_id_51960795137': ['279503785013'],
+                'org_name_51960795137': ['Mercury Mercury'],
+                'badges_51960795137': ['on'], 
+                'merchandise_51960795137':['on'], 
+                'org_id_51960795134': ['279503785013'],
+                'org_name_51960795134': ['Mercury Mercury'], 
+                'merchandise_51960795134':['on']}.items()
+        result = get_events_mercha_and_badges(data)
+        expected = {'51960795137': {'merchandise': True, 'badges': True},
+                    '51960795134': {'merchandise': True, 'badges': False}}
+        self.assertEqual(result, expected)
 
 
     @patch('mercury_app.utils.get_api_order_attendees', return_value=MOCK_API_ATTENDEE['attendees'])
