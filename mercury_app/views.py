@@ -13,6 +13,7 @@ from django.http import (
 from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
+import re
 from django.utils import timezone
 from datetime import datetime
 from mercury_app.models import (
@@ -29,6 +30,8 @@ from mercury_app.filters import OrderFilter
 from mercury_app.filterview_fix import MyFilterView
 from mercury_app.utils import (
     get_auth_token,
+    get_events_mercha_and_badges,
+    create_event_complete,
     get_api_organization,
     get_summary_orders,
     get_api_events_id,
@@ -131,16 +134,18 @@ class ScanQRView(TemplateView, LoginRequiredMixin, OrderAccessMixin):
             order = get_api_order_barcode(token, org_id, qrcode)
             eb_order_id = order.get('id')
             order_id = Order.objects.get(eb_order_id=eb_order_id).id
-            attendee_id = get_db_attendee_from_barcode(qrcode, event_id).eb_attendee_id
+            attendee_id = get_db_attendee_from_barcode(
+                qrcode, event_id).eb_attendee_id
             return redirect(reverse(
                 'item_mercha',
                 kwargs={
-                'order_id': order_id,
-                'attendee_id': attendee_id,
+                    'order_id': order_id,
+                    'attendee_id': attendee_id,
                 },
             ))
         except TypeError:
-            self.request.session['qrerror'] = 'There was an error processing your QR Code (QR not valid).'
+            self.request.session[
+                'qrerror'] = 'There was an error processing your QR Code (QR not valid).'
 
         except Exception as e:
             self.request.session['qrerror'] = 'There was an error processing your QR Code ({}).'.format(
@@ -304,6 +309,10 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         for event in events:
             event['start']['local'] = (dateutil.parser.parse(
                 event['start']['local'])).strftime('%b. %e, %Y - %-I:%M %p')
+            event_db = Event.objects.filter(eb_event_id=event['id']).first()
+            if event_db:
+                event['badges_tool'] = event_db.badges_tool
+                event['merchandise_tool'] = event_db.merchandise_tool
         context['events'] = events
         if pagination:
             context['has_next'] = pagination.get('has_more_items')
@@ -317,25 +326,19 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
 
     def post(self, request, *args, **kwargs):
         token = get_auth_token(self.request.user)
-        events = {'events': []}
-        events['events'] = get_api_events_id(
-            token,
-            request.POST.get('id_event'),
-        )
-        org_id = self.request.POST.get('organization_id')
-        org_name = self.request.POST.get('organization_name')
-        org = get_db_or_create_organization_by_id(org_id, org_name)
-        create_userorganization_assoc(org[0], self.request.user)
-        event = create_event_from_api(org[0], events['events'])
-        if isinstance(event, Event):
-            message = 'The event was successfully added!'
-            cache.set(event.eb_event_id, True, 600)
-            create_event_orders_from_api.delay(self.request.user.id, event.id)
+        events = get_events_mercha_and_badges(self.request.POST.items())
+        for key, value in events.items():
+            message = create_event_complete(self.request.user,
+                                            token,
+                                            key,
+                                            self.request.POST.get(
+                                                'org_id_{}'.format(key)),
+                                            self.request.POST.get(
+                                                'org_name_{}'.format(key)),
+                                            value['badges'],
+                                            value['merchandise'],
+                                            )
             self.request.session['message'] = message
-        else:
-            message_error = 'An error has occured while adding the event'
-            self.request.session['message'] = message_error
-
         return redirect(reverse('index'))
 
 
