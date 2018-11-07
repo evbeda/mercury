@@ -1,3 +1,10 @@
+import os
+import redis
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
+
 from django.views.generic.base import TemplateView, View
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -86,6 +93,38 @@ class Webhook(View):
             context=context,
             status=200,
         )
+
+
+def redis_conn():
+    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
+    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
+
+
+class RedisPrinterOrder(SingleTableView, View):
+
+    def get(self, request, *args, **kwargs):
+        order = get_db_order_by_id(self.kwargs['order_id'])
+        dict_order = {'1': order.first_name, '2': order.last_name}
+        # name = replace with the name of the printer
+        name = "printer1"
+        try:
+            rc = redis_conn()
+            rc.rpush(name, dict_order)
+            event_id = Order.objects.get(
+                id=self.kwargs['order_id']).event.eb_event_id
+            messages.info(
+                self.request,
+                'The order was printed correctly.',
+            )
+        except redis_conn().ConnectionError as e:
+                messages.info(
+                    self.request,
+                    e,
+                )
+        return redirect(reverse(
+            'orders',
+            kwargs={'event_id': event_id},
+        ))
 
 
 @method_decorator(login_required, name='dispatch')

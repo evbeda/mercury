@@ -11,10 +11,12 @@ from mercury_app.views import (
     TransactionListView,
     ActivateLanguageView,
     Webhook,
+    RedisPrinterOrder,
 )
 
 
 urlpatterns = [
+    url(r'orders/(?P<order_id>\d+)/printer_order/$', RedisPrinterOrder.as_view(), name='printer_order'),
     url(r'language/activate/(?P<language_code>[a-z]+)/', ActivateLanguageView.as_view(), name='activate_language'),
     url(r'event/(?P<event_id>\d+)/summary/$', Summary.as_view(template_name='summary.html'), name='summary'),
     url(r'event/(?P<event_id>\d+)/scanqr/$', ScanQRView.as_view(template_name='scanqr.html'), name='scanqr'),
