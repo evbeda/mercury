@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'sslserver',
     'django_inlinecss',
     'redis_cache',
+    'rest_framework',
+    'badges_app',
 ]
 
 MIDDLEWARE = [

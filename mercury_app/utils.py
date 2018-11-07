@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.cache import cache
 import pytz
 from django.template import loader
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import send_mail
 from datetime import (
     timedelta,
 )
@@ -32,7 +32,6 @@ from .models import (
     MERCH_STATUS,
     Attendee,
 )
-from mercury_app.pdf_utils import pdf_merchandise
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from mercury_app.app_settings import (
