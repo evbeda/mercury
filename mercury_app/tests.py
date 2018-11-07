@@ -2,6 +2,7 @@ from django.test import TestCase
 from social_django.models import UserSocialAuth
 from factory import fuzzy
 from django.contrib.auth import get_user_model
+import fakeredis
 from .models import (
     Event,
     Organization,
@@ -88,6 +89,7 @@ from unittest.mock import (
 from mercury_app.mock_api import MOCK_API_ATTENDEE
 import json
 from unittest import skip
+
 
 MOCK_ORGANIZATION_API = {
     'organizations': [{
@@ -226,6 +228,18 @@ class TestBase(TestCase):
             password='the_best_password_of_ever_2'
         )
         return login
+
+@patch('mercury_app.views.redis_conn', return_value=fakeredis.FakeStrictRedis())
+class TestRedisPrinterOrder(TestBase):
+    def test_redis_connect_ok(self, mock_redis):
+        order = OrderFactory()
+        response = self.client.get(
+            '/orders/{}/printer_order/'.format(
+                order.id,
+            )
+        )
+        self.assertEqual(response.status_code, 302)
+
 
 @patch('mercury_app.views.create_order_webhook_from_view', return_value='')
 class TestActivateLanguageView(TestBase):

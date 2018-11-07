@@ -57,6 +57,7 @@
             <div class="mb-5">
                 <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_eb_event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong> {% trans "Event orders" %} </strong> </p>
             </div>
+            </div>
             <div class="row">
                 <div class="col-md-9">
                   <h1 class="title">{% trans "Event Orders" %}</h1>
@@ -68,16 +69,16 @@
        </div>
    </div>
 </div>
-</div>
 {% if order_count == 0 %}
 <div class="row">
   <div class="col-12">
     <div class="alert alert-warning">
       <strong>{% trans "Oops" %}!</strong> {% trans "It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again" %}.
+    </div>
   </div>
 </div>
-</div>
 {% endif %}
+<br />
 <div class="row">
     <div class="col-12 text-center ">
         {% if filter %}
@@ -90,6 +91,13 @@
         {% endif %}
     </div>
 </div>
+<br />
+{% for message in messages %}
+<div class="alert alert-warning messages">
+    <div{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>
+</div>
+{% endfor %}
+<br />
 <div class="row mt-2">
     <div class="col-12 text-center table-responsive">
         {% render_table table %}
@@ -114,4 +122,3 @@
         </div>
     </div>
 </div>
-

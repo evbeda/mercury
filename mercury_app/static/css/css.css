@@ -161,3 +161,8 @@ input.qtyminus { width:25px; height:25px;}
   font-size: 17px;
   color: white;
 }
+
+.spaces {
+  padding-right: 20%;
+}
+

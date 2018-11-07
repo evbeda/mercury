@@ -30,6 +30,7 @@ docopt==0.6.2
 eventbrite==3.3.3
 factory-boy==2.11.1
 Faker==0.9.1
+fakeredis==0.14.0
 gunicorn==19.7.1
 idna==2.7
 ipython==6.5.0
