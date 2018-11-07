@@ -55,10 +55,16 @@
           {% endfor %}
         </tbody>
       </table>
-      <button type="button" onclick="send_form_custom()" class="btn btn-success">send</button>
+      <div class="row">
+        <div class="col-10"></div>
+        <div class="col-2">
+            <button type="button" onclick="send_form_custom()" class="btn btn-primary btn-block mb-3">send</button>
+        </div>
+      </div>
+
       </form>
       <div class="row mb-4">
-        <div class="col-12 text-left">
+        <div class="col-12 text-center">
           {% if has_previous %}
           <a href="?page={{ previous_page_number }}" class="btn btn-info"><</a>
           {% endif %}
