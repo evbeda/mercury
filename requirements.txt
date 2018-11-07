@@ -25,6 +25,7 @@ django-redis-cache==1.7.1
 django-sekizai==0.10.0
 django-sslserver==0.20
 django-tables2==2.0.1
+djangorestframework==3.9.0
 docopt==0.6.2
 eventbrite==3.3.3
 factory-boy==2.11.1

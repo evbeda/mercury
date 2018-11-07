@@ -48,7 +48,6 @@ class UserOrganizationFactory(factory.django.DjangoModelFactory):
 class EventFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Event
-
     organization = factory.SubFactory(OrganizationFactory)
     eb_event_id = factory.fuzzy.FuzzyInteger(50000000000, 60000000000)
     name = factory.LazyAttribute(lambda o: 'event_{}'.format(o.eb_event_id))
