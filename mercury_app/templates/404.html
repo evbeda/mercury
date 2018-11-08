@@ -1,11 +1,24 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load static %}
+{% load bootstrap4 %}
 {% block content %}
+<div id="fondo_sin_imagen" >
 <div class="container">
-  <div class="row text-center">
-    <div class="alert alert-warning">{% trans "Event not found" %}</div>
-    <a href="{% url 'index' %}" class="btn btn-success">{% trans "Back to Home" %}</a>
-  </div>
+	<div class="row">
+		<div class="col-12">
+			<div class="jumbotron">
+				<div class="mb-5">
+					<p><a class="navigation" href="{% url 'index' %}"> Managed events &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong>{% trans "Event not found" %}</strong></p>
+				</div>
+				<br /><br />
+				<h1 class="title">{% trans "The event you are looking for does not exist" %}</h1>
+			</div>
+			<div class="right">
+				<a href="{% url 'select_events' %}" class="btn btn-primary btn-block mb-5">{% trans "Add events" %}</a>
+			</div>
+		</div>
+	</div>
 </div>
 </div>
 {% endblock %}

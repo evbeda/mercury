@@ -467,3 +467,6 @@ msgstr "Melden Sie sich mit Eventbrite an"
 
 msgid "It seems like the access was denied. Please, try again"
 msgstr "Es scheint, als sei der Zugang verweigert worden. Bitte versuche es erneut"
+
+msgid "The event you are looking for does not exist"
+msgstr "Die Veranstaltung die Sie suchen ist nicht befindet"

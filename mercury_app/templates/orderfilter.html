@@ -57,25 +57,26 @@
             <div class="mb-5">
                 <p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><a class="navigation" href="{% url 'summary' event_id=event_eb_event_id %}"> {% trans "Event summary" %} &nbsp;&nbsp;>&nbsp;&nbsp;</a><strong> {% trans "Event orders" %} </strong> </p>
             </div>
-            </div>
+
             <div class="row">
                 <div class="col-md-9">
                   <h1 class="title">{% trans "Event Orders" %}</h1>
                   <p class="event">{{ event_name }}</p>
               </div>
               <div class="col-md-3 text-center text-md-right mt-4">
-               <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">{% trans "Scan QR" %}</a>
-           </div>
-       </div>
-   </div>
+                 <a class="navbar-right btn btn-info" href="{% url 'scanqr' event_id=event_eb_event_id %}">{% trans "Scan QR" %}</a>
+             </div>
+         </div>
+     </div>
+ </div>
 </div>
 {% if order_count == 0 %}
 <div class="row">
   <div class="col-12">
     <div class="alert alert-warning">
       <strong>{% trans "Oops" %}!</strong> {% trans "It looks like there are no orders with merchandise yet. If you think this is a mistake, we can check your orders again" %}.
-    </div>
   </div>
+</div>
 </div>
 {% endif %}
 <br />
