@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load i18n %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load bootstrap4 %}
+{% load i18n %}
+<div class="container">
+  <div class="row">
+    <div class="container">
+     <div class="row">
+      <div class="col-12">
+        <div class="jumbotron">
+          <h1 class="title">{% trans "Badge printing" %}</h1>
+          <p class="subtitle">{% trans "Here is a list of attendees whose badges can be printed" %}.</p>
+        </div>
+      </div>
+    </div>
+    {% if messages %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>
+            <ul>
+              {% for message in messages %}
+              <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          </strong>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if order_count == 0 %}
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <strong>{% trans "Oops" %}!</strong> {% trans "It looks like you have not sold any tickets yet" %}.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+<div class="row">
+    <div class="col-12 text-center ">
+        {% if filter %}
+        <form action="" method="get" class="form-inline justify-content-center">
+            {% bootstrap_form filter.form layout='inline' %}
+            <div class="form-group is-valid">
+                <button class="btn btn-outline-secondary">{% trans "Filter" %}</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<br>
+    <div>{% render_table table %}</div>
+  </div>
+</div>
+<br />
+</div>
+</div>
+{% endblock %}

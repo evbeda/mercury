@@ -1,10 +1,3 @@
-import os
-import redis
-try:
-    import urlparse
-except ImportError:
-    import urllib.parse as urlparse
-
 from django.views.generic.base import TemplateView, View
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -93,38 +86,6 @@ class Webhook(View):
             context=context,
             status=200,
         )
-
-
-def redis_conn():
-    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
-    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
-
-
-class RedisPrinterOrder(SingleTableView, View):
-
-    def get(self, request, *args, **kwargs):
-        order = get_db_order_by_id(self.kwargs['order_id'])
-        dict_order = {'1': order.first_name, '2': order.last_name}
-        # name = replace with the name of the printer
-        name = "printer1"
-        try:
-            rc = redis_conn()
-            rc.rpush(name, dict_order)
-            event_id = Order.objects.get(
-                id=self.kwargs['order_id']).event.eb_event_id
-            messages.info(
-                self.request,
-                'The order was printed correctly.',
-            )
-        except redis_conn().ConnectionError as e:
-                messages.info(
-                    self.request,
-                    e,
-                )
-        return redirect(reverse(
-            'orders',
-            kwargs={'event_id': event_id},
-        ))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -367,16 +328,20 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
         token = get_auth_token(self.request.user)
         events = get_events_mercha_and_badges(self.request.POST.items())
         for key, value in events.items():
-            message = create_event_complete(self.request.user,
-                                            token,
-                                            key,
-                                            self.request.POST.get(
-                                                'org_id_{}'.format(key)),
-                                            self.request.POST.get(
-                                                'org_name_{}'.format(key)),
-                                            value['badges'],
-                                            value['merchandise'],
-                                            )
+            try:
+                create_event_complete(self.request.user,
+                                                token,
+                                                key,
+                                                self.request.POST.get(
+                                                    'org_id_{}'.format(key)),
+                                                self.request.POST.get(
+                                                    'org_name_{}'.format(key)),
+                                                value['badges'],
+                                                value['merchandise'],
+                                                )
+                message = 'The event has been successfully added.'
+            except Exception:
+                message = 'There was an error while adding the event.'
             self.request.session['message'] = message
         return redirect(reverse('index'))
 

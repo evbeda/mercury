@@ -63,7 +63,9 @@ def create_event_complete(user,
     if isinstance(event, Event):
         cache.set(event.eb_event_id, True, 600)
         create_event_orders_from_api.delay(
-            user.id, event.id)
+            user.id,
+            event.id,
+        )
         return 'The event was successfully added!'
     else:
         return 'An error has occured while adding the event'
@@ -388,6 +390,15 @@ def get_db_attendee_from_barcode(barcode, event_id):
     try:
         att = Attendee.objects.get(
             barcode=barcode, order__event__eb_event_id=event_id)
+        return att
+    except Exception:
+        return None
+
+
+def get_db_attendee_from_eb_id(eb_attendee_id, event_id):
+    try:
+        att = Attendee.objects.get(
+            eb_attendee_id=eb_attendee_id, order__event__eb_event_id=event_id)
         return att
     except Exception:
         return None

@@ -229,13 +229,14 @@ class TestBase(TestCase):
         )
         return login
 
-@patch('mercury_app.views.redis_conn', return_value=fakeredis.FakeStrictRedis())
+@patch('badges_app.views.redis_conn', return_value=fakeredis.FakeStrictRedis())
 class TestRedisPrinterOrder(TestBase):
     def test_redis_connect_ok(self, mock_redis):
-        order = OrderFactory()
+        att = AttendeeFactory()
         response = self.client.get(
-            '/orders/{}/printer_order/'.format(
-                order.id,
+            '/event/{}/attendee/{}/print/'.format(
+                att.order.event.eb_event_id,
+                att.eb_attendee_id
             )
         )
         self.assertEqual(response.status_code, 302)
@@ -716,11 +717,13 @@ class UtilsTest(TestBase):
         expected = 'The event was successfully added!'
         self.assertEqual(result, expected)
 
+    @patch('mercury_app.utils.cache')
     @patch('mercury_app.utils.get_api_events_id')
     @patch('mercury_app.utils.create_event_from_api')
     def test_create_event_complete_two(self,
                                    mock_create_event_from_api,
-                                   mock_get_api_events_id):
+                                   mock_get_api_events_id,
+                                   mock_cache):
         mock_get_api_events_id.return_value.return_value = get_mock_api_event(1, 1000).get('events')[0]
         mock_create_event_from_api.return_value =  (None, False)
         result = create_event_complete(self.user,
@@ -736,7 +739,7 @@ class UtilsTest(TestBase):
     def test_get_events_mercha_and_badges(self):
         data = {'org_id_51960795137': ['279503785013'],
                 'org_name_51960795137': ['Mercury Mercury'],
-                'badges_51960795137': ['on'], 
+                'badges_51960795137': ['on'],
                 'merchandise_51960795137':['on']}.items()
         result = get_events_mercha_and_badges(data)
         expected = {'51960795137': {'merchandise': True, 'badges': True}}
@@ -760,10 +763,10 @@ class UtilsTest(TestBase):
     def test_get_events_mercha_and_badges_four(self):
         data = {'org_id_51960795137': ['279503785013'],
                 'org_name_51960795137': ['Mercury Mercury'],
-                'badges_51960795137': ['on'], 
-                'merchandise_51960795137':['on'], 
+                'badges_51960795137': ['on'],
+                'merchandise_51960795137':['on'],
                 'org_id_51960795134': ['279503785013'],
-                'org_name_51960795134': ['Mercury Mercury'], 
+                'org_name_51960795134': ['Mercury Mercury'],
                 'merchandise_51960795134':['on']}.items()
         result = get_events_mercha_and_badges(data)
         expected = {'51960795137': {'merchandise': True, 'badges': True},

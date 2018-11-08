@@ -4,8 +4,13 @@ from django.utils.html import format_html
 from fontawesome.fields import IconField
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-from mercury_app.strings import string_order, event_without_processing, event_with_processing
-
+from mercury_app.strings import (
+    string_order,
+    event_delete,
+    event_with_badge,
+    event_with_merch,
+    event_without_processing,
+)
 
 class EventTable(tables.Table):
     name = tables.Column(verbose_name=_('Event name'), localize=True)
@@ -25,12 +30,47 @@ class EventTable(tables.Table):
         if record.is_processing == True:
             return format_html(event_without_processing)
         else:
-            return format_html(
-                event_with_processing.format(
-                    record.eb_event_id,
-                    record.eb_event_id
+            if (record.badges_tool and record.merchandise_tool):
+                return format_html(
+                    '<div class="row">' +
+                    event_with_merch.format(
+                        record.eb_event_id,
+                    ) +
+                    event_with_badge.format(
+                        record.eb_event_id,
+                    ) +
+                    event_delete.format(
+                        record.eb_event_id,
+                    )
                 )
-            )
+            elif (record.badges_tool and not record.merchandise_tool):
+                return format_html(
+                    '<div class="row">' +
+                    event_with_badge.format(
+                        record.eb_event_id,
+                    ) +
+                    event_delete.format(
+                        record.eb_event_id,
+                    )
+                )
+            elif (not record.badges_tool and record.merchandise_tool):
+                return format_html(
+                    '<div class="row">' +
+                    event_with_merch.format(
+                        record.eb_event_id,
+                    ) +
+                    event_delete.format(
+                        record.eb_event_id,
+                    )
+                )
+            else:
+                return format_html(
+                    '<div class="row">' +
+                    event_delete.format(
+                        record.eb_event_id
+                    )
+                )
+
 
     def render_pretty_date(self, value, record):
         return record.date_start_date_utc
@@ -77,7 +117,6 @@ class OrderTable(tables.Table):
             string_order.format(
                 record.order.id,
                 record.eb_attendee_id,
-                record.order.id
             )
         )
 
