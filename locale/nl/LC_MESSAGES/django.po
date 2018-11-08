@@ -462,3 +462,6 @@ msgstr "Log in met Eventbrite"
 
 msgid "It seems like the access was denied. Please, try again"
 msgstr "Het lijkt erop dat de toegang werd geweigerd. Probeer het alstublieft nog een keer"
+
+msgid "The event you are looking for does not exist"
+msgstr "Het evenement waar je naar op zoek bent bestaat niet"
