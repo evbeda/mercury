@@ -17,12 +17,12 @@ class TestApi(TestCase):
 
     def test_get_name(self):
         result = self.client.get(
-            '/api/printer/{}/key/{}/'.format(1, self.printer.key))
+            '/api/printer/{}/'.format(self.printer.key))
         expected = b'{"id":1,"name":"Printer HP"}'
         self.assertEqual(expected, result.content)
 
     def test_set_name(self):
-        self.client.post('/api/printer/{}/key/{}/'.format(self.printer.id, self.printer.key),
+        self.client.post('/api/printer/{}/'.format(self.printer.key),
                          data={'name': 'Zebra', 'secret_key': self.printer.secret_key})
         result = Printer.objects.get(id=self.printer.id)
         expected = 'Zebra'
@@ -30,19 +30,19 @@ class TestApi(TestCase):
 
     def test_get_job_status(self):
         result = self.client.get(
-            '/api/printer/{}/key/{}/job/1231/'.format(self.printer.id, self.printer.key))
+            '/api/printer/{}/job/1231/'.format(self.printer.key))
         expected = b'{"status":"pending"}'
         self.assertEqual(expected, result.content)
 
     def test_set_job_status(self):
-        result = self.client.post('/api/printer/{}/key/{}/job/1231/'.format(self.printer.id, self.printer.key),
+        result = self.client.post('/api/printer/{}/job/1231/'.format(self.printer.key),
                                   data={'status': 'Done', 'secret_key': self.printer.secret_key})
         expected = b'{"status":"Done"}'
         self.assertEqual(expected, result.content)
 
     def test_get_queue_jobs(self):
         result = self.client.get(
-            '/api/printer/{}/key/{}/queue/'.format(self.printer.id, self.printer.key))
+            '/api/printer/{}/queue/'.format(self.printer.key))
         expected = b'[{"job_id":1,"content":"<p>impresion</p>","order":1}]'
         self.assertEqual(expected, result.content)
 
@@ -57,54 +57,48 @@ class TestApi(TestCase):
         self.assertEqual(expected, result.content)
 
     def test_job_get_status_ok(self):
-        result = job_get_status(self.printer.id, self.printer.key)
+        result = job_get_status(self.printer.key)
         expected = b'{"status":"pending"}'
         self.assertEqual(expected, result.content)
 
     def test_job_get_status_not(self):
-        result = job_get_status(self.printer.id, '12312313')
+        result = job_get_status('12312313')
         expected = b'{"Error": "Printer id and public key does not match"}'
         self.assertEqual(expected, result.content)
 
     def test_job_set_status(self):
-        result = job_set_status(self.printer.id,
-                                self.printer.key,
+        result = job_set_status(self.printer.key,
                                 self.printer.secret_key,
                                 "pending")
         expected = b'{"status":"pending"}'
         self.assertEqual(expected, result.content)
 
     def test_job_set_status_not(self):
-        result = job_set_status(self.printer.id,
-                                self.printer.key,
+        result = job_set_status(self.printer.key,
                                 123123,
                                 "pending")
         expected = b'{"Error": "Printer id and public key does not match"}'
         self.assertEqual(expected, result.content)
 
     def test_printer_json(self):
-        result = printer_json(self.printer.id,
-                              self.printer.key,)
+        result = printer_json(self.printer.key,)
         expected = b'{"id":1,"name":"Printer HP"}'
         self.assertEqual(expected, result.content)
 
     def test_printer_json_not(self):
-        result = printer_json(self.printer.id,
-                              12312312)
+        result = printer_json(12312312)
         expected = b'{"Error": "Public key does not match or Printer does not exist"}'
         self.assertEqual(expected, result.content)
 
     def test_update_printer_name(self):
-        result = update_printer_name(self.printer.id,
-                                     self.printer.key,
+        result = update_printer_name(self.printer.key,
                                      self.printer.secret_key,
                                      "new_name")
         expected = b'{"id":1,"name":"new_name"}'
         self.assertEqual(expected, result.content)
 
     def test_update_printer_name_not(self):
-        result = update_printer_name(self.printer.id,
-                                     self.printer.key,
+        result = update_printer_name(self.printer.key,
                                      123123,
                                      "new_name")
         expected = b'{"Error": "Public and Private key does not match"}'

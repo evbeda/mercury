@@ -12,4 +12,4 @@ class Printer(models.Model):
         on_delete=models.CASCADE,
     )
     key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    secret_key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    secret_key = models.UUIDField(editable=True, unique=True, null=True)
