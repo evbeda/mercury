@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^accounts/login/$', login, name='login'),
     url(r'^accounts/logout/$', logout, name='logout'),
     url(r'^password_reset/$', login, name='password_reset'),
-    url('api/', include('badges_app.urls')),
+    url('api/', include('badges_app.urls_api')),
+    url('', include('badges_app.urls_app')),
     url('', include('mercury_app.urls')),
 ]

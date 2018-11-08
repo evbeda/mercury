@@ -1,8 +1,10 @@
 from django.conf.urls import url
-from badges_app.views import (PrinterView,
-                              PrinterQueues,
-                              JobState,
-                              ConfigurePrinter)
+from badges_app.views import (
+    PrinterView,
+    PrinterQueues,
+    JobState,
+    ConfigurePrinter,
+)
 
 urlpatterns = [
     url(r'^printer/(?P<key>.*)/configure/$', ConfigurePrinter.as_view()),
