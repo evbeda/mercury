@@ -229,6 +229,7 @@ class TestBase(TestCase):
         )
         return login
 
+
 @patch('badges_app.views.redis_conn', return_value=fakeredis.FakeStrictRedis())
 class TestRedisPrinterOrder(TestBase):
     def test_redis_connect_ok(self, mock_redis):
@@ -294,6 +295,7 @@ class HomeViewTest(TestBase):
         response = self.client.get('/')
         self.assertNotContains(response, 'search')
         self.assertContains(response, 'Add')
+
 
     @skip('Could not find a way to properly mock')
     @patch('mercury_app.models.Event.is_processing', return_value=True)

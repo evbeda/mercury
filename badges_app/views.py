@@ -9,12 +9,12 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib import messages
+import pickle
 from django.core.urlresolvers import reverse
 from django.shortcuts import (
     redirect,
-    render,
 )
-from rest_framework.views import APIView
+from rest_framework.views import APIView, View
 from django_tables2 import (
     SingleTableMixin,
     SingleTableView,
@@ -28,11 +28,13 @@ from badges_app.utils import (
     printer_json,
     configure_printer,
     update_printer_name,
-    job_get_status,
-    job_set_status,
-    mock_queues,
+    printer_queue,
+    confirm_job,
 )
-from mercury_app.models import Attendee
+from mercury_app.models import (
+    Attendee,
+    UserOrganization,
+)
 from badges_app.models import Printer
 from badges_app.tables import PrintingTable
 from badges_app.filters import AttendeeFilter
@@ -63,13 +65,7 @@ class PrinterQueues(APIView):
 
     def get(self, request, format=None, **kwargs):
         key = self.kwargs['key']
-        try:
-            Printer.objects.get(key=key)
-            return mock_queues()
-        except Exception:
-            message = {"Error": "Printer id and public key does not match"}
-            return HttpResponse(json.dumps(message),
-                                content_type="application/json")
+        return printer_queue(key)
 
 
 class ConfigurePrinter(APIView):
@@ -85,23 +81,10 @@ class JobState(APIView):
     authentication_classes = ()
     permission_classes = ()
 
-    def get(self, request, format=None, **kwargs):
-        key = self.kwargs['key']
-        self.kwargs['job_id']
-        return job_get_status(key)
-
     def post(self, request, format=None, **kwargs):
         secret_key = request.POST.get('secret_key')
-        status = request.POST.get('status')
-        if secret_key and status:
-            self.kwargs['job_id']
-            return job_set_status(self.kwargs['key'],
-                                  secret_key,
-                                  status)
-        else:
-            message = {"Error": "Undefined status or secret key"}
-            return HttpResponse(json.dumps(message),
-                                content_type="application/json")
+        job_id = self.kwargs['job_id']
+        return confirm_job(self.kwargs['key'], secret_key, job_id)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -134,28 +117,44 @@ def redis_conn():
     return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
 
 
-class RedisPrinterOrder(SingleTableView):
+class RedisPrinterOrder(SingleTableView, View):
 
     def get(self, request, *args, **kwargs):
-        attendee = get_db_attendee_from_eb_id(
-            self.kwargs['attendee_id'],
-            self.kwargs['event_id'],
-        )
-        dict_order = {'1': attendee.first_name, '2': attendee.last_name}
-        # name = replace with the name of the printer
-        name = "printer1"
         try:
+            attendee = get_db_attendee_from_eb_id(
+                self.kwargs['attendee_id'],
+                self.kwargs['event_id'],
+            )
+
+            org_id = UserOrganization.objects.filter(
+                user=self.request.user.id,
+            ).values_list(
+                'organization',
+                flat=True,
+            ).first()
+            printer_id = Printer.objects.filter(
+                organization=org_id,
+            ).values_list(
+                'id',
+                flat=True,
+            ).first()
             rc = redis_conn()
-            rc.rpush(name, dict_order)
+            job_key = "job_{}".format(rc.incr("job_id"))
+            job_data = {'job_key': job_key,
+                        'first_name': attendee.first_name,
+                        'last_name': attendee.last_name}
+            rc.set(job_key, pickle.dumps(job_data))
+            printer_key = "printer_{}".format(printer_id)
+            rc.rpush(printer_key, job_key)
             messages.info(
                 self.request,
-                'The order was sent to print.',
+                'The order was printed correctly.',
             )
-        except redis_conn().ConnectionError as e:
-            messages.info(
-                self.request,
-                e,
-            )
+        except Exception as e:
+                messages.info(
+                    self.request,
+                    e,
+                )
         return redirect(reverse(
             'printing_list',
             kwargs={'event_id': self.kwargs['event_id']},
