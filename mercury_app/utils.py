@@ -6,11 +6,16 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 from django.core.cache import cache
 import pytz
+import redis
 from django.template import loader
 from django.core.mail import send_mail
 from datetime import (
     timedelta,
 )
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 from django.utils.translation import ugettext as _
 from django.db.models import Sum, Count
 from faker import Faker
@@ -1027,3 +1032,7 @@ def get_merchas_for_email(merchases, date):
                                  ])
             merchases_ids.append(mercha.id)
     return merchandises, mercha.order.id, mercha.order.email
+
+def redis_conn():
+    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
+    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
