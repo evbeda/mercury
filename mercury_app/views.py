@@ -168,7 +168,10 @@ class FilteredOrderListView(SingleTableMixin, MyFilterView, EventAccessMixin):
     filterset_class = OrderFilter
 
     def get_queryset(self):
-        return Attendee.objects.filter(order__event__eb_event_id=self.kwargs['event_id']).order_by(
+        return Attendee.objects.filter(
+            order__event__eb_event_id=self.kwargs['event_id'],
+            order__has_merchandise=True,
+        ).order_by(
             'first_name',
             'last_name',
             'barcode',
@@ -267,7 +270,9 @@ class Summary(TemplateView, LoginRequiredMixin, EventAccessMixin):
         context = super(Summary, self).get_context_data(**kwargs)
         event = self.get_event()
         order_ids = Order.objects.filter(
-            event=event).values_list('id', flat=True)
+            has_merchandise=True,
+            event=event,
+        ).values_list('id', flat=True)
         context['data_handed_over_dont'] = get_percentage_handed(
             order_ids)
         context['data_tipes_handed'] = get_summary_types_handed(order_ids)

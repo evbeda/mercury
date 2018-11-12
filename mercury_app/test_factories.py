@@ -90,6 +90,7 @@ class OrderFactory(factory.django.DjangoModelFactory):
     email = factory.LazyAttribute(
         lambda o: 'buyer_{}@email.com'.format(o.eb_order_id))
     status = 'placed'
+    has_merchandise = True
 
 
 class MerchandiseFactory(factory.django.DjangoModelFactory):
