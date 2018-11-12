@@ -5,8 +5,8 @@ from badges_app.serializers import PrinterSerializer
 import json
 import uuid
 from mercury_app.utils import redis_conn
-import ast
 import pickle
+
 
 class JSONResponse(HttpResponse):
     def __init__(self, data, **kwargs):
@@ -25,7 +25,7 @@ def printer_queue(key):
         for job_key in response:
             result = pickle.loads(rc.get(job_key))
             jobs.append({'job_key' : result['job_key'],
-                    'content' : get_zpl(result['first_name'], result['last_name'])}) 
+                    'content' : get_zpl(result['first_name'], result['last_name'])})
         if jobs:
             return HttpResponse(json.dumps(jobs),
                                 content_type="application/json")

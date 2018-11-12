@@ -214,8 +214,13 @@ def create_event_orders_from_api(userid, eventid, orders=None):
         for order in orders:
             if (order is not None and len(order.get('merchandise')) > 0):
                 order_transactions = create_order_atomic.delay(
-                    userid, eventid, order)
+                    userid, eventid, order, True)
                 created_orders.append(order_transactions)
+            elif (order is not None and len(order.get('merchandise')) == 0):
+                order_transactions = create_order_atomic.delay(
+                    userid, eventid, order, False)
+                created_orders.append(order_transactions)
+
     except Exception:
         created_orders.append(None)
         if len(created_orders) < len(orders):
@@ -228,7 +233,7 @@ def create_event_orders_from_api(userid, eventid, orders=None):
 
 
 @app.task(ignore_result=True)
-def create_order_atomic(userid, eventid, order):
+def create_order_atomic(userid, eventid, order, has_merchandise):
     with transaction.atomic():
         event = Event.objects.get(id=eventid)
         order_creation, _ = Order.objects.get_or_create(
@@ -240,10 +245,12 @@ def create_order_atomic(userid, eventid, order):
             last_name=order['last_name'],
             status=order['status'],
             email=order['email'],
+            has_merchandise=has_merchandise,
         )
         create_attendee_from_order(userid, order_creation)
-        for item in order['merchandise']:
-            create_merchandise_from_order(item, order_creation)
+        if has_merchandise:
+            for item in order['merchandise']:
+                create_merchandise_from_order(item, order_creation)
         return order_creation
 
 
@@ -277,15 +284,28 @@ def create_attendee_from_order(userid, order):
         barcode = attendee.get('barcodes')[0].get('barcode')
         barcode_url = attendee.get('barcodes')[0].get('qr_code_url')
         checked_in = True if attendee.get('barcodes')[0].get('status') == 'used' else False
-        att = Attendee.objects.create(
-            order=order,
-            first_name=first_name,
-            last_name=last_name,
-            eb_attendee_id=eb_attendee_id,
-            barcode=barcode,
-            barcode_url=barcode_url,
-            checked_in=checked_in,
-        )
+        checked_in_time = attendee.get('barcodes')[0].get('changed')
+        if checked_in:
+            att = Attendee.objects.create(
+                order=order,
+                first_name=first_name,
+                last_name=last_name,
+                eb_attendee_id=eb_attendee_id,
+                barcode=barcode,
+                barcode_url=barcode_url,
+                checked_in=checked_in,
+                checked_in_time=checked_in_time,
+            )
+        else:
+            att = Attendee.objects.create(
+                order=order,
+                first_name=first_name,
+                last_name=last_name,
+                eb_attendee_id=eb_attendee_id,
+                barcode=barcode,
+                barcode_url=barcode_url,
+                checked_in=checked_in,
+            )
         created_attendees.append(att)
     return created_attendees
 
@@ -449,12 +469,12 @@ def update_attendee_checked_from_api(user, barcode=None, eb_attendee_id=None):
         if barcode is not None:
             Attendee.objects.filter(barcode=barcode).update(
                 checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
-                checked_in_time=result.get('barcodes')[0].get('changed'),
+                checked_in_time=result.get('barcodes')[0].get('changed') if result.get('barcodes')[0].get('status') == 'used' else None,
             )
         if eb_attendee_id is not None:
             Attendee.objects.filter(eb_attendee_id=eb_attendee_id).update(
                 checked_in=True if result.get('barcodes')[0].get('status') == 'used' else False,
-                checked_in_time=result.get('barcodes')[0].get('changed'),
+                checked_in_time=result.get('barcodes')[0].get('changed') if result.get('barcodes')[0].get('status') == 'used' else None,
             )
     return True if result.get('barcodes')[0].get('status') == 'used' else False
 
@@ -815,13 +835,15 @@ def get_summary_types_handed(order_ids):
     total_mercha = Merchandise.objects.filter(order_id__in=order_ids).values(
         'name').annotate(name_count=Sum('quantity')).order_by('name')
     types = Merchandise.objects.filter(
-        order_id__in=order_ids).values_list('name', flat=True).distinct().order_by('name')
+        order_id__in=order_ids,
+    ).values_list('name', flat=True).distinct().order_by('name')
     types_id = []
     for ty_pe in types:
         types_id.append(Transaction.objects.filter(
             merchandise__order__id__in=order_ids,
             operation_type='HA',
-            merchandise__name=ty_pe).count())
+            merchandise__name=ty_pe,
+        ).count())
     handed_mercha = []
     for item in range(len(types)):
         handed_mercha.append(
@@ -855,7 +877,8 @@ def get_summary_types_handed(order_ids):
 
 def get_percentage_handed(order_ids):
     total_sold = Merchandise.objects.filter(
-        order_id__in=order_ids).aggregate(Sum('quantity'))['quantity__sum']
+        order_id__in=order_ids,
+    ).aggregate(Sum('quantity'))['quantity__sum']
     total_delivered = Transaction.objects.filter(
         merchandise__order__id__in=order_ids, operation_type='HA').count()
     if total_sold is not None:
@@ -870,11 +893,20 @@ def get_percentage_handed(order_ids):
 
 def get_summary_orders(event):
     orders_pending = Order.objects.filter(
-        merch_status='PE', event=event).aggregate(quantity=Count('id'))
+        has_merchandise=True,
+        merch_status='PE',
+        event=event,
+    ).aggregate(quantity=Count('id'))
     orders_delivered = Order.objects.filter(
-        merch_status='CO', event=event).aggregate(quantity=Count('id'))
+        has_merchandise=True,
+        merch_status='CO',
+        event=event,
+    ).aggregate(quantity=Count('id'))
     orders_partially = Order.objects.filter(
-        merch_status='PA', event=event).aggregate(quantity=Count('id'))
+        has_merchandise=True,
+        merch_status='PA',
+        event=event,
+    ).aggregate(quantity=Count('id'))
     total = orders_pending['quantity'] + \
         orders_delivered['quantity'] + orders_partially['quantity']
     if total != 0:

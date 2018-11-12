@@ -798,10 +798,18 @@ class UtilsTest(TestBase):
 
     @patch('mercury_app.utils.create_merchandise_from_order')
     @patch('mercury_app.utils.create_attendee_from_order')
-    def test_create_order_atomic_success(self, mock_create_attendee_from_order, mock_create_merchandise_from_order):
+    def test_create_order_atomic_success_w_merchandise(self, mock_create_attendee_from_order, mock_create_merchandise_from_order):
         event = EventFactory(eb_event_id=444)
         order = get_mock_api_orders(1, 1, 444)
-        result = create_order_atomic(self.user.id, event.id, order[0])
+        result = create_order_atomic(self.user.id, event.id, order[0], True)
+        self.assertTrue(isinstance(result, Order))
+
+    @patch('mercury_app.utils.create_merchandise_from_order')
+    @patch('mercury_app.utils.create_attendee_from_order')
+    def test_create_order_atomic_success_wo_merchandise(self, mock_create_attendee_from_order, mock_create_merchandise_from_order):
+        event = EventFactory(eb_event_id=444)
+        order = get_mock_api_orders(1, 0, 444)
+        result = create_order_atomic(self.user.id, event.id, order[0], False)
         self.assertTrue(isinstance(result, Order))
 
     @patch('mercury_app.utils.create_merchandise_from_order')
@@ -1245,6 +1253,7 @@ class MerchandiseModelTest(TestCase):
             status='pending',
             email='hola@hola',
             merch_status='PE',
+            has_merchandise=True,
         )
         return Merchandise.objects.create(
             order=order, name=name, item_type=item_type,

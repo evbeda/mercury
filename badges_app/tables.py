@@ -18,16 +18,17 @@ class PrintingTable(tables.Table):
         orderable=False,
         empty_values=(),
     )
-    full_name = tables.Column(
+    first_name = tables.Column(
         verbose_name=_('Full Name'),
         empty_values=(),
     )
     order_eb_order_id = tables.Column(
         verbose_name=('Order ID'),
         accessor=Accessor('order.eb_order_id'),
+        orderable=False,
     )
 
-    def render_full_name(self, value, record):
+    def render_first_name(self, value, record):
         return '{} {}'.format(record.first_name, record.last_name)
 
     def render_actions(self, value, record):
@@ -44,16 +45,15 @@ class PrintingTable(tables.Table):
         exclude = (
             'id',
             'order',
-            'first_name',
             'last_name',
             'eb_attendee_id',
             'barcode',
             'barcode_url',
-            'checked_in_time',
+            'checked_in',
         )
         sequence = (
-            'full_name',
-            'checked_in',
+            'first_name',
+            'checked_in_time',
             'order_eb_order_id',
             'actions',
         )

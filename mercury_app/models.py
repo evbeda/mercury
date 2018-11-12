@@ -89,6 +89,7 @@ class Order(models.Model):
         choices=MERCH_STATUS,
         default='PE',
     )
+    has_merchandise = models.BooleanField()
 
     def __string__(self):
         return '{} {}'.format(self.first_name, self.last_name)
