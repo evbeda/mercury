@@ -15,6 +15,7 @@ from django.shortcuts import (
     redirect,
 )
 from rest_framework.views import APIView, View
+from django.views.generic import TemplateView
 from django_tables2 import (
     SingleTableMixin,
     SingleTableView,
@@ -135,8 +136,7 @@ class RedisPrinterOrder(SingleTableView, View):
             rc = redis_conn()
             job_key = "job_{}".format(rc.incr("job_id"))
             job_data = {'job_key': job_key,
-                        'first_name': attendee.first_name,
-                        'last_name': attendee.last_name}
+                        'attendee_id': attendee.id}
             rc.set(job_key, pickle.dumps(job_data))
             printer_key = "printer_{}".format(printer_id)
             rc.rpush(printer_key, job_key)

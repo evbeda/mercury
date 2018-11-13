@@ -5,6 +5,7 @@ from badges_app.serializers import PrinterSerializer
 import json
 import uuid
 from mercury_app.utils import redis_conn
+from mercury_app.models import Attendee
 import pickle
 
 
@@ -24,8 +25,8 @@ def printer_queue(key):
         jobs = []
         for job_key in response:
             result = pickle.loads(rc.get(job_key))
-            jobs.append({'job_key' : result['job_key'],
-                    'content' : get_zpl(result['first_name'], result['last_name'])})
+            jobs.append({'job_key': result['job_key'],
+                         'content': get_zpl(result['attendee_id'])})
         if jobs:
             return HttpResponse(json.dumps(jobs),
                                 content_type="application/json")
@@ -40,15 +41,26 @@ def printer_queue(key):
                             content_type="application/json")
 
 
-def get_zpl(name, last_name):
-        result = '^XA\
-^FO20,10^GB700,1,3^FS\
+def get_zpl(attendee_id):
+    attendee = Attendee.objects.get(id=attendee_id)
+    result = '^XA\
+^FX\
 ^CFA,30\
-^AV,25,25^FO20,30^FD{}^FS\
-^AV,25,25^FO20,130^FD{}^FS\
-^FO20,330^GB700,1,3^FS\
-^XZ'.format(name, last_name)
-        return result
+^FO50,100^FD{0}^FS\
+^FO50,140^FD100{1}^FS\
+^CFA,15\
+^FO50,200^GB700,1,3^FS\
+^FS^FS^FS^FS\
+^FO^FO^FO^FO^FS\
+^FO250,200\
+^BQN,2,10\
+^FD ,{0} , {1} , {2} , {3}\
+^XZ'.format(attendee.first_name,
+            attendee.last_name,
+            attendee.order.email,
+            attendee.order.event.organization.name,
+            )
+    return result
 
 
 def confirm_job(key, secret_key, job_key):
@@ -62,16 +74,19 @@ def confirm_job(key, secret_key, job_key):
                     message = {"job_key": job_key,
                                "delete": "ok"}
                 else:
-                    message = {"error": "job_key does not exist or printer does not exist"}
+                    message = {
+                        "error": "job_key does not exist or printer does not exist"}
                 return HttpResponse(json.dumps(message),
                                     content_type="application/json")
         except Exception:
-            message = {"error": "job_key does not exist or printer does not exist"}
+            message = {
+                "error": "job_key does not exist or printer does not exist"}
             return HttpResponse(json.dumps(message),
-                        content_type="application/json")
+                                content_type="application/json")
     message = {"Error": "Undefined key or secret key"}
     return HttpResponse(json.dumps(message),
                         content_type="application/json")
+
 
 def configure_printer(key):
     try:

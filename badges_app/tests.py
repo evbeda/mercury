@@ -1,6 +1,7 @@
 from django.test import TestCase
 from badges_app.factories import PrinterFactory
 from badges_app.models import Printer
+from mercury_app.test_factories import AttendeeFactory, OrderFactory, EventFactory, OrganizationFactory
 from badges_app.utils import (configure_printer,
                               update_printer_name,
                               printer_queue,
@@ -77,15 +78,22 @@ class TestApi(TestCase):
     @patch('badges_app.utils.redis_conn', return_value=fakeredis.FakeRedis())
     def test_printer_queue(self, mock_redis):
         rc = fakeredis.FakeStrictRedis()
+        organization = OrganizationFactory(name='Org1')
+        event = EventFactory(name="Event",organization=organization)
+        order = OrderFactory(event = event, email='hola@gmail.com')
+        attendee = AttendeeFactory(
+            first_name='Test',
+            last_name='Mock',
+            order=order,
+        )
         job_key = "job_{}".format(1)
         job_data = {'job_key': job_key,
-                    'first_name': "Test",
-                    'last_name': "Mock"}
+                    'attendee_id': attendee.id,}
         rc.set(job_key, pickle.dumps(job_data))
         printer_key = 'printer_{}'.format(self.printer.id)
         rc.rpush(printer_key, job_key)
         result = printer_queue(self.printer.key)
-        expected = b'[{"job_key": "job_1", "content": "^XA^FO20,10^GB700,1,3^FS^CFA,30^AV,25,25^FO20,30^FDTest^FS^AV,25,25^FO20,130^FDMock^FS^FO20,330^GB700,1,3^FS^XZ"}]'
+        expected = b'[{"job_key": "job_1", "content": "^XA^FX^CFA,30^FO50,100^FDTest^FS^FO50,140^FD100Mock^FS^CFA,15^FO50,200^GB700,1,3^FS^FS^FS^FS^FS^FO^FO^FO^FO^FS^FO250,200^BQN,2,10^FD ,Test , Mock , hola@gmail.com , Org1^XZ"}]'
         self.assertEqual(result.content, expected)
 
     @patch('badges_app.utils.redis_conn', return_value=fakeredis.FakeStrictRedis())
