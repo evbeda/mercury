@@ -26,7 +26,7 @@ clip-rule="evenodd" d="M17 14.9l-.7.7-1.2-1.2c1.2-1.3 1.9-3 \
 
 event_with_badge = '<div class="col">\
 <div>\
-<a id="hip_not_underline" href="/event/{}/printing_list/">\
+<a id="hip_not_underline" href="/event/{0}/printing_list/">\
 <i class="eds-vector-image eds-icon--small" data-spec="icon" \
 aria-hidden="true"><svg id="eds-icon--printer_svg" \
 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">\
@@ -36,7 +36,24 @@ clip-rule="evenodd" d="M2 7v10h4v4h12v-4h4V7H2zm19 9h-3v-4H6v4H3V8h18v8zM7 \
 clip-rule="evenodd" d="M7 6V5h10v1h1V4H6v2z"/><g id="eds-icon--printer_lines" \
 fill-rule="evenodd" clip-rule="evenodd">\
 <path d="M8 15h8v1H8zm0 2h8v1H8z"/></g></svg></i></a></div>\
-</div>'
+</div><div><div class="col">\
+<i class="eds-vector-image eds-icon--small" data-spec="icon" aria-hidden="true">\
+<a id="hip_not_underline" href="event/{0}/configuration/printer/list/">\
+<svg id="eds-icon--gear_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">\
+<path id="eds-icon--gear_base" fill-rule="evenodd" clip-rule="evenodd" d="M13 3v2l.8.\
+2c.6.2 1.2.4 1.7.8l.7.4.5-.5.9-.9L19 6.4l-.9.9-.5.5.4.7c.3.6.6 1.2.7 1.8l.3.7h2v2h-2l-\
+.2.8c-.2.6-.4 1.2-.7 1.8l-.4.7.5.5.9.9-1.4 1.4-.9-.9-.5-.5-.8.3c-.6.3-1.2.6-1.8.7l-.7\
+.3v2h-2v-2l-.8-.2c-.6-.2-1.2-.4-1.7-.8l-.7-.4-.5.5-.9.9L5 17.6l.9-.9.5-.5-.4-.7c-.3-.\
+6-.6-1.2-.7-1.8L5 13H3v-2h2l.2-.8c.2-.6.4-1.2.8-1.7l.4-.7-.6-.6-.9-.9 1.4-1.4.9.9.5.5.\
+8-.3c.5-.4 1.1-.6 1.7-.8L11 5V3h2zm1-1h-4v2.3c-.7.2-1.4.4-2.1.8L6.3 3.5 3.5 6.3l1.6 1.6\
+c-.4.7-.6 1.4-.8 2.1H2v4h2.3c.2.7.5 1.4.9 2.1l-1.6 1.6 2.8 2.8L8 18.9c.6.4 1.3.7 2.1.9V\
+22h4v-2.3c.7-.2 1.4-.5 2.1-.9l1.6 1.6 2.8-2.8L19 16c.4-.6.7-1.3.9-2.1H22v-4h-2.3c-.2-.\
+7-.5-1.4-.9-2.1l1.6-1.6-2.8-2.8L16 5c-.6-.4-1.3-.7-2.1-.9V2z"/>\
+<path id="eds-icon--gear_circle" fill-rule="evenodd" clip-rule="evenodd" d="M12 8c-2.2 \
+0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 7c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z"/>\
+</svg></i></a></div></div>'
+
+
 
 event_delete = '<div class="col">\
 <div>\

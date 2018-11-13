@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load i18n %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load bootstrap4 %}
+{% load i18n %}
+<div class="container">
+	<div class="row">
+		<div class="col-12">
+			{% if printers %}
+			<div class="jumbotron">
+				<div class="mb-5">
+					<p><a class="navigation" href="{% url 'index' %}"> {% trans "Managed events" %} &nbsp;&nbsp;>&nbsp;&nbsp; </a> <strong> {% trans "Configure printers" %} </strong> </p>
+				</div>
+				<h1 class="title">{% trans "Printer's List" %}</h1>
+				<p class="subtitle">{% trans "Of the event" %} {{ printers.0.event.name }}.</p>
+			</div>
+		</div>
+	</div>
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Public Key</th>
+				<th>Status</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for printer in printers %}
+			<tr>
+				<td>{{ printer.name }}</td>
+				<td>{{ printer.key }}</td>
+				<td>{% if printer.secret_key %}Configured{% else %} Not configured {% endif %}</td>
+				<td>
+					<a href="{% url 'delete_printer' event_id=event_id printer_id=printer.id %}">
+						<i class="eds-vector-image eds-icon--small" data-spec="icon" aria-hidden="true">
+							<svg id="eds-icon--trash_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+								<path id="eds-icon--trash_base" fill-rule="evenodd" clip-rule="evenodd" d="M5 6h1v15H5V6zm13 0h1v15h-1V6zM5 21h14v1H5v-1z">	
+								</path>
+								<path id="eds-icon--trash_top" fill-rule="evenodd" clip-rule="evenodd" d="M15 4V2H9v2H4v1h16V4h-5zm-1 0h-4V3h4v1z">
+								</path>
+								<g id="eds-icon--trash_lines" fill-rule="evenodd" clip-rule="evenodd">
+									<path d="M9 8h1v11H9zm5 0h1v11h-1z"></path>
+								</g>
+							</svg>
+						</i>
+					</a>
+					<a href="{% url 'reset_printer' event_id=event_id printer_id=printer.id %}">
+						<i class="eds-vector-image eds-icon--small" data-spec="icon" aria-hidden="true">
+							<svg id="eds-icon--key_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+								<path d="M21.5 21.3l-9.6-9.6c2.1-2.2 2.1-5.8-.1-8C10.7 2.6 9.2 2 7.7 2s-2.9.6-4 1.7c-2.2 2.2-2.2 5.9 0 8.1 1.1 1.1 2.6 1.7 4.1 1.7 1.2 0 2.4-.4 3.4-1.1l5.1 5.1-1.8 1.8.7.7 1.8-1.8 1.4 1.4-1.8 1.8.7.7 1.8-1.8 1.8 1.8.6-.8zM4.4 11.1c-1.8-1.8-1.8-4.9 0-6.7C5.3 3.5 6.5 3 7.7 3c1.3 0 2.5.5 3.3 1.4 1.8 1.8 1.8 4.9 0 6.7-.8.9-2 1.4-3.3 1.4-1.2 0-2.4-.5-3.3-1.4z"/>
+							</svg>
+						</i>
+					</a>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% else %}
+</div>
+<div class="container">
+	<div class="row">
+		<div class="col-12">
+			<div class="alert alert-warning">
+				<strong>{% trans "Oops" %}!</strong> {% trans "It looks like you have not added any Printer. Please add a Printer" %}.
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+{% if message %}
+<div class="container">
+	<div class="row">
+		<div class="col-12">
+			<div class="alert alert-warning">
+				<strong>{{ message }}</strong>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+<div class="container">
+	<div class="row">
+		<div class="col-10"></div>
+		<div class="col-2">
+			<a href="{% url 'create_printer' event_id=event_id%}" class="btn btn-primary btn-block ">Add</a>
+		</div>
+	</div>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}
