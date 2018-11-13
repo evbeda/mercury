@@ -127,16 +127,11 @@ class RedisPrinterOrder(SingleTableView, View):
 
     def get(self, request, *args, **kwargs):
         try:
+            printer_id = self.request.GET.get('printer_id')
             attendee = get_db_attendee_from_eb_id(
                 self.kwargs['attendee_id'],
                 self.kwargs['event_id'],
             )
-            printer_id = Printer.objects.filter(
-                event=self.kwargs['event_id'],
-            ).values_list(
-                'id',
-                flat=True,
-            ).first()
             rc = redis_conn()
             job_key = "job_{}".format(rc.incr("job_id"))
             job_data = {'job_key': job_key,
