@@ -187,6 +187,12 @@ def get_api_attendee_checked(token, attendee_id, event_id):
     return eventbrite.get(url)
 
 
+def get_api_canned_questions(token, event_id):
+    eventbrite = Eventbrite(token)
+    url = '/events/{}/canned_questions/'.format(event_id)
+    return eventbrite.get(url)
+
+
 def has_continuation(request):
     return request.get('pagination').get('has_more_items')
 
@@ -981,6 +987,31 @@ def get_db_transaction_by_merchandise(merchandise):
         return transaction_query
     except Exception:
         return None
+
+
+def get_canned_questions_list(user, event_id):
+    try:
+        token = get_auth_token(user)
+        call = get_api_canned_questions(token, event_id)
+        question_list = []
+        for question in call['questions']:
+            if (
+                (
+                    question['group_id'] == 'contact_information' or
+                    question['group_id'] == 'work_information'
+                ) and
+                len(question['ticket_classes']) > 0
+            ):
+                question_list.append(
+                    question['question']['text'],
+                )
+        return question_list
+    except Exception:
+        raise APIError
+
+
+class APIError(Exception):
+    pass
 
 
 def update_db_merch_status(order):

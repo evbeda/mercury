@@ -17,7 +17,7 @@ BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 CELERY_BROKER_URL = BROKER_URL
 CELERY_RESULT_BACKEND = BROKER_URL
 # DO NOT uncomment this line, it turns async tasks into sync
-CELERY_TASK_ALWAYS_EAGER = True
+# CELERY_TASK_ALWAYS_EAGER = True
 
 REGEX_ORDER = r'(http[s]?:\/\/)?([^\/\s]+\/)([^\/\s]+\/)([^\/\s]+\/)(\d+)(.*)'
 REGEX_CHECK_IN = r'(http[s]?:\/\/)?([^\/\s]+\/)([^\/\s]+\/)([^\/\s]+\/)(\w+)(.*)([^\/\s]+\/)([\d\-]+)'

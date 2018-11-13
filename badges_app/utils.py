@@ -12,7 +12,7 @@ except ImportError:
 import os
 import redis
 from mercury_app.models import Attendee
-
+from badges_app.models import CustomLabel
 
 class JSONResponse(HttpResponse):
     def __init__(self, data, **kwargs):
@@ -47,24 +47,47 @@ def printer_queue(key):
 
 
 def get_zpl(attendee_id):
-    attendee = Attendee.objects.get(id=attendee_id)
-    result = '^XA\
-^FX\
-^CFA,30\
-^FO50,100^FD{0}^FS\
-^FO50,140^FD100{1}^FS\
-^CFA,15\
-^FO50,200^GB700,1,3^FS\
-^FS^FS^FS^FS\
-^FO^FO^FO^FO^FS\
-^FO250,200\
-^BQN,2,10\
-^FD ,{0} , {1} , {2} , {3}\
-^XZ'.format(attendee.first_name,
-            attendee.last_name,
-            attendee.order.email,
-            attendee.order.event.organization.name,
-            )
+    attendee = Attendee.objects.get(
+        id=attendee_id,
+    )
+    if check_custom_label_exists(
+        attendee.order.event,
+    ):
+        result = '^XA\
+    ^FX\
+    ^CFA,30\
+    ^FO50,100^FD{0}^FS\
+    ^FO50,140^FD100{1}^FS\
+    ^CFA,15\
+    ^FO50,200^GB700,1,3^FS\
+    ^FS^FS^FS^FS\
+    ^FO^FO^FO^FO^FS\
+    ^FO250,200\
+    ^BQN,2,10\
+    ^FD ,{0} , {1} , {2} , {3}\
+    ^XZ'.format(attendee.first_name,
+                attendee.last_name,
+                attendee.order.email,
+                attendee.order.event.organization.name,
+                )
+    else:
+        result = '^XA\
+    ^FX\
+    ^CFA,30\
+    ^FO50,100^FD{0}^FS\
+    ^FO50,140^FD100{1}^FS\
+    ^CFA,15\
+    ^FO50,200^GB700,1,3^FS\
+    ^FS^FS^FS^FS\
+    ^FO^FO^FO^FO^FS\
+    ^FO250,200\
+    ^BQN,2,10\
+    ^FD ,{0} , {1} , {2} , {3}\
+    ^XZ'.format(attendee.first_name,
+                attendee.last_name,
+                attendee.order.email,
+                attendee.order.event.organization.name,
+                )
     return result
 
 
@@ -159,3 +182,41 @@ def set_redis_job(printer_id, attendee):
         return True
     except Exception:
         return False
+
+
+def check_custom_label_exists(event):
+    return CustomLabel.objects.filter(
+        event=event,
+    ).exists()
+
+
+def create_label_string_for_db(first, second, third, fourth):
+    string = '{},{},{},{}'.format(
+        first,
+        second,
+        third,
+        fourth,
+    )
+    return string
+
+
+def set_custom_label(event, first, second, third, fourth):
+    string = create_label_string_for_db(
+        first,
+        second,
+        third,
+        fourth,
+    )
+
+    if check_custom_label_exists(event):
+        label = CustomLabel.objects.filter(
+            event=event,
+        ).update(
+            string=string,
+        )
+    else:
+        label = CustomLabel.objects.create(
+            event=event,
+            string=string,
+        )
+    return label

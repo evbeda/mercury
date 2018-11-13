@@ -16,8 +16,11 @@
 				<h1 class="title">{% trans "Printer's List" %}</h1>
 				<p class="subtitle">{% trans "Of the event" %} {{ printers.0.event.name }}.</p>
 <p>
+  <a class="btn btn-primary" href="{% url 'custom_label' event_id=event_id %}" role="button">
+    Label configuration
+  </a>
   <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
-    Advance configuration
+    Advanced configuration
   </a>
 </p>
 	<br>
@@ -49,6 +52,22 @@
 			</div>
 		</div>
 	</div>
+	{% if messages %}
+<div class="row">
+  <div class="col-12">
+    <div class="alert alert-warning">
+      <strong>
+        <ul>
+          {% for message in messages %}
+          <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+          {% endfor %}
+      </ul>
+  </strong>
+</div>
+</div>
+</div>
+{% endif %}
+
 	<table class="table">
 		<thead>
 			<tr>
@@ -68,7 +87,7 @@
 					<a href="{% url 'delete_printer' event_id=event_id printer_id=printer.id %}">
 						<i class="eds-vector-image eds-icon--small" data-spec="icon" aria-hidden="true">
 							<svg id="eds-icon--trash_svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-								<path id="eds-icon--trash_base" fill-rule="evenodd" clip-rule="evenodd" d="M5 6h1v15H5V6zm13 0h1v15h-1V6zM5 21h14v1H5v-1z">	
+								<path id="eds-icon--trash_base" fill-rule="evenodd" clip-rule="evenodd" d="M5 6h1v15H5V6zm13 0h1v15h-1V6zM5 21h14v1H5v-1z">
 								</path>
 								<path id="eds-icon--trash_top" fill-rule="evenodd" clip-rule="evenodd" d="M15 4V2H9v2H4v1h16V4h-5zm-1 0h-4V3h4v1z">
 								</path>
@@ -98,17 +117,6 @@
 		<div class="col-12">
 			<div class="alert alert-warning">
 				<strong>{% trans "Oops" %}!</strong> {% trans "It looks like you have not added any Printer. Please add a Printer" %}.
-			</div>
-		</div>
-	</div>
-</div>
-{% endif %}
-{% if message %}
-<div class="container">
-	<div class="row">
-		<div class="col-12">
-			<div class="alert alert-warning">
-				<strong>{{ message }}</strong>
 			</div>
 		</div>
 	</div>

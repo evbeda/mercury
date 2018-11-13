@@ -13,7 +13,6 @@ from django.http import (
 from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
-import re
 from django.utils import timezone
 from datetime import datetime
 from mercury_app.models import (
@@ -63,8 +62,7 @@ from mercury_app.utils import (
     get_merchas_for_email,
 )
 import dateutil.parser
-from django.core.cache import cache
-import pickle
+
 
 
 class Webhook(View):

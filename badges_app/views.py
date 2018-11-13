@@ -1,12 +1,21 @@
+import os
+import redis
 import json
+import uuid
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.shortcuts import (
     redirect,
 )
+from django.views.generic.base import TemplateView
 from rest_framework.views import APIView, View
 from django.views.generic import TemplateView
 from django_tables2 import (
@@ -17,6 +26,7 @@ from mercury_app.filterview_fix import MyFilterView
 from mercury_app.utils import (
     EventAccessMixin,
     get_db_attendee_from_eb_id,
+    get_canned_questions_list,
 )
 from badges_app.utils import (
     printer_json,
@@ -24,20 +34,20 @@ from badges_app.utils import (
     update_printer_name,
     printer_queue,
     confirm_job,
+    set_custom_label,
 )
 from mercury_app.models import (
     Attendee,
     Event,
 )
-from badges_app.models import Printer
+from badges_app.models import (
+    Printer,
+    CustomLabel,
+)
 from badges_app.tables import PrintingTable
 from badges_app.filters import AttendeeFilter
 from django.views.generic.list import ListView
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.views.generic.base import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-import uuid
 from badges_app.utils import set_redis_job
 
 
@@ -89,7 +99,7 @@ class JobState(APIView):
 
 
 @method_decorator(login_required, name='dispatch')
-class FilteredPrintingList(SingleTableMixin, MyFilterView, EventAccessMixin):
+class FilteredPrintingList(SingleTableMixin, MyFilterView, EventAccessMixin, LoginRequiredMixin):
     table_class = PrintingTable
     model = Attendee
     template_name = 'printer_attendee_list.html'
@@ -113,7 +123,13 @@ class FilteredPrintingList(SingleTableMixin, MyFilterView, EventAccessMixin):
         return context
 
 
-class RedisPrinterOrder(SingleTableView, View):
+def redis_conn():
+    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
+    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
+
+
+@method_decorator(login_required, name='dispatch')
+class RedisPrinterOrder(SingleTableView, View, LoginRequiredMixin, EventAccessMixin):
 
     def get(self, request, *args, **kwargs):
         attendee = get_db_attendee_from_eb_id(
@@ -139,7 +155,7 @@ class RedisPrinterOrder(SingleTableView, View):
 
 
 @method_decorator(login_required, name='dispatch')
-class CreatePrinter(View):
+class CreatePrinter(View, LoginRequiredMixin, EventAccessMixin):
     def get(self, request, *args, **kwargs):
         context = {}
         context['event_id'] = self.kwargs['event_id']
@@ -173,7 +189,7 @@ class CreatePrinter(View):
 
 
 @method_decorator(login_required, name='dispatch')
-class ListPrinter(ListView):
+class ListPrinter(ListView, LoginRequiredMixin, EventAccessMixin):
     model = Printer
     template_name = "printer_list.html"
 
@@ -251,3 +267,39 @@ class SetAutoPrinter(View, LoginRequiredMixin, EventAccessMixin):
         self.request.session['message'] = message
         return redirect(reverse('printer_list', kwargs={
                                 'event_id': self.kwargs['event_id']}))
+
+
+@method_decorator(login_required, name='dispatch')
+class CustomLabel(TemplateView, LoginRequiredMixin, EventAccessMixin):
+    template_name = 'custom_label.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(CustomLabel, self).get_context_data(**kwargs)
+        q_list = get_canned_questions_list(
+            self.request.user,
+            self.kwargs['event_id'],
+        )
+        context['questions'] = q_list
+        return context
+
+    def post(self, request, *args, **kwargs):
+        data = self.request.POST
+        lines = list(data)[:-1]
+        event = Event.objects.get(
+            eb_event_id=self.kwargs['event_id'],
+        )
+        set_custom_label(
+            event,
+            data[lines[0]],
+            data[lines[1]],
+            data[lines[2]],
+            data[lines[3]],
+        )
+        messages.info(
+            self.request,
+            'The label has been updated.',
+        )
+        return redirect(reverse(
+            'printer_list',
+            kwargs={'event_id': self.kwargs['event_id']},
+        ))
