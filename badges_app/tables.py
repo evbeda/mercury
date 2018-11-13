@@ -5,11 +5,12 @@ from django_tables2.utils import Accessor
 from django.utils.translation import ugettext_lazy as _
 from mercury_app.strings import (
     string_order,
-    string_printer,
     event_delete,
     event_with_badge,
     event_with_merch,
 )
+from badges_app.strings import string_printer
+from badges_app.utils import get_html_combo_box
 
 
 class PrintingTable(tables.Table):
@@ -36,6 +37,7 @@ class PrintingTable(tables.Table):
             string_printer.format(
                 record.order.event.eb_event_id,
                 record.eb_attendee_id,
+                get_html_combo_box(record.order.event.id),
             )
         )
 

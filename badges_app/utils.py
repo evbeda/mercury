@@ -110,3 +110,12 @@ def update_printer_name(key, secret_key, name):
         message = {"Error": "Public and Private key does not match"}
         return HttpResponse(json.dumps(message),
                             content_type="application/json")
+
+
+def get_html_combo_box(event_id):
+    printers = Printer.objects.filter(event_id=event_id)
+    html = "<select class='form-control' name='printer_id'>"
+    for printer in printers:
+        html += "<option value={}>{}</option>".format(printer.id, printer.name)
+    html += "</select>"
+    return html
