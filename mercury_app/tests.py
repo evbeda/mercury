@@ -230,7 +230,7 @@ class TestBase(TestCase):
         return login
 
 
-@patch('badges_app.views.redis_conn', return_value=fakeredis.FakeStrictRedis())
+@patch('badges_app.utils.redis_conn', return_value=fakeredis.FakeStrictRedis())
 class TestRedisPrinterOrder(TestBase):
     def test_redis_connect_ok(self, mock_redis):
         att = AttendeeFactory()

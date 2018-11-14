@@ -57,6 +57,7 @@ class Event(models.Model):
     status = models.CharField(max_length=16)
     badges_tool = models.BooleanField(default=False)
     merchandise_tool = models.BooleanField(default=True)
+    badges_tool_auto = models.BooleanField(default=False)
 
     def __string__(self):
         return self.name

@@ -1,15 +1,8 @@
 import json
-import os
-import redis
-try:
-    import urlparse
-except ImportError:
-    import urllib.parse as urlparse
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib import messages
-import pickle
 from django.core.urlresolvers import reverse
 from django.shortcuts import (
     redirect,
@@ -45,6 +38,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic.base import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 import uuid
+from badges_app.utils import set_redis_job
 
 
 class PrinterView(APIView):
@@ -119,35 +113,24 @@ class FilteredPrintingList(SingleTableMixin, MyFilterView, EventAccessMixin):
         return context
 
 
-def redis_conn():
-    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
-    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
-
-
 class RedisPrinterOrder(SingleTableView, View):
 
     def get(self, request, *args, **kwargs):
-        try:
-            printer_id = self.request.GET.get('printer_id')
-            attendee = get_db_attendee_from_eb_id(
-                self.kwargs['attendee_id'],
-                self.kwargs['event_id'],
-            )
-            rc = redis_conn()
-            job_key = "job_{}".format(rc.incr("job_id"))
-            job_data = {'job_key': job_key,
-                        'attendee_id': attendee.id}
-            rc.set(job_key, pickle.dumps(job_data))
-            printer_key = "printer_{}".format(printer_id)
-            rc.rpush(printer_key, job_key)
+        attendee = get_db_attendee_from_eb_id(
+            self.kwargs['attendee_id'],
+            self.kwargs['event_id'],
+        )
+        result = set_redis_job(self.request.GET.get('printer_id'),
+                               attendee,)
+        if result:
             messages.info(
                 self.request,
                 'The order was printed correctly.',
             )
-        except Exception as e:
+        else:
             messages.info(
                 self.request,
-                e,
+                'The order was not printed correctly.',
             )
         return redirect(reverse(
             'printing_list',
@@ -202,6 +185,7 @@ class ListPrinter(ListView):
             event_id=event.id,
         ).order_by('id')
         context['event_id'] = event.eb_event_id
+        context['print_auto'] = event.badges_tool_auto
         context['message'] = self.request.session.get('message')
         self.request.session['message'] = None
         return context
@@ -246,6 +230,24 @@ class ResetPrinter(TemplateView, LoginRequiredMixin, EventAccessMixin):
         printer.key = uuid.uuid4()
         printer.save()
         message = 'The Key was changed and the secret key was removed'
+        self.request.session['message'] = message
+        return redirect(reverse('printer_list', kwargs={
+                                'event_id': self.kwargs['event_id']}))
+
+
+@method_decorator(login_required, name='dispatch')
+class SetAutoPrinter(View, LoginRequiredMixin, EventAccessMixin):
+
+    def post(self, request, *args, **kwargs):
+        event = self.get_event()
+        tool = True if (self.request.POST.get('print_auto')) else False
+        event.badges_tool_auto = tool
+        event.save()
+        Printer.objects.filter(event_id=event.id).update(auto=False)
+        printer = Printer.objects.get(id=self.request.POST.get('printer_id'))
+        printer.auto = tool
+        printer.save()
+        message = 'Auto print configured'
         self.request.session['message'] = message
         return redirect(reverse('printer_list', kwargs={
                                 'event_id': self.kwargs['event_id']}))

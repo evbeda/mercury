@@ -5,7 +5,8 @@ from badges_app.views import (
     CreatePrinter,
     ListPrinter,
     DeletePrinter,
-    ResetPrinter
+    ResetPrinter,
+    SetAutoPrinter
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     url(r'event/(?P<event_id>\d+)/configuration/printer/create/$', CreatePrinter.as_view(), name='create_printer'),
     url(r'event/(?P<event_id>\d+)/configuration/printer/(?P<printer_id>\d+)/delete/$', DeletePrinter.as_view(), name='delete_printer'),
     url(r'event/(?P<event_id>\d+)/configuration/printer/(?P<printer_id>\d+)/reset/$', ResetPrinter.as_view(), name='reset_printer'),
+    url(r'event/(?P<event_id>\d+)/configuration/auto_print/$', SetAutoPrinter.as_view(), name='auto_print'),
 ]
