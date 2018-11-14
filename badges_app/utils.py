@@ -4,9 +4,14 @@ from rest_framework.renderers import JSONRenderer
 from badges_app.serializers import PrinterSerializer
 import json
 import uuid
-from mercury_app.utils import redis_conn
-from mercury_app.models import Attendee
 import pickle
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
+import os
+import redis
+from mercury_app.models import Attendee
 
 
 class JSONResponse(HttpResponse):
@@ -134,3 +139,23 @@ def get_html_combo_box(event_id):
         html += "<option value={}>{}</option>".format(printer.id, printer.name)
     html += "</select>"
     return html
+
+
+def redis_conn():
+    url_p = urlparse.urlparse(os.environ.get('REDIS_URL'))
+    return redis.Redis(host=url_p.hostname, port=url_p.port, db=1)
+
+
+def set_redis_job(printer_id, attendee):
+    try:
+        rc = redis_conn()
+        job_key = "job_{}".format(rc.incr("job_id"))
+        job_data = {'job_key': job_key,
+                    'first_name': attendee.first_name,
+                    'last_name': attendee.last_name}
+        rc.set(job_key, pickle.dumps(job_data))
+        printer_key = "printer_{}".format(printer_id)
+        rc.rpush(printer_key, job_key)
+        return True
+    except Exception:
+        return False

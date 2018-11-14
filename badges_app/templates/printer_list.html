@@ -15,6 +15,37 @@
 				</div>
 				<h1 class="title">{% trans "Printer's List" %}</h1>
 				<p class="subtitle">{% trans "Of the event" %} {{ printers.0.event.name }}.</p>
+<p>
+  <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+    Advance configuration
+  </a>
+</p>
+	<br>
+<div class="collapse" id="collapseExample">
+  <div class="card card-body">
+
+  	<form action="{% url 'auto_print' event_id=event_id %}" method="POST">
+  	{% csrf_token %}
+	<div class="checkbox">
+	  <label>Print automatically
+	  	{% if print_auto %}
+	  	<input type="checkbox" name="print_auto" checked="True">
+	  	{% else %}
+	  	<input type="checkbox" name="print_auto">
+	  	{% endif %}
+	  </label><br>
+	  <label>Printer</label>
+	  <select class='form-control' name='printer_id'>
+	  	{% for printer in printers %}
+	  	<option value={{ printer.id }}>{{ printer.name }}</option>
+	  	{% endfor %}
+	  </select>
+	</div>
+	<br>
+	<input type="submit" class="btn btn-outline-primary">
+  	</form>
+  </div>
+</div>
 			</div>
 		</div>
 	</div>

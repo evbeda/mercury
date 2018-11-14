@@ -47,6 +47,8 @@ from mercury_app.app_settings import (
     REGEX_ORDER,
     REGEX_CHECK_IN,
 )
+from badges_app.models import Printer
+from badges_app.utils import set_redis_job
 
 
 def create_event_complete(user,
@@ -552,6 +554,13 @@ def webhook_checkin_action(config_data, social_user):
         REGEX_CHECK_IN,
         config_data['api_url'],
     )[8]
+    try:
+        attendee = Attendee.objects.get(eb_attendee_id=eb_attendee_id)
+        if attendee.order.event.badges_tool_auto:
+            p = Printer.objects.get(event=attendee.order.event, auto=True)
+            set_redis_job(p.id, attendee)
+    except Exception:
+        pass
     attendee_count = Attendee.objects.filter(
         eb_attendee_id__contains=eb_attendee_id,
     ).count()
