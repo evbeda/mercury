@@ -93,7 +93,7 @@ class TestApi(TestCase):
         printer_key = 'printer_{}'.format(self.printer.id)
         rc.rpush(printer_key, job_key)
         result = printer_queue(self.printer.key)
-        expected = b'[{"job_key": "job_1", "content": "^XA^FX^CFA,30^FO50,100^FDTest^FS^FO50,140^FD100Mock^FS^CFA,15^FO50,200^GB700,1,3^FS^FS^FS^FS^FS^FO^FO^FO^FO^FS^FO250,200^BQN,2,10^FD ,Test , Mock , hola@gmail.com , Org1^XZ"}]'
+        expected = b'[{"job_key": "job_1", "content": "^XA^FX^CFA,30^FO50,100^FD^F^AV,20,20^FO40,30^FDTest^FS^AV,20,20^FO40,100^FDMock^FS^CFA,15^FO50,350^GB500,1,3^FS^FS^FS^FS^FS^FO^FO^FO^FO^FS^FO370,30^BQN,2,8^FD , Test , Mock , hola@gmail.com , Org1 ^XZ"}]'
         self.assertEqual(result.content, expected)
 
     @patch('badges_app.utils.redis_conn', return_value=fakeredis.FakeStrictRedis())
