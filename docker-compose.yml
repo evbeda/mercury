@@ -1,0 +1,71 @@
+version: "3"
+
+services:
+  # PostgreSQL
+  db:
+    image: postgres:10.5
+    hostname: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+
+  # Redis
+  redis:
+    image: redis:4.0.11
+    hostname: redis
+    ports:
+      - "6379:6379"
+
+  # Django
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: django
+    command: ["./wait-for-postgres.sh", "db", "./entrypoint.sh"]
+    volumes:
+      - ./src:/app
+      - ./entrypoint.sh:/app/entrypoint.sh
+      - ./wait-for-postgres.sh:/app/wait-for-postgres.sh
+    depends_on:
+      - db
+    restart: always
+
+  # Celery
+  worker:
+    environment:
+      - C_FORCE_ROOT=true
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./entrypoint_celery.sh"]
+    volumes:
+      - ./src:/app
+      - ./entrypoint_celery.sh:/app/entrypoint_celery.sh
+    depends_on:
+      - django
+      - redis
+    restart: always
+
+  # Nginx
+  web-nginx:
+    environment:
+      - SERVER_NAME=MY_SERVER_NAME
+    image: nginx:1.15.5
+    hostname: nginx
+    restart: always
+    environment:
+      UPSTREAM: django:8000
+      SERVERNAME: ${SERVER_NAME}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./cert.crt:/etc/nginx/ssl/certificate.crt
+      - ./cert.key:/etc/nginx/ssl/certificate.key
+    depends_on:
+      - django
