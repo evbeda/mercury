@@ -26,8 +26,6 @@ DEBUG = True
 SECRET_KEY = '=bdt(@br=f+c8rqx4%@^_wc825x@w5#@(-se&z)g3gtmmd4=bh'
 
 ALLOWED_HOSTS = [
-    'ebmercury.herokuapp.com',
-    'ebmercury-qa.herokuapp.com',
     '127.0.0.1',
 ]
 

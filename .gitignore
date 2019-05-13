@@ -102,8 +102,18 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-#DS Store
+# DS Store
 .DS_Store
 
-#Redis files
+# Redis files
 *.rdb
+
+# Docker entrypoints
+*.sh
+
+# Nginx certificates
+*.key
+*.crt
+
+# Django static files
+src/static/

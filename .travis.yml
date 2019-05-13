@@ -1,26 +1,11 @@
-language: python
-python:
-  - "3.6.5"
+before_script:
+  - sudo /etc/init.d/postgresql stop
 
-services: postgresql
-
-env:
-  global:
-# - DJANGO="x.y.z"
-  - DJANGO_SETTINGS_MODULE="mercury_site.settings"
-  - PYTHONPATH="/home/travis/build/evbeda/mercury"
-  - PIP_USE_MIRRORS=true
+services:
+  - docker
 
 install:
-  - pip install -r requirements.txt
-
-before_script:
-  - psql -c 'create database travisdb;' -U postgres
-  - python manage.py migrate
-  - coverage erase
+  - docker-compose build
 
 script:
- - coverage run manage.py test
-
-after_success:
-  - coveralls
+  - docker-compose run -e COVERALLS_REPO_TOKEN=$repo_token django bash -c "coverage run manage.py test && coveralls"
