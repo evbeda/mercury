@@ -27,10 +27,8 @@ ENV EMAIL_HOST_PASSWORD MY_EMAIL_PASSWORD
 
 # Create app directory
 RUN mkdir /app
-WORKDIR /app
-
-# Add requirements.txt to the image
 COPY requirements.txt /app/requirements.txt
+WORKDIR /app
 RUN pip install -r requirements.txt
 
 # Copy
