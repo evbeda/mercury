@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
-
 import os
 import sys
 import dj_database_url
@@ -52,6 +51,7 @@ INSTALLED_APPS = [
     'redis_cache',
     'rest_framework',
     'badges_app',
+    'waffle',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +66,7 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'mercury_site.middleware.SocialAuthExceptionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'waffle.middleware.WaffleMiddleware',
 ]
 
 ROOT_URLCONF = 'mercury_site.urls'
@@ -136,6 +137,26 @@ DATABASES = {
     }
 }
 
+DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
+
+DATABASES['default'].update(DB_FROM_ENV)
+
+# Cache settings
+
+CACHES = {
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL'),
+    },
+}
+
+if 'test' in sys.argv or 'test_coverage' in sys.argv:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
 
@@ -164,6 +185,10 @@ LANGUAGES = (
     ('nl', _('Dutch')),
 )
 
+LOCALE_PATHS = (
+    os.path.join(BASE_DIR, 'locale'),
+)
+
 LANGUAGE_CODE = 'en'
 
 TIME_ZONE = 'America/Argentina/Mendoza'
@@ -188,20 +213,13 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
-LOCALE_PATHS = (
-    os.path.join(BASE_DIR, 'locale'),
-)
 
-DB_FROM_ENV = dj_database_url.config(conn_max_age=500)
+# Feature Flags Settings
 
-DATABASES['default'].update(DB_FROM_ENV)
+WAFFLE_CREATE_MISSING_FLAGS = True
+
+# Social Auth Settings
+
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
-
-CACHES = {
-    'default': {
-        'BACKEND': 'redis_cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_URL'),
-    },
-}
