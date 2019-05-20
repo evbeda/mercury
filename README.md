@@ -24,7 +24,7 @@ Redis  | 4.0.11
 - Django as the main Python application
 - Nginx as a web server
 - PostgreSQL as a Django database
-- Redis as a queue for Redis
+- Redis as a queue for Celery
 
 ## Docker Compose containers
 
@@ -40,6 +40,9 @@ Redis  | 4.0.11
 
  - Change the envirorment variables in the `Dockerfile` as you see fit
  - Generate SSL certificates for nginx ([Self Signed](https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-nginx-in-ubuntu-16-04) or [Let's encrypt](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-16-04))
+    - Self signed express lane
+        `sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout cert.key -out cert.crt`
+
  - Place the certificate files in the root folder (`./cert.crt` and `./cert.key`)
  - (Optional) Use [ngrok](https://ngrok.com/) to debug webhooks locally
 
