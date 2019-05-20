@@ -6,26 +6,22 @@ from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.http import (
-    HttpResponse,
     HttpResponseForbidden,
     HttpResponseServerError,
 )
 from django.contrib import messages
 from django_tables2 import SingleTableMixin, SingleTableView
 import json
-import re
 from django.utils import timezone
 from datetime import datetime
+from mercury_site.flags import HAS_BADGES_ENABLED
 from mercury_app.models import (
     Event,
     Order,
     Merchandise,
     Transaction,
     Attendee,
-    UserOrganization,
-    Organization,
 )
-from badges_app.models import (Printer)
 from django.utils import translation
 from django.utils.translation import ugettext as _
 from mercury_app.tables import OrderTable, TransactionTable, EventTable
@@ -38,7 +34,6 @@ from mercury_app.utils import (
     create_event_complete,
     get_api_organization,
     get_summary_orders,
-    get_api_events_id,
     get_db_order_by_id,
     get_percentage_handed,
     get_api_order_barcode,
@@ -64,7 +59,7 @@ from mercury_app.utils import (
 )
 import dateutil.parser
 from django.core.cache import cache
-import pickle
+import waffle
 
 
 class Webhook(View):
@@ -316,12 +311,18 @@ class SelectEvents(TemplateView, LoginRequiredMixin):
             self.request.user,
             self.request.GET.get('page'),
         )
+        if waffle.flag_is_active(self.request, HAS_BADGES_ENABLED):
+            context['badges_enabled'] = True
+        else:
+            context['badges_enabled'] = False
+
         for event in events:
             event['start']['local'] = (dateutil.parser.parse(
                 event['start']['local'])).strftime('%b. %e, %Y - %-I:%M %p')
             event_db = Event.objects.filter(eb_event_id=event['id']).first()
             if event_db:
-                event['badges_tool'] = event_db.badges_tool
+                if waffle.flag_is_active(self.request, HAS_BADGES_ENABLED):
+                    event['badges_tool'] = event_db.badges_tool
                 event['merchandise_tool'] = event_db.merchandise_tool
         context['events'] = events
         if pagination:

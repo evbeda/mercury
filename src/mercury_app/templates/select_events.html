@@ -32,7 +32,9 @@
             <tr>
               <th scope="col">{% trans "Event name" %}</th>
               <th scope="col">{% trans "Start date" %}</th>
+              {% if badges_enabled %}
               <th scope="col">{% trans "Badges" %}</th>
+              {% endif %}
               <th scope="col">{% trans "Merchandise" %}</th>
             </tr>
           </thead>
@@ -45,9 +47,11 @@
            <tr>
             <td>{{ event.name.text }}</td>
             <td>{{ event.start.local }}</td>
+            {% if badges_enabled %}
             <td>
                 <input type="checkbox" id="badges_{{ event.id }}" name="badges_{{ event.id }}" {% if event.badges_tool %} checked {% endif %}>
             </td>
+            {% endif %}
             <td>
                 <input type="checkbox" id="merchandise_{{ event.id }}" name="merchandise_{{ event.id }}" {% if event.merchandise_tool %} checked {% endif %}>
             </td>
@@ -105,7 +109,7 @@
       });
       document.getElementById("form").submit();
   }
-  
+
 </script>
 {% endautoescape %}
 {% endblock %}
