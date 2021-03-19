@@ -27,7 +27,7 @@ django-sekizai==0.10.0
 django-sslserver==0.20
 django-tables2==2.0.1
 django-waffle==0.16.0
-djangorestframework==3.9.0
+djangorestframework==3.11.2
 docopt==0.6.2
 eventbrite==3.3.3
 factory-boy==2.11.1
