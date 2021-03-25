@@ -59,7 +59,7 @@ pyOpenSSL==18.0.0
 python-dateutil==2.7.3
 python3-openid==3.1.0
 pytz==2018.5
-PyYAML==5.1
+PyYAML==5.4
 qrcode==6.0
 redis==2.10.6
 reportlab==3.5.9
