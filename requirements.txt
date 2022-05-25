@@ -52,7 +52,7 @@ psycopg2-binary==2.7.4
 ptyprocess==0.6.0
 pycparser==2.19
 Pygments==2.2.0
-PyJWT==1.6.4
+PyJWT==2.4.0
 pymongo==3.7.1
 pynliner3==0.6
 pyOpenSSL==18.0.0
