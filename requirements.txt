@@ -62,7 +62,7 @@ pytz==2018.5
 PyYAML==5.1
 qrcode==6.0
 redis==2.10.6
-reportlab==3.5.9
+reportlab==3.5.55
 requests==2.22.0
 requests-oauthlib==1.0.0
 simplegeneric==0.8.1
